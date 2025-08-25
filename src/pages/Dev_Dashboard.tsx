@@ -3,10 +3,11 @@ import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import Table from "../components/ui/Table";
 import Form, { FormInput, FormSelect } from "../components/ui/Form";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter, DialogClose } from "../components/ui/Dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter, DialogClose } from "../components/ui/Dialog";
 import Spinner from "../components/ui/Spinner";
-import Loader from "../components/ui/Loader";
+
 import Breadcrumbs from "../components/ui/Breadcrumbs";
+import { usePageTitle } from "../hooks/usePageTitle";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -117,6 +118,7 @@ const colorPalette = {
 };
 
 export default function Dev_Dashboard() {
+  usePageTitle("Dev Dashboard");
   const [isLoading, setIsLoading] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
 
@@ -147,6 +149,7 @@ export default function Dev_Dashboard() {
   }
 
   return (
+    
     <div className="space-y-6">
       <Breadcrumbs
         items={[

@@ -33,6 +33,14 @@ export default function Header() {
           >
             Reports
           </NavLink>
+          <NavLink
+            to="/dev"
+            className={({ isActive }) =>
+              `hover:text-white/90 ${isActive ? 'underline font-semibold' : 'text-white'} text-primary-200`
+            }
+          >
+            Dev
+          </NavLink>
         </nav>
       </div>
     </header>
