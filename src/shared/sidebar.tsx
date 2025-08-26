@@ -1,0 +1,111 @@
+import {
+    BarChart3,
+    BookOpenText,
+    Users,
+    GraduationCap,
+    CalendarDays,
+    UserPlus,
+    Mail
+} from "lucide-react";
+import { NavLink } from "react-router-dom";
+import { cn } from "../lib/utils";
+
+export default function Sidebar({ isOpen }: { isOpen: boolean }) {
+
+    return (
+        <div className={cn(
+        "fixed top-20 left-0 z-40 h-[85vh] w-64 bg-white shadow-xl p-4 rounded-xl transition-transform duration-300 overflow-y-auto scrollbar-hide",
+        "lg:translate-x-0 lg:block lg:left-4",
+        isOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+            
+            <h1 className="text-xl font-bold">Dashboard</h1>
+
+            <div className="flex flex-col gap-2 mt-4">
+                <NavLink
+                    to="/analytics"
+                    className={({ isActive }) => {
+                        return isActive ? "navItemClasses bg-primary-200 font-semibold" : "navItemClasses"
+                    }}
+                >
+                    <BarChart3 className="h-4 w-4" />
+                    Analytics
+                </NavLink>
+
+                <NavLink
+                    to="/courses"
+                    className={({ isActive }) => {
+                        return isActive ? "navItemClasses bg-primary-200 font-semibold" : "navItemClasses"
+                    }}
+                >
+                    <BookOpenText className="h-4 w-4" />
+                    Courses
+                </NavLink>
+
+                <NavLink
+                    to="/students"
+                    className={({ isActive }) => {
+                        return isActive ? "navItemClasses bg-primary-200 font-semibold" : "navItemClasses"
+                    }}
+                >
+                    <Users className="h-4 w-4" />
+                    Students
+                </NavLink>
+
+                <NavLink
+                    to="/teachers"
+                    className={({ isActive }) => {
+                        return isActive ? "navItemClasses bg-primary-200 font-semibold" : "navItemClasses"
+                    }}
+                >
+                    <GraduationCap className="h-4 w-4" />
+                    Teachers
+                </NavLink>
+
+                <NavLink
+                    to="/schedule"
+                    className={({ isActive }) => {
+                        return isActive ? "navItemClasses bg-primary-200 font-semibold" : "navItemClasses"
+                    }}
+                >
+                    <CalendarDays className="h-4 w-4" />
+                    Schedule
+                </NavLink>
+
+                <NavLink
+                    to="/assign-teacher"
+                    className={({ isActive }) => {
+                        return isActive ? "navItemClasses bg-primary-200 font-semibold" : "navItemClasses"
+                    }}
+                >
+                    <UserPlus className="h-4 w-4" />
+                    Assign Teacher
+                </NavLink>
+
+                <NavLink
+                    to="/requests"
+                    className={({ isActive }) => {
+                        return isActive ? "navItemClasses bg-primary-200 font-semibold" : "navItemClasses"
+                    }}
+                >
+                    <Mail className="h-4 w-4" />
+                    Requests
+                </NavLink>
+            </div>
+
+            <div>
+                <h2 className="font-bold mt-8">Upcoming Deadlines</h2>
+                <div className="flex flex-col gap-2 mt-4">
+                    <div className="border border-neutral-200 rounded-md p-2 bg-neutral-100">
+                        <h3 className="text-sm">Math 101 Registration</h3>
+                        <p className="text-[70%]">Due, Jan 15, 2025</p>
+                    </div>
+                    <div className="border border-neutral-200 rounded-md p-2 bg-neutral-100">
+                        <h3 className="text-sm">Physics 201 Registration</h3>
+                        <p className="text-[70%]">Due, Jan 20, 2025</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}

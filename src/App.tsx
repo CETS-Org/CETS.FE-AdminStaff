@@ -5,22 +5,28 @@ import Home from './pages/Home'
 import Requests from './pages/Requests'
 import Reports from './pages/Reports'
 import Dev_Dashboard from './pages/Dev_Dashboard'
+import Sidebar from './shared/sidebar'
+import StaffHome from './pages/staff_home_page'
 
 export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-neutral-50">
-      <Header />
+      
+      {/* <Header /> */}
       <main className="flex-1">
-        <div className="mx-auto max-w-7xl px-4 py-8">
+        <div className="">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/requests" element={<Requests />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/dev" element={<Dev_Dashboard />} />
+            <Route path="/staff" element ={<StaffHome/>}/>
           </Routes>
         </div>
       </main>
-      <Footer />
+   
+      {/* <Sidebar/> */}
+      {/* <Footer /> */}
     </div>
   )
 }
