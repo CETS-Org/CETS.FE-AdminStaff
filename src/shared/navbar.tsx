@@ -14,7 +14,8 @@ import {
 export default function Navbar({ toggleSidebar }: { toggleSidebar: () => void }) {
 
   return (
-    <nav className="w-full h-16 bg-primary-800 shadow-xl flex items-center justify-between px-6 top-0 fixed z-10">
+    // <nav className="w-full h-16 bg-primary-800 shadow-xl flex items-center justify-between px-6 top-0 fixed z-10">
+     <nav className="lg:w-5/6 w-full h-16 right-0 bg-primary-800 shadow-xl flex items-center justify-between px-6 top-0 fixed z-10">
       {/* Logo */}
       <div className=" flex items-center gap-2">
          <button onClick={toggleSidebar} className="lg:hidden">

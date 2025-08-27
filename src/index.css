@@ -6,17 +6,21 @@
 html, body, #root {
   height: 100%;
 }
+
 /* globals.css hoặc index.css */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
 .scrollbar-hide {
   -ms-overflow-style: none;  /* IE và Edge */
-  scrollbar-width: none;     /* Firefox */
-}
+  scrollbar-width: none;    /* Firefox */
+ } 
+/* globals.css */
+
 
 .navItemClasses{
-  @apply flex items-center gap-2 border border-neutral-200 rounded-md p-3 hover:bg-primary-100 transition;
+  @apply flex items-center gap-2 border border-neutral-200 rounded-md p-3 hover:bg-primary-100 transition mr-2;
 }
 
 @theme inline {
