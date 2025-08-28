@@ -15,14 +15,14 @@ export default function Navbar({ toggleSidebar }: { toggleSidebar: () => void })
 
   return (
     // <nav className="w-full h-16 bg-primary-800 shadow-xl flex items-center justify-between px-6 top-0 fixed z-10">
-     <nav className="lg:w-5/6 w-full h-16 right-0 bg-primary-800 shadow-xl flex items-center justify-between px-6 top-0 fixed z-10">
+     <nav className="lg:pl-70 w-full h-16 right-0 bg-white shadow-md flex items-center justify-between px-6 top-0 fixed z-10">
       {/* Logo */}
       <div className=" flex items-center gap-2">
          <button onClick={toggleSidebar} className="lg:hidden">
           <Menu className="text-slate-600" />
         </button>
         <img src="/logo.png" alt="Logo" className="h-8 w-8" />
-        <span className="text-lg font-bold">MyWebsite</span>
+        <span className="text-lg font-bold text-primary-900">MyWebsite</span>
       </div>
 
       {/* Right side */}
@@ -38,7 +38,7 @@ export default function Navbar({ toggleSidebar }: { toggleSidebar: () => void })
         {/* User Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-2 focus:outline-none">
-            <span className="text-sm font-medium">Ngọc Hân</span>
+            <span className="text-sm font-medium text-primary-900">Ngọc Hân</span>
             <Avatar className="h-8 w-8">
               <AvatarImage src="https://github.com/shadcn.png" alt="@user" />
               <AvatarFallback>NH</AvatarFallback>

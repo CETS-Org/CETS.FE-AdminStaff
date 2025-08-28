@@ -6,7 +6,7 @@ import Requests from './pages/Requests'
 import Reports from './pages/Reports'
 import Dev_Dashboard from './pages/Dev_Dashboard'
 import Sidebar from './shared/sidebar'
-import StaffHome from './pages/staff_home_page'
+import StaffHome from './pages/staff/staffHome'
 
 export default function App() {
   return (
@@ -23,9 +23,10 @@ export default function App() {
             <Route path="/staff" element ={<StaffHome/>}/>
           </Routes>
         </div>
+
       </main>
    
-      {/* <Sidebar/> */}
+     
       {/* <Footer /> */}
     </div>
   )
