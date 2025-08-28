@@ -1,6 +1,7 @@
 import Pagination from "@/shared/pagination";
 import { Pencil, Trash2, Eye } from "lucide-react";
 import { useState } from "react";
+import AddSearchTeacher from "./components/add_search_teacher";
 
 export default function TeacherList() {
 
@@ -27,6 +28,7 @@ export default function TeacherList() {
     return (
         <div>
             <h1 className="text-xl font-bold mb-4 text-gray-500">Teacher List</h1>
+            <AddSearchTeacher/>
             <table className="min-w-full rounded-lg shadow-sm border border-gray-200 bg-white ">
                 <thead className="bg-primary-800 ">
                     <tr>

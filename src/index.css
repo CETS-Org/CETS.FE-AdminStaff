@@ -20,7 +20,7 @@ html, body, #root {
 
 
 .navItemClasses{
-  @apply  flex items-center gap-2 border border-neutral-200 rounded-md p-3 hover:bg-primary-800 hover:text-white hover:border hover:border-white hover:shadow-[0_0_8px_white] transition mr-2;
+  @apply  flex my-1 items-center gap-4 border border-neutral-200 rounded-md p-3 hover:bg-primary-800 hover:text-white hover:border hover:border-white hover:shadow-[0_0_8px_white] transition mr-2;
 }
 
 @theme inline {
