@@ -7,12 +7,13 @@ import Reports from './pages/Reports'
 import Dev_Dashboard from './pages/Dev_Dashboard'
 import Sidebar from './shared/sidebar'
 import StaffHome from './pages/staff/staffHome'
+import StaffSchedulePage from './pages/staff/staff_schedule'
 
 export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-neutral-50">
       
-      {/* <Header /> */}
+      <Header />
       <main className="flex-1">
         <div className="">
           <Routes>
@@ -20,7 +21,7 @@ export default function App() {
             <Route path="/requests" element={<Requests />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/dev" element={<Dev_Dashboard />} />
-            <Route path="/staff" element ={<StaffHome/>}/>
+            <Route path="/staff/*" element={<StaffHome />} />
           </Routes>
         </div>
 

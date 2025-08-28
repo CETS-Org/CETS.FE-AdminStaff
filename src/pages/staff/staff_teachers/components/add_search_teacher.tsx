@@ -1,5 +1,4 @@
 export default function AddSearchTeacher() {
-
     return (
     <div className="min-w-full rounded-lg shadow-sm border border-gray-200 bg-white p-2 flex justify-between items-center mb-4">
         <button className="bg-gray-500 rounded-md px-2 py-1 text-gray-200 hover:bg-primary-900"> Add new teacher</button>
@@ -16,8 +15,7 @@ export default function AddSearchTeacher() {
             <option value="ielts">Ielts</option>
             <option value="toeic">Toeic</option>
         </select>
-        </div>
-        
+        </div>      
     </div>
 )
 }

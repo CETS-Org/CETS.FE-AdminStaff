@@ -2,6 +2,7 @@ import Pagination from "@/shared/pagination";
 import { Pencil, Trash2, Eye } from "lucide-react";
 import { useState } from "react";
 import AddSearchTeacher from "./components/add_search_teacher";
+import Table, { type TableColumn } from "@/components/ui/Table";
 
 export default function TeacherList() {
 
@@ -25,61 +26,66 @@ export default function TeacherList() {
     const totalPages = Math.ceil(teachers.length / itemsPerPage);
     const currentTeachers  = teachers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+    type Teacher = (typeof teachers)[number];
+
+    const columns: TableColumn<Teacher>[] = [
+      {
+        header: "Teacher",
+        accessor: (row) => (<img src={row.avatar} className="rounded-full h-10 w-10" />),
+        className: "w-[72px]"
+      },
+      {
+        header: "Information",
+        accessor: (row) => (
+          <div className="flex flex-col">
+            <div>{row.name}</div>
+            <div className="text-[75%] text-gray-400">{row.phoneNumber}</div>
+          </div>
+        )
+      },
+      {
+        header: "Status",
+        accessor: (row) => (
+          <span
+            className={`inline-flex justify-center border rounded-xl px-2 py-0.5 text-[75%]
+              ${row.status === "pending" ? "bg-yellow-100 text-yellow-700 border-yellow-300" : ""}
+              ${row.status === "ban" ? "bg-red-100 text-red-700 border-red-300" : ""}
+              ${row.status === "active" ? "bg-green-100 text-green-700 border-green-300" : ""}`}
+          >
+            {row.status}
+          </span>
+        )
+      },
+      {
+        header: "Actions",
+        accessor: () => (
+          <div>
+            <button className="mx-1 p-2 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200">
+              <Eye size={16} />
+            </button>
+            <button className="mx-1 p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200">
+              <Pencil size={16} />
+            </button>
+            <button className="mx-1 p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200">
+              <Trash2 size={16} />
+            </button>
+          </div>
+        )
+      }
+    ];
+
     return (
         <div>
             <h1 className="text-xl font-bold mb-4 text-gray-500">Teacher List</h1>
             <AddSearchTeacher/>
-            <table className="min-w-full rounded-lg shadow-sm border border-gray-200 bg-white ">
-                <thead className="bg-primary-800 ">
-                    <tr>
-                        <th className="py-2 px-4 border-b border-gray-200 text-sm text-gray-300 text-left">Teacher</th>
-                        <th className="py-2 px-4 border-b border-gray-200 text-sm text-gray-300 text-left">Information</th>
-                        <th className="py-2 px-4 border-b border-gray-200 text-sm text-gray-300 text-left">Status</th>
-                        <th className="py-2 px-4 border-b border-gray-200 text-sm text-gray-300 text-left">Actions</th>
-                    </tr>
-                </thead>
-                <tbody className=" ">
-                    {currentTeachers.map((teacher) => (
-                        <tr key={teacher.id} className="odd:bg-white even:bg-gray-50 hover:bg-gray-100" >
-                            <td className="py-2 px-4 border-b border-gray-200"><img src={teacher.avatar} className="rounded-full h-10 w-10"></img></td>
-                            <td className="py-2 px-4 border-b border-gray-200 flex flex-col">
-                                <div className="">{teacher.name}</div>
-                                <div className="text-[75%] text-gray-400">{teacher.phoneNumber}</div>
-                            </td>
-                            <td className="py-2 px-4 border-b border-gray-200">
-                                <p
-                                    className={`w-[30%] flex justify-center border rounded-xl px-2 py-0.5 text-[75%]
-                                        ${teacher.status === "pending" ? "bg-yellow-100 text-yellow-700 border-yellow-300 text-center" : ""}
-                                        ${teacher.status === "ban" ? "bg-red-100 text-red-700 border-red-300" : ""}
-                                        ${teacher.status === "active" ? "bg-green-100 text-green-700 border-green-300" : ""}`
-                                    }
-                                >{teacher.status}</p>
-                            </td>
-                            <td className="py-2 px-4 border-b border-gray-200 ">
-                                <button className="mx-1 p-2 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200">
-                                    <Eye size={16} />
-                                </button>
-                                <button className="mx-1 p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200">
-                                    <Pencil size={16} />
-                                </button>
-                                <button className="mx-1 p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200">
-                                    <Trash2 size={16} />
-                                </button>
-
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-
-     
-                <Pagination
+            <div className="rounded-lg shadow-sm border border-gray-200 bg-white">
+              <Table columns={columns} data={currentTeachers} />
+            </div>
+            <Pagination
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={setCurrentPage}
-        
       />
-             
         </div>
     )
 }

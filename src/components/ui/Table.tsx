@@ -18,7 +18,7 @@ export default function Table<T>({ columns, data, emptyState, className = "" }: 
     <div className={["overflow-x-auto", className].join(" ")}> 
       <table className="min-w-full divide-y divide-neutral-200">
         <thead className="bg-neutral-50">
-          <tr>030
+          <tr>
              
             {columns.map((col, i) => (
               <th key={i} scope="col" className={["px-4 py-2 text-left text-sm font-semibold text-neutral-700", col.className || ""].join(" ")}> 

@@ -60,7 +60,7 @@ export default function Sidebar({ isOpen }: { isOpen: boolean }) {
                 </NavLink>
 
                 <NavLink
-                    to="/teachers"
+                    to="/staff"
                     className={({ isActive }) => {
                         return isActive ? "navItemClasses bg-primary-800 text-white font-semibold border border-white shadow-[0_0_8px_white] " : "navItemClasses bg-white"
                     }}
@@ -70,7 +70,7 @@ export default function Sidebar({ isOpen }: { isOpen: boolean }) {
                 </NavLink>
 
                 <NavLink
-                    to="/schedule"
+                    to="/staff/schedule"
                     className={({ isActive }) => {
                         return isActive ? "navItemClasses bg-primary-800 text-white font-semibold border border-white shadow-[0_0_8px_white] " : "navItemClasses bg-white"
                     }}
