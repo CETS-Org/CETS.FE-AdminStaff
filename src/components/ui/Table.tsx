@@ -17,7 +17,7 @@ export default function Table<T>({ columns, data, emptyState, className = "" }: 
   return (
     <div className={["overflow-x-auto", className].join(" ")}> 
       <table className="min-w-full divide-y divide-neutral-200">
-        <thead className="bg-neutral-50">
+        <thead className="bg-primary-200 ">
           <tr>
              
             {columns.map((col, i) => (

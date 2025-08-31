@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import Button from "@/components/ui/Button";
-import AddEditSessionDialog from "./components/AddEditSessionDialog";
+import AddEditSessionDialog from "./AddEditSessionDialog";
 import Card from "@/components/ui/Card";
 import Table, { type TableColumn } from "@/components/ui/Table";
 import Pagination from "@/shared/pagination";

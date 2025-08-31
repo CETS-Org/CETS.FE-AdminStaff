@@ -12,7 +12,7 @@ import StaffSchedulePage from './pages/staff/staff_schedule'
 export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-neutral-50">
-      
+{/*       
       <Header />
       <main className="flex-1">
         <div className="">
@@ -28,7 +28,8 @@ export default function App() {
       </main>
    
      
-      {/* <Footer /> */}
+      <Footer /> */}
+      <StaffHome/>
     </div>
   )
 }
