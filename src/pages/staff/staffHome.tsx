@@ -7,6 +7,11 @@ import StaffStudentsPage from "./staff_students";
 import StaffCoursesPage from "./staff_courses";
 import TeacherManagement from "./staff_teachers";
 import StaffAnalytics from "./staff_analys";
+import CourseDetailPage from "./staff_courses/CourseDetailPage";
+import AddEditCoursePage from "./staff_courses/AddEditCoursePage";
+import AssignTeacherPage from "./staff_assign_teacher";
+import StaffRequestPage from "./staff_request";
+import StudentDetailPage from "./staff_students/StudentDetailPage";
 
 
 export default function StaffHome() {
@@ -16,7 +21,7 @@ export default function StaffHome() {
         <div className="">
             <Navbar toggleSidebar={() => setIsToggleMenu(!isToggleMenu)} />
             <Sidebar isOpen={isToggleMenu} />
-            <main className="mt-16">
+            <main className="mt-10  ">
 
                 <Routes>
                     <Route path="/" element={<StaffAnalytics />} />
@@ -25,6 +30,12 @@ export default function StaffHome() {
                     <Route path="schedule" element={<StaffSchedulePage />} />
                     <Route path="students" element={<StaffStudentsPage />} />
                     <Route path="courses" element={<StaffCoursesPage />} />
+                    <Route path="courses/add" element={<AddEditCoursePage />} />
+                    <Route path="courses/edit/:id" element={<AddEditCoursePage />} />
+                    <Route path="courseDetail" element={<CourseDetailPage/>} />
+                    <Route path="assign-teacher" element={<AssignTeacherPage />} />
+                    <Route path="requests" element={<StaffRequestPage />} />
+                    <Route path="students/:id" element={<StudentDetailPage />} />
                 </Routes>
             </main>
         </div>

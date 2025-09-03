@@ -124,7 +124,7 @@ export default function TeacherList() {
         <Button onClick={handleAdd}>Add New Teacher</Button>
       </div> */}
       
-      <Card >
+      <Card title="Teacher List">
         <Table columns={columns} data={currentData} />
       </Card>
       

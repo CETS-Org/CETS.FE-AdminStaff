@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Table, { type TableColumn } from "@/components/ui/Table";
 import Pagination from "@/shared/pagination";
 import AddEditStudentDialog from "./AddEditStudentDialog";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
+import { Eye, Edit, Trash2 } from "lucide-react";
 
-type Student = {
+export type Student = {
   id: number;
   name: string;
   email: string;
@@ -20,17 +22,18 @@ type Student = {
 };
 
 export default function StudentsList() {
+  const navigate = useNavigate();
   const [openDialog, setOpenDialog] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; student: Student | null }>({ open: false, student: null });
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   
-  const [students, setStudents] = useState<Student[]>([
-    { id: 1, name: "Nguyen Van A", email: "nguyenvana@email.com", phone: "0123456789", age: 18, level: "B1", enrolledCourses: ["IELTS Foundation"], status: "active", joinDate: "2024-09-01" },
-    { id: 2, name: "Tran Thi B", email: "tranthib@email.com", phone: "0987654321", age: 22, level: "C1", enrolledCourses: ["TOEIC Advanced", "Business English"], status: "active", joinDate: "2024-08-15" },
-    { id: 3, name: "Le Van C", email: "levanc@email.com", phone: "0555666777", age: 16, level: "Beginner", enrolledCourses: ["Kids English"], status: "active", joinDate: "2024-10-01" },
-    { id: 4, name: "Pham Thi D", email: "phamthid@email.com", phone: "0111222333", age: 25, level: "B2", enrolledCourses: ["IELTS Foundation"], status: "graduated", joinDate: "2024-06-01" },
-    { id: 5, name: "Hoang Van E", email: "hoangvane@email.com", phone: "0444555666", age: 20, level: "A2", enrolledCourses: ["Conversation Club"], status: "inactive", joinDate: "2024-07-01" },
-  ]);
+    const [students, setStudents] = useState<Student[]>([
+      { id: 1, name: "Nguyen Van A", email: "nguyenvana@email.com", phone: "0123456789", age: 18, level: "B1", enrolledCourses: ["IELTS Foundation"], status: "active", joinDate: "2024-09-01" },
+      { id: 2, name: "Tran Thi B", email: "tranthib@email.com", phone: "0987654321", age: 22, level: "C1", enrolledCourses: ["TOEIC Advanced", "Business English"], status: "active", joinDate: "2024-08-15" },
+      { id: 3, name: "Le Van C", email: "levanc@email.com", phone: "0555666777", age: 16, level: "Beginner", enrolledCourses: ["Kids English"], status: "active", joinDate: "2024-10-01" },
+      { id: 4, name: "Pham Thi D", email: "phamthid@email.com", phone: "0111222333", age: 25, level: "B2", enrolledCourses: ["IELTS Foundation"], status: "graduated", joinDate: "2024-06-01" },
+      { id: 5, name: "Hoang Van E", email: "hoangvane@email.com", phone: "0444555666", age: 20, level: "A2", enrolledCourses: ["Conversation Club"], status: "inactive", joinDate: "2024-07-01" },
+    ]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
@@ -86,9 +89,28 @@ export default function StudentsList() {
     {
       header: "Actions",
       accessor: (row) => (
-        <div className="flex gap-1">
-          <Button variant="secondary" size="sm" onClick={() => handleEdit(row)}>Edit</Button>
-          <Button variant="secondary" size="sm" onClick={() => handleDelete(row)}>Delete</Button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleView(row)}
+            className="p-1 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors"
+            title="View Details"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => handleEdit(row)}
+            className="p-1 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors"
+            title="Edit"
+          >
+            <Edit className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => handleDelete(row)}
+            className="p-1 rounded-full border border-gray-300 text-red-600 hover:bg-red-50 hover:border-red-400 transition-colors"
+            title="Delete"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
       )
     }
@@ -97,6 +119,10 @@ export default function StudentsList() {
   const handleAdd = () => {
     setEditingStudent(null);
     setOpenDialog(true);
+  };
+
+  const handleView = (student: Student) => {
+    navigate(`/students/${student.id}`);
   };
 
   const handleEdit = (student: Student) => {
@@ -128,11 +154,11 @@ export default function StudentsList() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold text-gray-600">Student Management</h1>
+
         <Button onClick={handleAdd}>Add New Student</Button>
       </div>
       
-      <Card>
+      <Card title="Students List">
         <Table columns={columns} data={currentData} />
       </Card>
       
