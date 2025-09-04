@@ -8,7 +8,7 @@ import Select from "@/components/ui/Select";
 import Pagination from "@/shared/pagination";
 import AddEditStudentDialog from "./AddEditStudentDialog";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
-import { Eye, Edit, Trash2, Search, Filter, X } from "lucide-react";
+import { Eye, Edit, Trash2, Search, Filter, X, Plus } from "lucide-react";
 
 export type Student = {
   id: number;
@@ -117,28 +117,42 @@ export default function StudentsList() {
     {
       header: "Actions",
       accessor: (row) => (
-        <div className="flex gap-2">
-          <button
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => handleView(row)}
-            className="p-1 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors"
-            title="View Details"
+            className="inline-flex items-center justify-center gap-2"
           >
-            <Eye className="w-4 h-4" />
-          </button>
-          <button
+            <div className="flex items-center gap-2">
+            <Eye className="w-4 h-4 flex-shrink-0" />
+            <span className="leading-none">View</span>
+            </div>
+            
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => handleEdit(row)}
-            className="p-1 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors"
-            title="Edit"
+            className="inline-flex items-center justify-center gap-2"
           >
-            <Edit className="w-4 h-4" />
-          </button>
-          <button
+            <div className="flex items-center gap-2">
+            <Edit className="w-4 h-4 flex-shrink-0" />
+            <span className="leading-none">Edit</span>
+            </div>
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => handleDelete(row)}
-            className="p-1 rounded-full border border-gray-300 text-red-600 hover:bg-red-50 hover:border-red-400 transition-colors"
-            title="Delete"
+            className="inline-flex items-center justify-center gap-2 text-red-600 hover:text-red-700"
           >
-            <Trash2 className="w-4 h-4" />
-          </button>
+            <div className="flex items-center gap-2">
+            <Trash2 className="w-4 h-4 flex-shrink-0" />
+            <span className="leading-none">Delete</span>
+            </div>
+            
+          </Button>
         </div>
       )
     }
@@ -189,13 +203,8 @@ export default function StudentsList() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Students Management</h1>
-        <Button onClick={handleAdd}>Add New Student</Button>
-      </div>
-
       {/* Search and Filter Section */}
-      <Card className="mb-6">
+      <Card className="mb-6" title="Search and Filter" description="Search and filter your students">
         <div className="space-y-4">
           {/* Search Bar */}
           <div className="flex items-center gap-4">
@@ -211,26 +220,28 @@ export default function StudentsList() {
             <Button
               onClick={() => setShowFilters(!showFilters)}
               variant="secondary"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 text-primary-500"
             >
-              <Filter className="w-4 h-4" />
-              Filters
-              {hasActiveFilters && (
-                <span className="bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {[searchTerm, statusFilter, levelFilter].filter(f => f !== "" && f !== "all").length}
-                </span>
-              )}
+              <span className="flex items-center gap-2">
+                <Filter className="w-4 h-4" />
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
+                {hasActiveFilters && (
+                  <span className="bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {[searchTerm, statusFilter, levelFilter].filter(f => f !== "" && f !== "all").length}
+                  </span>
+                )}
+              </span>
             </Button>
-            {hasActiveFilters && (
-              <Button
-                onClick={clearFilters}
-                variant="secondary"
-                className="flex items-center gap-2 text-red-600 hover:text-red-700"
-              >
+            <Button
+              onClick={clearFilters}
+              variant="secondary"
+              className="whitespace-nowrap text-red-500"
+            >
+              <span className="flex items-center gap-2">
                 <X className="w-4 h-4" />
-                Clear
-              </Button>
-            )}
+                Clear Filters
+              </span>
+            </Button>
           </div>
 
           {/* Filter Options */}
@@ -280,7 +291,14 @@ export default function StudentsList() {
         </div>
       </Card>
       
-      <Card title="Students List">
+      <Card title="Students List" description="View and manage your students" actions={
+        <Button onClick={handleAdd} size="sm" className="inline-flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            Add New Student
+          </div>
+        </Button>    
+      }>
         <Table 
           columns={columns} 
           data={currentData}
@@ -303,7 +321,8 @@ export default function StudentsList() {
                   Clear Filters
                 </Button>
               ) : (
-                <Button onClick={handleAdd}>
+                <Button onClick={handleAdd} className="inline-flex items-center gap-2">
+                  <Plus className="w-4 h-4" />
                   Add New Student
                 </Button>
               )}
@@ -312,9 +331,15 @@ export default function StudentsList() {
         />
       </Card>
       
-      <div className="mt-4">
-        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
-      </div>
+      <Pagination 
+        currentPage={currentPage} 
+        totalPages={totalPages} 
+        onPageChange={setCurrentPage}
+        itemsPerPage={itemsPerPage}
+        totalItems={filteredStudents.length}
+        startIndex={(currentPage - 1) * itemsPerPage}
+        endIndex={Math.min(currentPage * itemsPerPage, filteredStudents.length)}
+      />
 
       <AddEditStudentDialog 
         open={openDialog} 

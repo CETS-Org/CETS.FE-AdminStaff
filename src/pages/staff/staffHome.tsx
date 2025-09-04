@@ -37,7 +37,7 @@ export default function StaffHome() {
                     <Route path="courses" element={<StaffCoursesPage />} />
                     <Route path="courses/add" element={<AddEditCoursePage />} />
                     <Route path="courses/edit/:id" element={<AddEditCoursePage />} />
-                    <Route path="courseDetail" element={<CourseDetailPage/>} />
+                    <Route path="courses/:id" element={<CourseDetailPage/>} />
                     <Route path="assign-teacher" element={<AssignTeacherPage />} />
                     <Route path="requests" element={<StaffRequestPage />} />
                     <Route path="students/:id" element={<StudentDetailPage />} />

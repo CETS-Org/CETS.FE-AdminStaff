@@ -6,7 +6,9 @@ import Select from "@/components/ui/Select";
 import Table from "@/components/ui/Table";
 import type { TableColumn } from "@/components/ui/Table";
 import Pagination from "@/shared/pagination";
-import { Search, Filter, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Search, Filter, Clock, CheckCircle, XCircle, AlertCircle, Calendar, X } from "lucide-react";
+import RequestDetailDialog from "./components/RequestDetailDialog";
+import ConfirmRequestDialog from "./components/ConfirmRequestDialog";
 
 interface Request {
   id: string;
@@ -17,6 +19,7 @@ interface Request {
   status: "pending" | "approved" | "rejected";
   submittedDate: string;
   priority: "low" | "medium" | "high";
+  note?: string;
 }
 
 export default function StaffRequestPage() {
@@ -25,8 +28,16 @@ export default function StaffRequestPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(8);
+  const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<"approve" | "reject">("approve");
+  const [confirmRequest, setConfirmRequest] = useState<Request | null>(null);
 
   // Mock data
   useEffect(() => {
@@ -39,7 +50,8 @@ export default function StaffRequestPage() {
         description: "Request to change from IELTS Foundation to TOEIC Advanced",
         status: "pending",
         submittedDate: "2024-01-15",
-        priority: "medium"
+        priority: "medium",
+        note: "I have been studying IELTS for 3 months but I think TOEIC would be more suitable for my career goals. Please consider my request."
       },
       {
         id: "2",
@@ -49,7 +61,8 @@ export default function StaffRequestPage() {
         description: "Need to reschedule class from Monday to Wednesday",
         status: "approved",
         submittedDate: "2024-01-14",
-        priority: "high"
+        priority: "high",
+        note: "I have a work meeting that conflicts with my current class schedule. I would appreciate if you could help me reschedule to Wednesday evening."
       },
       {
         id: "3",
@@ -59,7 +72,8 @@ export default function StaffRequestPage() {
         description: "Request refund due to personal reasons",
         status: "rejected",
         submittedDate: "2024-01-13",
-        priority: "low"
+        priority: "low",
+        note: "I need to withdraw from the course due to family emergency. I understand the refund policy but hope you can make an exception."
       },
       {
         id: "4",
@@ -69,7 +83,8 @@ export default function StaffRequestPage() {
         description: "Request for additional study materials",
         status: "pending",
         submittedDate: "2024-01-12",
-        priority: "low"
+        priority: "low",
+        note: "I would like to request additional practice materials for the upcoming exam. The current materials are helpful but I need more practice questions."
       },
       {
         id: "5",
@@ -110,6 +125,50 @@ export default function StaffRequestPage() {
         status: "approved",
         submittedDate: "2024-01-08",
         priority: "low"
+      },
+      {
+        id: "9",
+        studentName: "Vo Van I",
+        studentEmail: "vovani@email.com",
+        requestType: "course_change",
+        description: "Request to switch from TOEIC to IELTS",
+        status: "pending",
+        submittedDate: "2024-01-20",
+        priority: "medium",
+        note: "I want to switch to IELTS as it's more recognized internationally for my study abroad plans."
+      },
+      {
+        id: "10",
+        studentName: "Dang Thi J",
+        studentEmail: "dangthij@email.com",
+        requestType: "schedule_change",
+        description: "Need to change class from evening to morning",
+        status: "pending",
+        submittedDate: "2024-01-18",
+        priority: "high",
+        note: "My work schedule has changed and I can only attend morning classes now."
+      },
+      {
+        id: "11",
+        studentName: "Bui Van K",
+        studentEmail: "buivank@email.com",
+        requestType: "refund",
+        description: "Request full refund due to relocation",
+        status: "approved",
+        submittedDate: "2024-01-16",
+        priority: "low",
+        note: "I have to move to another city for work and cannot continue the course."
+      },
+      {
+        id: "12",
+        studentName: "Ngo Thi L",
+        studentEmail: "ngothil@email.com",
+        requestType: "other",
+        description: "Request for study materials in digital format",
+        status: "rejected",
+        submittedDate: "2024-01-05",
+        priority: "low",
+        note: "I prefer digital materials over physical books for easier access."
       }
     ];
 
@@ -123,7 +182,22 @@ export default function StaffRequestPage() {
                          request.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === "all" || request.status === filterStatus;
     const matchesType = filterType === "all" || request.requestType === filterType;
-    return matchesSearch && matchesStatus && matchesType;
+    
+    // Date filtering
+    const requestDate = new Date(request.submittedDate);
+    const fromDate = dateFrom ? new Date(dateFrom) : null;
+    const toDate = dateTo ? new Date(dateTo) : null;
+    
+    let matchesDate = true;
+    if (fromDate && toDate) {
+      matchesDate = requestDate >= fromDate && requestDate <= toDate;
+    } else if (fromDate) {
+      matchesDate = requestDate >= fromDate;
+    } else if (toDate) {
+      matchesDate = requestDate <= toDate;
+    }
+    
+    return matchesSearch && matchesStatus && matchesType && matchesDate;
   });
 
   // Pagination logic
@@ -136,12 +210,62 @@ export default function StaffRequestPage() {
     setCurrentPage(page);
   };
 
+  const clearFilters = () => {
+    setSearchTerm("");
+    setFilterStatus("all");
+    setFilterType("all");
+    setDateFrom("");
+    setDateTo("");
+    setCurrentPage(1);
+  };
+
   const handleStatusChange = (requestId: string, newStatus: "approved" | "rejected") => {
     setRequests(requests.map(request => 
       request.id === requestId 
         ? { ...request, status: newStatus }
         : request
     ));
+  };
+
+  const handleViewDetails = (request: Request) => {
+    setSelectedRequest(request);
+    setShowDetailDialog(true);
+  };
+
+  const handleApprove = (reply: string) => {
+    if (selectedRequest) {
+      handleStatusChange(selectedRequest.id, "approved");
+      console.log("Approved with reply:", reply);
+    }
+  };
+
+  const handleReject = (reply: string) => {
+    if (selectedRequest) {
+      handleStatusChange(selectedRequest.id, "rejected");
+      console.log("Rejected with reply:", reply);
+    }
+  };
+
+  const handleQuickApprove = (request: Request) => {
+    setConfirmAction("approve");
+    setConfirmRequest(request);
+    setShowConfirmDialog(true);
+  };
+
+  const handleQuickReject = (request: Request) => {
+    setConfirmAction("reject");
+    setConfirmRequest(request);
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmAction = (reply: string) => {
+    if (confirmRequest) {
+      const status = confirmAction === "approve" ? "approved" : "rejected";
+      handleStatusChange(confirmRequest.id, status);
+      console.log(`${status} with reply:`, reply);
+    }
+    setShowConfirmDialog(false);
+    setConfirmRequest(null);
   };
 
   const getStatusIcon = (status: string) => {
@@ -204,14 +328,14 @@ export default function StaffRequestPage() {
         </span>
       )
     },
-    {
-      header: "Description",
-      accessor: (request) => (
-        <div className="max-w-xs truncate" title={request.description}>
-          {request.description}
-        </div>
-      )
-    },
+    // {
+    //   header: "Description",
+    //   accessor: (request) => (
+    //     <div className="max-w-xs truncate" title={request.description}>
+    //       {request.description}
+    //     </div>
+    //   )
+    // },
     {
       header: "Priority",
       accessor: (request) => (
@@ -247,7 +371,7 @@ export default function StaffRequestPage() {
             <>
               <Button
                 size="sm"
-                onClick={() => handleStatusChange(request.id, "approved")}
+                onClick={() => handleQuickApprove(request)}
                 className="bg-green-600 hover:bg-green-700"
               >
                 Approve
@@ -255,14 +379,18 @@ export default function StaffRequestPage() {
               <Button
                 size="sm"
                 variant="secondary"
-                onClick={() => handleStatusChange(request.id, "rejected")}
+                onClick={() => handleQuickReject(request)}
                 className="bg-red-600 hover:bg-red-700 text-white"
               >
                 Reject
               </Button>
             </>
           )}
-          <Button size="sm" variant="secondary">
+          <Button 
+            size="sm" 
+            variant="secondary"
+            onClick={() => handleViewDetails(request)}
+          >
             View Details
           </Button>
         </div>
@@ -275,49 +403,119 @@ export default function StaffRequestPage() {
   }
 
   return (
-    <div className="p-6 mx-auto mt-16 lg:pl-70">
+    <div className="p-6 mx-auto mt-16 lg:pl-70 bg-gray-50">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Student Requests</h1>
         <p className="text-gray-600">Manage and respond to student requests</p>
       </div>
 
-      {/* Action Bar */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <Input
-              placeholder="Search requests..."
-              value={searchTerm}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-              className="pl-10 w-64"
-            />
+      {/* Search and Filters */}
+      <Card className="mb-4" title="Search & Filters" description="Filter requests by various criteria ">
+        <div className="space-y-4">
+          {/* Search Bar */}
+          <div className="flex gap-4 items-end">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Search by student name, email, or description..."
+                value={searchTerm}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button
+              variant="secondary"
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2 text-primary-500"
+            >
+              <span className="flex items-center gap-2">
+                <Filter className="w-4 h-4" />
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
+              </span>
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={clearFilters}
+              className="whitespace-nowrap text-red-500"
+            >
+              <span className="flex items-center gap-2">
+                <X className="w-4 h-4" />
+                Clear Filters
+              </span>
+            </Button>
           </div>
-          <Select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="w-32"
-            options={[
-              { label: "All Status", value: "all" },
-              { label: "Pending", value: "pending" },
-              { label: "Approved", value: "approved" },
-              { label: "Rejected", value: "rejected" }
-            ]}
-          />
-          <Select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className="w-40"
-            options={[
-              { label: "All Types", value: "all" },
-              { label: "Course Change", value: "course_change" },
-              { label: "Schedule Change", value: "schedule_change" },
-              { label: "Refund", value: "refund" },
-              { label: "Other", value: "other" }
-            ]}
-          />
+
+          {/* Filter Options */}
+          {showFilters && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <Select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  options={[
+                    { label: "All Status", value: "all" },
+                    { label: "Pending", value: "pending" },
+                    { label: "Approved", value: "approved" },
+                    { label: "Rejected", value: "rejected" }
+                  ]}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Request Type</label>
+                <Select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  options={[
+                    { label: "All Types", value: "all" },
+                    { label: "Course Change", value: "course_change" },
+                    { label: "Schedule Change", value: "schedule_change" },
+                    { label: "Refund", value: "refund" },
+                    { label: "Other", value: "other" }
+                  ]}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Results Summary */}
+          <div className="flex justify-between items-center pt-2 border-t">
+            <p className="text-sm text-gray-600">
+              Showing {paginatedRequests.length} of {filteredRequests.length} requests
+              {filteredRequests.length !== requests.length && ` (filtered from ${requests.length} total)`}
+            </p>
+            {totalPages > 1 && (
+              <p className="text-sm text-gray-600">
+                Page {currentPage} of {totalPages}
+              </p>
+            )}
+          </div>
         </div>
-      </div>
+      </Card>
 
       {/* Requests Table */}
       <Card title="Student Requests Management">
@@ -326,20 +524,62 @@ export default function StaffRequestPage() {
             columns={tableColumns}
             data={paginatedRequests}
             emptyState={
-              <div className="text-center py-8">
-                <p className="text-gray-500">No requests found</p>
+              <div className="text-center py-12">
+                <div className="flex flex-col items-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <Search className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No requests found</h3>
+                  <p className="text-gray-500 mb-4">
+                    {filteredRequests.length === 0 && requests.length > 0
+                      ? "Try adjusting your search criteria or filters"
+                      : "No student requests have been submitted yet"
+                    }
+                  </p>
+                  {(searchTerm || filterStatus !== "all" || filterType !== "all" || dateFrom || dateTo) && (
+                    <Button
+                      variant="secondary"
+                      onClick={clearFilters}
+                      className="mt-2"
+                    >
+                      Clear all filters
+                    </Button>
+                  )}
+                </div>
               </div>
             }
           />
-          {totalPages > 1 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-            />
-          )}
+          
+          {/* Pagination */}
+          <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                itemsPerPage={itemsPerPage}
+                totalItems={filteredRequests.length}
+                startIndex={startIndex}
+                endIndex={Math.min(endIndex, filteredRequests.length)}
+              />
         </div>
       </Card>
+
+      {/* Dialogs */}
+      <RequestDetailDialog
+        isOpen={showDetailDialog}
+        onClose={() => setShowDetailDialog(false)}
+        request={selectedRequest}
+        onApprove={handleApprove}
+        onReject={handleReject}
+      />
+
+      <ConfirmRequestDialog
+        isOpen={showConfirmDialog}
+        onClose={() => setShowConfirmDialog(false)}
+        onConfirm={handleConfirmAction}
+        action={confirmAction}
+        studentName={confirmRequest?.studentName || ""}
+        requestType={confirmRequest ? getTypeLabel(confirmRequest.requestType) : ""}
+      />
     </div>
   );
 }

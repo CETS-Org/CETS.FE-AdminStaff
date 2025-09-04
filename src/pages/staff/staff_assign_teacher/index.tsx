@@ -6,7 +6,7 @@ import Select from "@/components/ui/Select";
 import Loader from "@/components/ui/Loader";
 import Table from "@/components/ui/Table";
 import type { TableColumn } from "@/components/ui/Table";
-import { UserPlus, Search, Filter, Trash2, Edit, Calendar, Clock, Upload, Check, Users } from "lucide-react";
+import { UserPlus, Search, Calendar, Upload, Check, Users, Filter, X } from "lucide-react";
 import AssignTeacherDialog from "./components/AssignTeacherDialog";
 import ConfirmAssignDialog from "./components/ConfirmAssignDialog";
 import Pagination from "@/shared/pagination";
@@ -31,6 +31,9 @@ interface Course {
   year: string;
   assignedTeachers: string[];
   status: "open" | "full" | "closed";
+  createdDate: string;
+  startDate: string;
+  endDate: string;
 }
 
 interface Assignment {
@@ -54,11 +57,14 @@ export default function AssignTeacherPage() {
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedTeachers, setSelectedTeachers] = useState<string[]>([]);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(5);
+  const [itemsPerPage] = useState(8);
 
   // Mock data - trong thực tế sẽ fetch từ API
   useEffect(() => {
@@ -71,11 +77,21 @@ export default function AssignTeacherPage() {
     ];
 
     const mockCourses: Course[] = [
-      { id: "1", name: "Calculus I", code: "MATH101", credits: 4, department: "Mathematics", semester: "Fall", year: "2024", assignedTeachers: ["1"], status: "open" },
-      { id: "2", name: "Physics Fundamentals", code: "PHYS101", credits: 3, department: "Physics", semester: "Fall", year: "2024", assignedTeachers: ["2"], status: "open" },
-      { id: "3", name: "Introduction to Programming", code: "CS101", credits: 3, department: "Computer Science", semester: "Spring", year: "2025", assignedTeachers: ["3"], status: "open" },
-      { id: "4", name: "Organic Chemistry", code: "CHEM201", credits: 4, department: "Chemistry", semester: "Spring", year: "2025", assignedTeachers: [], status: "open" },
-      { id: "5", name: "Advanced Biology", code: "BIO301", credits: 3, department: "Biology", semester: "Spring", year: "2025", assignedTeachers: [], status: "open" },
+      { id: "1", name: "Calculus I", code: "MATH101", credits: 4, department: "Mathematics", semester: "Fall", year: "2024", assignedTeachers: ["1"], status: "open", createdDate: "2024-01-15", startDate: "2024-09-01", endDate: "2024-12-15" },
+      { id: "2", name: "Physics Fundamentals", code: "PHYS101", credits: 3, department: "Physics", semester: "Fall", year: "2024", assignedTeachers: ["2"], status: "open", createdDate: "2024-01-10", startDate: "2024-09-01", endDate: "2024-12-15" },
+      { id: "3", name: "Introduction to Programming", code: "CS101", credits: 3, department: "Computer Science", semester: "Spring", year: "2025", assignedTeachers: ["3"], status: "open", createdDate: "2024-01-20", startDate: "2025-01-15", endDate: "2025-05-01" },
+      { id: "4", name: "Organic Chemistry", code: "CHEM201", credits: 4, department: "Chemistry", semester: "Spring", year: "2025", assignedTeachers: [], status: "open", createdDate: "2024-01-25", startDate: "2025-01-15", endDate: "2025-05-01" },
+      { id: "5", name: "Advanced Biology", code: "BIO301", credits: 3, department: "Biology", semester: "Spring", year: "2025", assignedTeachers: [], status: "open", createdDate: "2024-01-30", startDate: "2025-01-15", endDate: "2025-05-01" },
+      { id: "6", name: "Linear Algebra", code: "MATH201", credits: 3, department: "Mathematics", semester: "Fall", year: "2024", assignedTeachers: [], status: "open", createdDate: "2024-02-01", startDate: "2024-09-01", endDate: "2024-12-15" },
+      { id: "7", name: "Quantum Physics", code: "PHYS301", credits: 4, department: "Physics", semester: "Spring", year: "2025", assignedTeachers: [], status: "open", createdDate: "2024-02-05", startDate: "2025-01-15", endDate: "2025-05-01" },
+      { id: "8", name: "Data Structures", code: "CS201", credits: 3, department: "Computer Science", semester: "Fall", year: "2024", assignedTeachers: [], status: "open", createdDate: "2024-02-10", startDate: "2024-09-01", endDate: "2024-12-15" },
+      { id: "9", name: "Inorganic Chemistry", code: "CHEM101", credits: 3, department: "Chemistry", semester: "Fall", year: "2024", assignedTeachers: [], status: "open", createdDate: "2024-02-15", startDate: "2024-09-01", endDate: "2024-12-15" },
+      { id: "10", name: "Cell Biology", code: "BIO201", credits: 4, department: "Biology", semester: "Spring", year: "2025", assignedTeachers: [], status: "open", createdDate: "2024-02-20", startDate: "2025-01-15", endDate: "2025-05-01" },
+      { id: "11", name: "Statistics", code: "MATH301", credits: 3, department: "Mathematics", semester: "Spring", year: "2025", assignedTeachers: [], status: "open", createdDate: "2024-02-25", startDate: "2025-01-15", endDate: "2025-05-01" },
+      { id: "12", name: "Thermodynamics", code: "PHYS201", credits: 4, department: "Physics", semester: "Fall", year: "2024", assignedTeachers: [], status: "open", createdDate: "2024-03-01", startDate: "2024-09-01", endDate: "2024-12-15" },
+      { id: "13", name: "Database Systems", code: "CS301", credits: 3, department: "Computer Science", semester: "Spring", year: "2025", assignedTeachers: [], status: "open", createdDate: "2024-03-05", startDate: "2025-01-15", endDate: "2025-05-01" },
+      { id: "14", name: "Physical Chemistry", code: "CHEM301", credits: 4, department: "Chemistry", semester: "Fall", year: "2024", assignedTeachers: [], status: "open", createdDate: "2024-03-10", startDate: "2024-09-01", endDate: "2024-12-15" },
+      { id: "15", name: "Genetics", code: "BIO401", credits: 3, department: "Biology", semester: "Spring", year: "2025", assignedTeachers: [], status: "open", createdDate: "2024-03-15", startDate: "2025-01-15", endDate: "2025-05-01" },
     ];
 
     const mockAssignments: Assignment[] = [
@@ -126,35 +142,33 @@ export default function AssignTeacherPage() {
     }
   };
 
-  const handleRemoveAssignment = (assignmentId: string) => {
-    const assignment = assignments.find(a => a.id === assignmentId);
-    if (assignment) {
-      const course = courses.find(c => c.id === assignment.courseId);
-      if (course) {
-        // Update teacher workload when removing assignment
-        setTeachers(teachers.map(t => 
-          t.id === assignment.teacherId 
-            ? { ...t, currentWorkload: Math.max(0, t.currentWorkload - course.credits) }
-            : t
-        ));
-
-        // Remove teacher from course
-        setCourses(courses.map(c => 
-          c.id === assignment.courseId 
-            ? { ...c, assignedTeachers: c.assignedTeachers.filter(tId => tId !== assignment.teacherId) }
-            : c
-        ));
-      }
-    }
-    setAssignments(assignments.filter(assignment => assignment.id !== assignmentId));
-  };
 
   const filteredCourses = courses.filter(course => {
     const matchesSearch = course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          course.code.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === "all" || course.status === filterStatus;
-    return matchesSearch && matchesStatus;
+    
+    // Date filtering
+    const courseDate = new Date(course.createdDate);
+    const fromDate = dateFrom ? new Date(dateFrom) : null;
+    const toDate = dateTo ? new Date(dateTo) : null;
+    
+    let matchesDate = true;
+    if (fromDate && toDate) {
+      matchesDate = courseDate >= fromDate && courseDate <= toDate;
+    } else if (fromDate) {
+      matchesDate = courseDate >= fromDate;
+    } else if (toDate) {
+      matchesDate = courseDate <= toDate;
+    }
+    
+    return matchesSearch && matchesStatus && matchesDate;
   });
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus, dateFrom, dateTo]);
 
   const handleCourseSelect = (course: Course) => {
     setSelectedCourse(course);
@@ -223,6 +237,14 @@ export default function AssignTeacherPage() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setFilterStatus("all");
+    setDateFrom("");
+    setDateTo("");
+    setCurrentPage(1);
   };
 
   // Table columns configuration
@@ -304,31 +326,101 @@ export default function AssignTeacherPage() {
         <p className="text-gray-600">Select courses and assign available teachers</p>
       </div>
 
-      {/* Action Bar */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <Input
-              placeholder="Search courses..."
-              value={searchTerm}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-              className="pl-10 w-64"
-            />
+      {/* Search and Filters */}
+      <Card className="mb-6" title="Search & Filters" description="Filter courses by various criteria">
+        <div className="space-y-4">
+          {/* Search Bar */}
+          <div className="flex gap-4 items-end">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Search by course name or code..."
+                value={searchTerm}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button
+              variant="secondary"
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2  text-primary-500"
+            >
+              <span className="flex items-center gap-2">
+                  <Filter className="w-4 h-4  "/>
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
+              </span>
+            
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={clearFilters}
+              className="whitespace-nowrap text-red-500"
+            >
+               <span className="flex items-center gap-2">
+                  <X className="w-4 h-4" />
+                  Clear Filters
+               </span>
+              
+            </Button>
           </div>
-          <Select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="w-32"
-            options={[
-              { label: "All Status", value: "all" },
-              { label: "Open", value: "open" },
-              { label: "Full", value: "full" },
-              { label: "Closed", value: "closed" }
-            ]}
-          />
+
+          {/* Filter Options */}
+          {showFilters && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <Select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  options={[
+                    { label: "All Status", value: "all" },
+                    { label: "Open", value: "open" },
+                    { label: "Full", value: "full" },
+                    { label: "Closed", value: "closed" }
+                  ]}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Results Summary */}
+          <div className="flex justify-between items-center pt-2 border-t">
+            <p className="text-sm text-gray-600">
+              Showing {paginatedCourses.length} of {filteredCourses.length} courses
+              {filteredCourses.length !== courses.length && ` (filtered from ${courses.length} total)`}
+            </p>
+            {totalPages > 1 && (
+              <p className="text-sm text-gray-600">
+                Page {currentPage} of {totalPages}
+              </p>
+            )}
+          </div>
         </div>
-      </div>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                  {/* Courses Table - Left Side */}
@@ -339,18 +431,42 @@ export default function AssignTeacherPage() {
                  columns={tableColumns}
                  data={paginatedCourses}
                  emptyState={
-                   <div className="text-center py-8">
-                     <p className="text-gray-500">No courses found</p>
+                   <div className="text-center py-12">
+                     <div className="flex flex-col items-center">
+                       <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                         <Search className="w-8 h-8 text-gray-400" />
+                       </div>
+                       <h3 className="text-lg font-medium text-gray-900 mb-2">No courses found</h3>
+                       <p className="text-gray-500 mb-4">
+                         {filteredCourses.length === 0 && courses.length > 0
+                           ? "Try adjusting your search criteria or filters"
+                           : "No courses are available for assignment"
+                         }
+                       </p>
+                       {(searchTerm || filterStatus !== "all" || dateFrom || dateTo) && (
+                         <Button
+                           variant="secondary"
+                           onClick={clearFilters}
+                           className="mt-2"
+                         >
+                           Clear all filters
+                         </Button>
+                       )}
+                     </div>
                    </div>
                  }
                />
-               {totalPages > 1 && (
-                 <Pagination
-                   currentPage={currentPage}
-                   totalPages={totalPages}
-                   onPageChange={handlePageChange}
-                 />
-               )}
+               
+               {/* Pagination */}
+               <Pagination
+                     currentPage={currentPage}
+                     totalPages={totalPages}
+                     onPageChange={handlePageChange}
+                     itemsPerPage={itemsPerPage}
+                     totalItems={filteredCourses.length}
+                     startIndex={startIndex}
+                     endIndex={Math.min(endIndex, filteredCourses.length)}
+                   />
              </div>
            </Card>
          </div>

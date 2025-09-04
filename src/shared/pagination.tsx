@@ -5,12 +5,20 @@ interface PaginationProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  itemsPerPage?: number;
+  totalItems?: number;
+  startIndex?: number;
+  endIndex?: number;
 }
 
 const Pagination: React.FC<PaginationProps> = ({
   currentPage,
   totalPages,
   onPageChange,
+  itemsPerPage = 8,
+  totalItems,
+  startIndex = 0,
+  endIndex = 0,
 }) => {
   if (totalPages <= 1) return null;
 
@@ -49,9 +57,16 @@ const Pagination: React.FC<PaginationProps> = ({
     return pages;
   };    
 
+  // Calculate display values
+  const displayStart = startIndex + 1;
+  const displayEnd = endIndex;
+  const totalResults = totalItems || (totalPages * itemsPerPage);
+
   return (
     <div className="flex justify-between text-gray-500 items-center gap-2 p-2 bg-primary-100">
-        <div className="text-[80%]">Page {currentPage} of {totalPages}</div>
+        <div className="text-[80%]">
+          Showing {displayStart} to {displayEnd} of {totalResults} results
+        </div>
     
       <div className="flex items-center gap-2">
           {/* Prev */}

@@ -8,13 +8,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFoo
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (session: { date: string; time: string; room: string; type: string; teacherName?: string; className?: string }) => void;
-  initial?: { date: string; time: string; room: string; type: string; teacherName?: string; className?: string } | null;
+  onSave: (session: { date: string; startTime: string; endTime: string; room: string; type: string; teacherName?: string; className?: string }) => void;
+  initial?: { date: string; startTime: string; endTime: string; room: string; type: string; teacherName?: string; className?: string } | null;
 };
 
 export default function AddEditSessionDialog({ open, onOpenChange, onSave, initial }: Props) {
   const [date, setDate] = useState(initial?.date || "");
-  const [time, setTime] = useState(initial?.time || "");
+  const [startTime, setStartTime] = useState(initial?.startTime || "");
+  const [endTime, setEndTime] = useState(initial?.endTime || "");
   const [room, setRoom] = useState(initial?.room || "");
   const [type, setType] = useState(initial?.type || "lesson");
   const [teacherName, setTeacherName] = useState(initial?.teacherName || "");
@@ -22,7 +23,8 @@ export default function AddEditSessionDialog({ open, onOpenChange, onSave, initi
 
   useEffect(() => {
     setDate(initial?.date || "");
-    setTime(initial?.time || "");
+    setStartTime(initial?.startTime || "");
+    setEndTime(initial?.endTime || "");
     setRoom(initial?.room || "");
     setType(initial?.type || "lesson");
     setTeacherName(initial?.teacherName || "");
@@ -34,7 +36,7 @@ export default function AddEditSessionDialog({ open, onOpenChange, onSave, initi
   };
 
   const handleSave = () => {
-    onSave({ date, time, room, type, teacherName, className });
+    onSave({ date, startTime, endTime, room, type, teacherName, className });
     handleClose();
   };
 
@@ -47,7 +49,10 @@ export default function AddEditSessionDialog({ open, onOpenChange, onSave, initi
         <DialogBody className="space-y-3">
           <Input label="Class Name" placeholder="Enter class name" value={className} onChange={(e) => setClassName(e.target.value)} />
           <Input label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          <Input label="Time" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+          <div className="grid grid-cols-2 gap-3">
+            <Input label="Start Time" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+            <Input label="End Time" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+          </div>
           <Input label="Room" placeholder="Enter room" value={room} onChange={(e) => setRoom(e.target.value)} />
           <Input label="Teacher" placeholder="Enter teacher name" value={teacherName} onChange={(e) => setTeacherName(e.target.value)} />
           <Select

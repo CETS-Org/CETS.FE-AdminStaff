@@ -1,6 +1,6 @@
-import React, { useState } from "react";
-import { useParams } from "react-router-dom";
-import { ArrowLeft,  CalendarCheck2,  Pencil, TableIcon, Trash2 } from "lucide-react";
+import React, { useState, useMemo, useEffect } from "react";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft,  CalendarCheck2,  Pencil, TableIcon, Trash2, Plus, Eye, Search, Filter, X } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import PageHeader from "@/components/ui/PageHeader";
@@ -8,9 +8,17 @@ import type { TableColumn } from "@/components/ui/Table";
 import Table from "@/components/ui/Table";
 import type { Student } from "../staff_students/components/students_list";
 import { Calendar,dateFnsLocalizer } from "react-big-calendar";
+import AddEditClassDialog from "./components/AddEditClassDialog";
+import ClassDetailDialog from "./components/ClassDetailDialog";
+import DeleteClassDialog from "./components/DeleteClassDialog";
+import DeleteConfirmDialog from "./components/DeleteConfirmDialog";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { enUS } from "date-fns/locale";
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
+import Pagination from "@/shared/pagination";
 
 type Course = {
   id: string;
@@ -32,6 +40,22 @@ type Course = {
     date: string;
     time: string;
     room: string;
+  };
+
+  type Class = {
+    id: string;
+    name: string;
+    courseId: string;
+    courseName: string;
+    teacher: string;
+    teacherAvatar?: string;
+    schedule: string;
+    room: string;
+    currentStudents: number;
+    maxStudents: number;
+    status: "active" | "inactive" | "full";
+    startDate: string;
+    endDate: string;
   };
 const coursesData: Record<string, Course> = {
   "ENGO01": {
@@ -66,6 +90,7 @@ const coursesData: Record<string, Course> = {
 
 const CourseDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const course = coursesData[id || "ENGO01"] || coursesData["ENGO01"];
   const [students] = useState<Student[]>([
     { id: 1, name: "Nguyen Van A", email: "nguyenvana@email.com", phone: "0123456789", age: 18, level: "B1", enrolledCourses: ["IELTS Foundation"], status: "active", joinDate: "2024-09-01" },
@@ -80,23 +105,152 @@ const CourseDetail: React.FC = () => {
     { id: "C002", date: "2025-09-07", time: "14:00 - 16:00", room: "Room 102" },
     { id: "C003", date: "2025-09-10", time: "09:00 - 11:00", room: "Room 101" },
   ]);
+
+  // Class data for the course
+  const [classes, setClasses] = useState<Class[]>([
+    { 
+      id: "CL001", 
+      name: "Basic English Class A", 
+      courseId: id || "ENGO01", 
+      courseName: course.name, 
+      teacher: "Sarah Johnson", 
+      teacherAvatar: "https://via.placeholder.com/40x40?text=SJ", 
+      schedule: "Mon, Wed, Fri 9:00-11:00", 
+      room: "Room 101", 
+      currentStudents: 15, 
+      maxStudents: 20, 
+      status: "active", 
+      startDate: "2024-01-15", 
+      endDate: "2024-07-15" 
+    },
+    { 
+      id: "CL002", 
+      name: "Basic English Class B", 
+      courseId: id || "ENGO01", 
+      courseName: course.name, 
+      teacher: "Michael Chen", 
+      teacherAvatar: "https://via.placeholder.com/40x40?text=MC", 
+      schedule: "Tue, Thu, Sat 14:00-16:00", 
+      room: "Room 102", 
+      currentStudents: 18, 
+      maxStudents: 20, 
+      status: "active", 
+      startDate: "2024-02-01", 
+      endDate: "2024-08-01" 
+    },
+  ]);
+
+  // Dialog states
+  const [addEditDialog, setAddEditDialog] = useState<{ open: boolean; classData: Class | null }>({ open: false, classData: null });
+  const [detailDialog, setDetailDialog] = useState<{ open: boolean; classData: Class | null }>({ open: false, classData: null });
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; classData: Class | null }>({ open: false, classData: null });
+  const [deleteCourseDialog, setDeleteCourseDialog] = useState(false);
+
   const [subTab, setSubTab] = useState<"schedule" | "table">("schedule");
   const [activeTab, setActiveTab] = useState<"description" | "students" | "class">("description");
+  
+  // Student list filter states
+  const [studentSearch, setStudentSearch] = useState("");
+  const [studentStatusFilter, setStudentStatusFilter] = useState("");
+  const [studentLevelFilter, setStudentLevelFilter] = useState("");
+  const [studentDateFilter, setStudentDateFilter] = useState("");
+  const [showStudentFilters, setShowStudentFilters] = useState(false);
+  const [currentStudentPage, setCurrentStudentPage] = useState(1);
+  const studentsPerPage = 5;
 
   const handleEdit = () => {
-    // Logic chỉnh sửa (mở dialog hoặc redirect)
-    console.log("Edit course:", course.name);
+    navigate(`/courses/edit/${id}`);
   };
 
   const handleDelete = () => {
-    // Logic xóa (mở confirm dialog)
-    console.log("Delete course:", course.name);
+    setDeleteCourseDialog(true);
+  };
+
+  const handleConfirmDeleteCourse = () => {
+    navigate('/courses');
   };
 
   const handleEnroll = () => {
     // Logic đăng ký
     console.log("Enroll in course:", course.name);
   };
+
+  // Class handlers
+  const handleAddClass = () => {
+    setAddEditDialog({ open: true, classData: null });
+  };
+
+  const handleEditClass = (classData: Class) => {
+    setAddEditDialog({ open: true, classData });
+   
+  };
+
+  const handleViewClass = (classData: Class) => {
+    setDetailDialog({ open: true, classData });
+  };
+
+  const handleDeleteClass = (classData: Class) => {
+    setDeleteDialog({ open: true, classData });
+  };
+
+  const handleSaveClass = (classData: Partial<Class>) => {
+    if (addEditDialog.classData) {
+      // Edit existing class
+      setClasses(prev => prev.map(c => 
+        c.id === addEditDialog.classData!.id 
+          ? { ...c, ...classData }
+          : c
+      ));
+    } else {
+      // Add new class
+      const newClass: Class = {
+        id: `CL${Date.now()}`,
+        courseId: id || "ENGO01",
+        courseName: course.name,
+        ...classData
+      } as Class;
+      setClasses(prev => [...prev, newClass]);
+    }
+  };
+
+  const handleConfirmDeleteClass = () => {
+    if (deleteDialog.classData) {
+      setClasses(prev => prev.filter(c => c.id !== deleteDialog.classData!.id));
+    }
+  };
+
+  // Student filtering and pagination logic
+  const filteredStudents = useMemo(() => {
+    return students.filter(student => {
+      const matchesSearch = student.name.toLowerCase().includes(studentSearch.toLowerCase()) ||
+                           student.email.toLowerCase().includes(studentSearch.toLowerCase()) ||
+                           student.phone.includes(studentSearch);
+      
+      const matchesStatus = !studentStatusFilter || student.status === studentStatusFilter;
+      const matchesLevel = !studentLevelFilter || student.level === studentLevelFilter;
+      const matchesDate = !studentDateFilter || student.joinDate === studentDateFilter;
+      
+      return matchesSearch && matchesStatus && matchesLevel && matchesDate;
+    });
+  }, [students, studentSearch, studentStatusFilter, studentLevelFilter, studentDateFilter]);
+
+  const paginatedStudents = useMemo(() => {
+    const startIndex = (currentStudentPage - 1) * studentsPerPage;
+    return filteredStudents.slice(startIndex, startIndex + studentsPerPage);
+  }, [filteredStudents, currentStudentPage]);
+
+  const clearStudentFilters = () => {
+    setStudentSearch("");
+    setStudentStatusFilter("");
+    setStudentLevelFilter("");
+    setStudentDateFilter("");
+    setCurrentStudentPage(1);
+  };
+
+  // Reset current page when filters change
+  useEffect(() => {
+    setCurrentStudentPage(1);
+  }, [studentSearch, studentStatusFilter, studentLevelFilter, studentDateFilter]);
 
   const breadcrumbItems = [
     { label: 'Dashboard', to: '/dashboard' },
@@ -151,11 +305,57 @@ const studentColumns:  TableColumn<Student>[] = [
   ];
 
   // Cột cho bảng List Class (View by Table)
-  const classColumns: TableColumn<ClassSession>[] = [
-    { header: "ID", accessor: (row) => row.id },
-    { header: "Date", accessor: (row) => row.date },
-    { header: "Time", accessor: (row) => row.time },
+  const classColumns: TableColumn<Class>[] = [
+    { header: "Class Name", accessor: (row) => row.name },
+    { 
+      header: "Teacher", 
+      accessor: (row) => (
+        <div className="flex items-center gap-2">
+          <img src={row.teacherAvatar || "https://via.placeholder.com/40x40?text=?"} alt={row.teacher} className="w-8 h-8 rounded-full" />
+          <span>{row.teacher}</span>
+        </div>
+      )
+    },
+    { header: "Schedule", accessor: (row) => row.schedule },
     { header: "Room", accessor: (row) => row.room },
+    { header: "Students", accessor: (row) => `${row.currentStudents}/${row.maxStudents}` },
+    {
+      header: "Status",
+      accessor: (row) => (
+        <span className={`inline-flex px-2 py-0.5 rounded-md text-[75%] border
+          ${row.status === 'active' ? 'bg-green-100 text-green-700 border-green-200' : ''}
+          ${row.status === 'inactive' ? 'bg-gray-100 text-gray-700 border-gray-200' : ''}
+          ${row.status === 'full' ? 'bg-red-100 text-red-700 border-red-200' : ''}
+        `}>
+          {row.status}
+        </span>
+      )
+    },
+    {
+      header: "Actions",
+      accessor: (row) => (
+        <div className="flex gap-2">
+          <button
+            className="flex items-center justify-center w-6 h-6 rounded-full border text-gray-600 hover:border-gray-400 hover:text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500 transition-colors"
+            onClick={() => handleViewClass(row)}
+          >
+            <Eye className="w-4 h-4" />
+          </button>
+          <button
+            className="flex items-center justify-center w-6 h-6 rounded-full border border-blue-300 text-blue-600 hover:border-blue-400 hover:text-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
+            onClick={() => handleEditClass(row)}
+          >
+            <Pencil className="w-4 h-4" />
+          </button>
+          <button
+            className="flex items-center justify-center w-6 h-6 rounded-full border border-red-300 text-red-600 hover:border-red-400 hover:text-red-700 focus:outline-none focus:ring-1 focus:ring-red-500 transition-colors"
+            onClick={() => handleDeleteClass(row)}
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      )
+    }
   ];
 
   //lịch class 
@@ -200,9 +400,9 @@ const studentColumns:  TableColumn<Student>[] = [
       />
 
         <div className= "flex gap-1 h-10 pr-6">
-        <button className="flex bg-gray-200 text-gray-700 items-center gap-2 px-2 rounded hover:bg-gray-300" onClick={()=>handleEdit()}><ArrowLeft className="w-3 h-3"/> Back to courses list </button>
+        <button className="flex bg-gray-200 text-gray-700 items-center gap-2 px-2 rounded hover:bg-gray-300" onClick={()=>navigate('/courses')}><ArrowLeft className="w-3 h-3"/> Back to courses list </button>
         <button className="flex bg-accent-200 text-gray-700 items-center gap-2 px-2 rounded  hover:bg-accent-300"  onClick={()=>handleEdit()}><Pencil className="w-3 h-3"/> Edit course </button>
-        <button className="flex bg-red-200 text-gray-700 items-center gap-2 px-2 rounded  hover:bg-red-300"  onClick={()=>handleEdit()}><Trash2 className="w-3 h-3"/> Delete course </button>
+        <button className="flex bg-red-200 text-gray-700 items-center gap-2 px-2 rounded  hover:bg-red-300"  onClick={()=>handleDelete()}><Trash2 className="w-3 h-3"/> Delete course </button>
       </div>
       </div>
       
@@ -316,8 +516,7 @@ const studentColumns:  TableColumn<Student>[] = [
        
         {activeTab === "description" && (
           <div>
-          <Card className="p-4 h-full">
-            <h2 className="text-xl font-semibold mb-4">Description</h2>
+          <Card className="p-4 h-full" title="Description">
             <p className="text-gray-700">{course.description}</p>
           </Card>
         </div>
@@ -325,31 +524,151 @@ const studentColumns:  TableColumn<Student>[] = [
 
         {activeTab === "students" && (
           <Card className="p-6">
-            <Table columns={studentColumns} data={students} />
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Student List</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Manage students enrolled in this course
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">
+                  {filteredStudents.length} students
+                </span>
+              </div>
+            </div>
+
+            {/* Search and Filter Section */}
+            <div className="mb-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    type="text"
+                    placeholder="Search students by name, email, or phone..."
+                    value={studentSearch}
+                    onChange={(e) => setStudentSearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowStudentFilters(!showStudentFilters)}
+                  className="flex items-center gap-2"
+                >
+                  <Filter className="w-4 h-4" />
+                  {showStudentFilters ? "Hide Filters" : "Show Filters"}
+                </Button>
+                {(studentSearch || studentStatusFilter || studentLevelFilter || studentDateFilter) && (
+                  <Button
+                    variant="secondary"
+                    onClick={clearStudentFilters}
+                    className="flex items-center gap-2 text-red-600 hover:text-red-700"
+                  >
+                    <X className="w-4 h-4" />
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
+
+              {/* Filter Options */}
+              {showStudentFilters && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Status
+                    </label>
+                    <Select
+                      value={studentStatusFilter}
+                      onChange={(e) => setStudentStatusFilter(e.target.value)}
+                      options={[
+                        { label: "All Status", value: "" },
+                        { label: "Active", value: "active" },
+                        { label: "Inactive", value: "inactive" },
+                        { label: "Graduated", value: "graduated" }
+                      ]}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Level
+                    </label>
+                    <Select
+                      value={studentLevelFilter}
+                      onChange={(e) => setStudentLevelFilter(e.target.value)}
+                      options={[
+                        { label: "All Levels", value: "" },
+                        { label: "Beginner", value: "Beginner" },
+                        { label: "A1", value: "A1" },
+                        { label: "A2", value: "A2" },
+                        { label: "B1", value: "B1" },
+                        { label: "B2", value: "B2" },
+                        { label: "C1", value: "C1" },
+                        { label: "C2", value: "C2" }
+                      ]}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Join Date
+                    </label>
+                    <Input
+                      type="date"
+                      value={studentDateFilter}
+                      onChange={(e) => setStudentDateFilter(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Table */}
+            <Table columns={studentColumns} data={paginatedStudents} />
+
+            {/* Pagination */}
+            {filteredStudents.length > studentsPerPage && (
+              <div className="mt-6">
+                <Pagination
+                  currentPage={currentStudentPage}
+                  totalPages={Math.ceil(filteredStudents.length / studentsPerPage)}
+                  onPageChange={setCurrentStudentPage}
+                  totalItems={filteredStudents.length}
+                  itemsPerPage={studentsPerPage}
+                />
+              </div>
+            )}
           </Card>
         )}
 
         {activeTab === "class" && (
           <div>
             <div className="mb-4">
-            <div className="flex ">
-        <p className="mr-2">View: </p>
-        <div className="flex justify-end mb-4 bg-gray-200  rounded-md w-fit h-[30px] border ">
-      
-          <button className={`flex items-center gap-2 px-1 rounded-md  ${subTab ==="table" ? "" : "bg-primary-800 text-white" }`}   onClick={() => setSubTab("schedule")}>      
-            <CalendarCheck2 className="w-3 h-3" />
-            Schedule
-          </button>
-          <button className={`flex items-center gap-2 px-1 rounded-md  ${subTab ==="table" ? "bg-primary-800 text-white" : "" } `}   onClick={() => setSubTab("table")}>
-            <TableIcon className="w-3 h-3" />
-            Table
-          </button>
-        </div>
-        </div>
-              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <p className="mr-2">View: </p>
+                  <div className="flex bg-gray-200 rounded-md w-fit h-[30px] border">
+                    <button className={`flex items-center gap-2 px-1 rounded-md ${subTab === "table" ? "" : "bg-primary-800 text-white"}`} onClick={() => setSubTab("schedule")}>      
+                      <CalendarCheck2 className="w-3 h-3" />
+                      Schedule
+                    </button>
+                    <button className={`flex items-center gap-2 px-1 rounded-md ${subTab === "table" ? "bg-primary-800 text-white" : ""}`} onClick={() => setSubTab("table")}>
+                      <TableIcon className="w-3 h-3" />
+                      Table
+                    </button>
+                  </div>
+                </div>
+                <Button
+                  onClick={handleAddClass}
+
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Class
+                </Button>
+              </div>
             </div>
             {subTab === "schedule" ? (
-              <Card className="p-6">
+              <Card className="p-6" title="Schedule">
                 {/* <ul className="space-y-4">
                   {classSessions.map((session) => (
                     <li key={session.id} className="border-b pb-2">
@@ -371,8 +690,8 @@ const studentColumns:  TableColumn<Student>[] = [
   />
               </Card>
             ) : (
-              <Card className="p-6">
-                <Table columns={classColumns} data={classSessions} />
+              <Card className="p-6" title="List Class">
+                <Table columns={classColumns} data={classes} />
               </Card>
             )}
           </div>
@@ -400,6 +719,37 @@ const studentColumns:  TableColumn<Student>[] = [
           </button>
         </Card>
       </div> */}
+
+      {/* Dialogs */}
+      <AddEditClassDialog
+        open={addEditDialog.open}
+        onOpenChange={(open) => setAddEditDialog({ open, classData: addEditDialog.classData })}
+        onSave={handleSaveClass}
+        classData={addEditDialog.classData}
+        courseName={course.name}
+      />
+
+      <ClassDetailDialog
+        open={detailDialog.open}
+        onOpenChange={(open) => setDetailDialog({ open, classData: detailDialog.classData })}
+        classData={detailDialog.classData}
+        onEdit={handleEditClass}
+      />
+
+      <DeleteClassDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog({ open, classData: deleteDialog.classData })}
+        onConfirm={handleConfirmDeleteClass}
+        classData={deleteDialog.classData}
+      />
+
+      <DeleteConfirmDialog
+        open={deleteCourseDialog}
+        onOpenChange={setDeleteCourseDialog}
+        onConfirm={handleConfirmDeleteCourse}
+        title="Delete Course"
+        message={`Are you sure you want to delete the course "${course.name}"? This action cannot be undone.`}
+      />
     </div>
   );
 };

@@ -7,7 +7,7 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Pagination from "@/shared/pagination";
 import DeleteConfirmDialog from "./delete_confirm_dialog";
-import { Search, Filter, X } from "lucide-react";
+import { Search, Filter, X, Eye, Edit, Trash2, Plus } from "lucide-react";
 
 interface Qualification {
   id: string;
@@ -220,10 +220,43 @@ export default function TeacherList() {
     {
       header: "Actions",
       accessor: (row) => (
-        <div className="flex gap-1">
-          <Button variant="secondary" size="sm" onClick={() => handleView(row)}>View</Button>
-          <Button variant="secondary" size="sm" onClick={() => handleEdit(row)}>Edit</Button>
-          <Button variant="secondary" size="sm" onClick={() => handleDelete(row)}>Delete</Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => handleView(row)}
+            className="inline-flex items-center justify-center gap-2"
+          >
+            <div className="flex items-center gap-2">
+              <Eye className="w-4 h-4 flex-shrink-0" />
+              <span className="leading-none">View</span>
+            </div>
+            
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => handleEdit(row)}
+            className="inline-flex items-center justify-center gap-2"
+          >
+            <div className="flex items-center gap-2">
+              <Edit className="w-4 h-4 flex-shrink-0" />
+              <span className="leading-none">Edit</span>
+            </div>
+            
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => handleDelete(row)}
+            className="inline-flex items-center justify-center gap-2 text-red-600 hover:text-red-700"
+          >
+            <div className="flex items-center gap-2">
+              <Trash2 className="w-4 h-4 flex-shrink-0" />
+              <span className="leading-none">Delete</span>
+            </div>
+           
+          </Button>
         </div>
       )
     }
@@ -279,13 +312,8 @@ export default function TeacherList() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Teachers Management</h1>
-        <Button onClick={handleAdd}>Add New Teacher</Button>
-      </div>
-
       {/* Search and Filter Section */}
-      <Card className="mb-6">
+      <Card className="mb-6" title="Search and Filter" description="Search and filter your teachers">
         <div className="space-y-4">
           {/* Search Bar */}
           <div className="flex items-center gap-4">
@@ -301,26 +329,28 @@ export default function TeacherList() {
             <Button
               onClick={() => setShowFilters(!showFilters)}
               variant="secondary"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 text-primary-500"
             >
-              <Filter className="w-4 h-4" />
-              Filters
-              {hasActiveFilters && (
-                <span className="bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {[searchTerm, statusFilter, specializationFilter, experienceFilter].filter(f => f !== "" && f !== "all").length}
-                </span>
-              )}
+              <span className="flex items-center gap-2">
+                <Filter className="w-4 h-4" />
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
+                {hasActiveFilters && (
+                  <span className="bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {[searchTerm, statusFilter, specializationFilter, experienceFilter].filter(f => f !== "" && f !== "all").length}
+                  </span>
+                )}
+              </span>
             </Button>
-            {hasActiveFilters && (
-              <Button
-                onClick={clearFilters}
-                variant="secondary"
-                className="flex items-center gap-2 text-red-600 hover:text-red-700"
-              >
+            <Button
+              onClick={clearFilters}
+              variant="secondary"
+              className="whitespace-nowrap text-red-500"
+            >
+              <span className="flex items-center gap-2">
                 <X className="w-4 h-4" />
-                Clear
-              </Button>
-            )}
+                Clear Filters
+              </span>
+            </Button>
           </div>
 
           {/* Filter Options */}
@@ -372,7 +402,16 @@ export default function TeacherList() {
         </div>
       </Card>
       
-      <Card title="Teacher List">
+      <Card 
+        title="Teacher List" 
+        description="View and manage all teachers"
+                 actions={
+           <Button onClick={handleAdd} size="sm" className="inline-flex items-center gap-2">
+             <Plus className="w-4 h-4" />
+             Add New Teacher
+           </Button>
+         }
+      >
         <Table 
           columns={columns} 
           data={currentData}
@@ -394,16 +433,25 @@ export default function TeacherList() {
                 <Button onClick={clearFilters} variant="secondary">
                   Clear Filters
                 </Button>
-              ) : (
-                <Button onClick={handleAdd}>
-                  Add New Teacher
-                </Button>
-              )}
+                             ) : (
+                 <Button onClick={handleAdd} className="inline-flex items-center gap-2">
+                   <Plus className="w-4 h-4" />
+                   Add New Teacher
+                 </Button>
+               )}
             </div>
           }
         />
       </Card>      
-      <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+      <Pagination 
+        currentPage={currentPage} 
+        totalPages={totalPages} 
+        onPageChange={setCurrentPage}
+        itemsPerPage={itemsPerPage}
+        totalItems={filteredTeachers.length}
+        startIndex={(currentPage - 1) * itemsPerPage}
+        endIndex={Math.min(currentPage * itemsPerPage, filteredTeachers.length)}
+      />
 
       <DeleteConfirmDialog
         open={deleteDialog.open}

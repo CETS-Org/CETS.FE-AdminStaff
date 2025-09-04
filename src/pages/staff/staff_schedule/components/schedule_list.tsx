@@ -7,12 +7,14 @@ import Card from "@/components/ui/Card";
 import Table, { type TableColumn } from "@/components/ui/Table";
 import Pagination from "@/shared/pagination";
 import { Search, Filter, X, Calendar, Edit, Trash2, Plus, BookOpen } from "lucide-react";
+import DeleteConfirmDialog from "./DeleteConfirmDialog";
 
 type ClassSession = {
   id: number;
   className: string;
   date: string;
-  time: string;
+  startTime: string; // Format: "09:00"
+  endTime: string;   // Format: "11:00"
   room: string;
   type: string; // lesson | exam | break
   teacherName?: string;
@@ -24,6 +26,7 @@ export default function ScheduleList() {
   const [editingSession, setEditingSession] = useState<ClassSession | null>(null);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const quickAddRef = useRef<HTMLDivElement>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; session: ClassSession | null }>({ open: false, session: null });
   
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState("");
@@ -43,13 +46,15 @@ export default function ScheduleList() {
       return d.toISOString().slice(0, 10);
     };
     return [
-      { id: 1, className: "IELTS A1", date: iso(1), teacherName: "liliBeth", time: "09:00", room: "R101", type: "lesson" }, // Mon 09:00
-      { id: 2, className: "TOEIC B2", date: iso(2), teacherName: "liliBeth", time: "13:00", room: "R203", type: "lesson" }, // Tue 13:00
-      { id: 3, className: "IELTS A1", date: iso(2), teacherName: "liliBeth", time: "15:00", room: "R102", type: "lesson" }, // Tue 15:00
-      { id: 4, className: "Kids C1", date: iso(3), teacherName: "liliBeth", time: "10:00", room: "R305", type: "lesson" },  // Wed 10:00
-      { id: 5, className: "IELTS A2", date: iso(4), teacherName: "liliBeth", time: "08:00", room: "R101", type: "break" },   // Thu 08:00
-      { id: 6, className: "Mock Test", date: iso(5), teacherName: "liliBeth", time: "09:00", room: "Hall A", type: "exam" },   // Fri 09:00
-      { id: 7, className: "TOEIC B2", date: iso(6), teacherName: "liliBeth", time: "11:00", room: "R203", type: "lesson" },   // Sat 11:00
+      { id: 1, className: "IELTS A1", date: iso(1), teacherName: "liliBeth", startTime: "09:00", endTime: "11:00", room: "R101", type: "lesson" }, // Mon 09:00-11:00
+      { id: 2, className: "TOEIC B2", date: iso(2), teacherName: "liliBeth", startTime: "13:00", endTime: "15:00", room: "R203", type: "lesson" }, // Tue 13:00-15:00
+      { id: 3, className: "IELTS A1", date: iso(2), teacherName: "liliBeth", startTime: "15:00", endTime: "17:00", room: "R102", type: "lesson" }, // Tue 15:00-17:00
+      { id: 4, className: "Kids C1", date: iso(3), teacherName: "liliBeth", startTime: "10:00", endTime: "12:00", room: "R305", type: "lesson" },  // Wed 10:00-12:00
+      { id: 5, className: "IELTS A2", date: iso(4), teacherName: "liliBeth", startTime: "08:00", endTime: "10:00", room: "R101", type: "break" },   // Thu 08:00-10:00
+      { id: 6, className: "Mock Test", date: iso(5), teacherName: "liliBeth", startTime: "09:00", endTime: "12:00", room: "Hall A", type: "exam" },   // Fri 09:00-12:00
+      { id: 7, className: "TOEIC B2", date: iso(6), teacherName: "liliBeth", startTime: "11:00", endTime: "13:00", room: "R203", type: "lesson" },   // Sat 11:00-13:00
+      { id: 8, className: "Business English", date: iso(1), teacherName: "liliBeth", startTime: "14:00", endTime: "16:00", room: "R201", type: "lesson" }, // Mon 14:00-16:00
+      { id: 9, className: "Conversation Club", date: iso(3), teacherName: "liliBeth", startTime: "18:00", endTime: "20:00", room: "R301", type: "lesson" }, // Wed 18:00-20:00
     ];
   });
 
@@ -70,7 +75,7 @@ export default function ScheduleList() {
     return d;
   });
 
-  const hours: number[] = Array.from({ length: 13 }, (_, i) => 8 + i); // 08:00 - 20:00
+  const hours: number[] = Array.from({ length: 16 }, (_, i) => 7 + i); // 07:00 - 22:00
 
   // Filter and search logic
   const filteredSessions = useMemo(() => {
@@ -88,16 +93,30 @@ export default function ScheduleList() {
     });
   }, [sessions, searchTerm, typeFilter, teacherFilter, roomFilter]);
 
-  const sessionsByDayHour = useMemo(() => {
+
+  // Group sessions by day and calculate their grid positions
+  const sessionsByDay = useMemo(() => {
     const map = new Map<string, ClassSession[]>();
     for (const s of filteredSessions) {
-      const hour = Number(s.time.slice(0, 2));
-      const key = `${s.date}|${hour}`; // yyyy-mm-dd|H
+      const key = s.date; // yyyy-mm-dd
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(s);
     }
     return map;
   }, [filteredSessions]);
+
+  // Calculate grid position for each session
+  const getSessionGridPosition = (session: ClassSession) => {
+    const startHour = parseInt(session.startTime.split(':')[0]);
+    const endHour = parseInt(session.endTime.split(':')[0]);
+    const duration = endHour - startHour;
+    
+    return {
+      gridRow: `${startHour - 6} / span ${duration}`, // 6 is the offset since we start from hour 7
+      startHour,
+      duration
+    };
+  };
 
   // Table view data: sessions within the current week range
   const weekStartISO = daysOfWeek[0].toISOString().slice(0, 10);
@@ -110,7 +129,7 @@ export default function ScheduleList() {
         const d = new Date(s.date);
         return d >= start && d <= end;
       })
-      .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+      .sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime));
   }, [filteredSessions, weekStartISO, weekEndISO]);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -123,9 +142,21 @@ export default function ScheduleList() {
 
   const columns: TableColumn<ClassSession>[] = [
     { header: "Class", accessor: (row) => row.className },
-    { header: "Teacher", accessor: (row) => row.teacherName || "-" },
+    { 
+      header: "Teacher", 
+      accessor: (row) => (
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+            <span className="text-sm font-medium text-primary-700">
+              {row.teacherName ? row.teacherName.charAt(0).toUpperCase() : "?"}
+            </span>
+          </div>
+          <span className="font-medium">{row.teacherName || "-"}</span>
+        </div>
+      )
+    },
     { header: "Date", accessor: (row) => new Date(row.date).toLocaleDateString() },
-    { header: "Time", accessor: (row) => row.time },
+    { header: "Time", accessor: (row) => `${row.startTime} - ${row.endTime}` },
     { header: "Room", accessor: (row) => row.room },
     {
       header: "Type",
@@ -143,30 +174,36 @@ export default function ScheduleList() {
       header: "Actions",
       accessor: (row) => (
         <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => handleEdit(row)}
-            className="flex items-center gap-1"
-          >
-            <Edit className="w-3 h-3" />
-            Edit
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => handleDelete(row.id)}
-            className="flex items-center gap-1 text-red-600 hover:text-red-700"
-          >
-            <Trash2 className="w-3 h-3" />
-            Delete
-          </Button>
+                     <Button
+             variant="secondary"
+             size="sm"
+             onClick={() => handleEdit(row)}
+             className="inline-flex items-center justify-center gap-2"
+           >
+            <div className="flex items-center gap-2">
+            <Edit className="w-4 h-4 flex-shrink-0" />
+            <span className="leading-none">Edit</span>
+            </div>
+            
+           </Button>
+           <Button
+             variant="secondary"
+             size="sm"
+             onClick={() => handleDelete(row)}
+             className="inline-flex items-center justify-center gap-2 text-red-600 hover:text-red-700"
+           >
+            <div className="flex items-center gap-2">
+            <Trash2 className="w-4 h-4 flex-shrink-0" />
+            <span className="leading-none">Delete</span>
+            </div>
+             
+           </Button>
         </div>
       )
     }
   ];
 
-  const handleAdd = (payload: { date: string; time: string; room: string; type: string; teacherName?: string; className?: string }) => {
+  const handleAdd = (payload: { date: string; startTime: string; endTime: string; room: string; type: string; teacherName?: string; className?: string }) => {
     setSessions((prev) => [
       { id: prev.length ? prev[prev.length - 1].id + 1 : 1, className: payload.className || "New Class", ...payload },
       ...prev,
@@ -178,7 +215,7 @@ export default function ScheduleList() {
     setOpenDialog(true);
   };
 
-  const handleUpdate = (payload: { date: string; time: string; room: string; type: string; teacherName?: string; className?: string }) => {
+  const handleUpdate = (payload: { date: string; startTime: string; endTime: string; room: string; type: string; teacherName?: string; className?: string }) => {
     if (editingSession) {
       setSessions((prev) =>
         prev.map((session) =>
@@ -191,9 +228,14 @@ export default function ScheduleList() {
     }
   };
 
-  const handleDelete = (sessionId: number) => {
-    if (window.confirm("Are you sure you want to delete this session?")) {
-      setSessions((prev) => prev.filter((session) => session.id !== sessionId));
+  const handleDelete = (session: ClassSession) => {
+    setDeleteDialog({ open: true, session });
+  };
+
+  const confirmDelete = () => {
+    if (deleteDialog.session) {
+      setSessions((prev) => prev.filter((session) => session.id !== deleteDialog.session!.id));
+      setDeleteDialog({ open: false, session: null });
     }
   };
 
@@ -210,7 +252,8 @@ export default function ScheduleList() {
     const ieltsSessions = [
       {
         date: nextMonday.toISOString().slice(0, 10),
-        time: "09:00",
+        startTime: "09:00",
+        endTime: "11:00",
         room: "R101",
         type: "lesson",
         teacherName: "IELTS Teacher",
@@ -218,7 +261,8 @@ export default function ScheduleList() {
       },
       {
         date: new Date(nextMonday.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10), // Wednesday
-        time: "09:00",
+        startTime: "09:00",
+        endTime: "11:00",
         room: "R101",
         type: "lesson",
         teacherName: "IELTS Teacher",
@@ -226,7 +270,8 @@ export default function ScheduleList() {
       },
       {
         date: new Date(nextMonday.getTime() + 4 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10), // Friday
-        time: "09:00",
+        startTime: "09:00",
+        endTime: "11:00",
         room: "R101",
         type: "lesson",
         teacherName: "IELTS Teacher",
@@ -287,71 +332,8 @@ export default function ScheduleList() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Class Schedule</h1>
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={() => setWeekOffset((v) => v - 1)}>{"< Week"}</Button>
-          <div className="text-sm text-neutral-700">
-            {daysOfWeek[0].toLocaleDateString()} - {daysOfWeek[6].toLocaleDateString()}
-          </div>
-          <Button variant="secondary" onClick={() => setWeekOffset((v) => v + 1)}>{"Week >"}</Button>
-
-          <div className="rounded-md overflow-hidden border bg-white">
-            <button
-              className={`px-3 py-1 text-sm ${view === 'week' ? 'bg-primary-800 text-white' : 'text-neutral-700'}`}
-              onClick={() => setView('week')}
-            >Week</button>
-            <button
-              className={`px-3 py-1 text-sm border-l ${view === 'table' ? 'bg-primary-800 text-white' : 'text-neutral-700'}`}
-              onClick={() => setView('table')}
-            >Table</button>
-          </div>
-          
-          {/* Quick Add Dropdown */}
-          <div className="relative" ref={quickAddRef}>
-            <Button
-              onClick={() => setShowQuickAdd(!showQuickAdd)}
-              variant="secondary"
-              className="flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Quick Add
-            </Button>
-            
-            {showQuickAdd && (
-              <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                <div className="p-3">
-                  <div className="text-sm font-medium text-gray-700 mb-3">Quick Add Templates</div>
-                  <button
-                    onClick={handleQuickAddIELTS}
-                    className="w-full flex items-center gap-3 p-3 text-left hover:bg-blue-50 rounded-md transition-colors border border-transparent hover:border-blue-200"
-                  >
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <BookOpen className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900">IELTS A1 - New Class</div>
-                      <div className="text-sm text-gray-500">3 sessions/week (Mon, Wed, Fri at 9:00 AM)</div>
-                      <div className="text-xs text-blue-600 mt-1">Room: R101 • Teacher: IELTS Teacher</div>
-                    </div>
-                  </button>
-                  
-                  <div className="mt-2 pt-2 border-t border-gray-100">
-                    <div className="text-xs text-gray-500 text-center">
-                      More templates coming soon...
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-          
-          <Button onClick={() => setOpenDialog(true)}>Add session</Button>
-        </div>
-      </div>
-
-      {/* Search and Filter Section */}
-      <Card className="mb-6">
+ {/* Search and Filter Section */}
+ <Card className="mb-6" title="Search and Filter" description="Search and filter your schedule">
         <div className="space-y-4">
           {/* Search Bar */}
           <div className="flex items-center gap-4">
@@ -367,26 +349,28 @@ export default function ScheduleList() {
             <Button
               onClick={() => setShowFilters(!showFilters)}
               variant="secondary"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 text-primary-500"
             >
-              <Filter className="w-4 h-4" />
-              Filters
-              {hasActiveFilters && (
-                <span className="bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {[searchTerm, typeFilter, teacherFilter, roomFilter].filter(f => f !== "" && f !== "all").length}
-                </span>
-              )}
+              <span className="flex items-center gap-2">
+                <Filter className="w-4 h-4" />
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
+                {hasActiveFilters && (
+                  <span className="bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {[searchTerm, typeFilter, teacherFilter, roomFilter].filter(f => f !== "" && f !== "all").length}
+                  </span>
+                )}
+              </span>
             </Button>
-            {hasActiveFilters && (
-              <Button
-                onClick={clearFilters}
-                variant="secondary"
-                className="flex items-center gap-2 text-red-600 hover:text-red-700"
-              >
+            <Button
+              onClick={clearFilters}
+              variant="secondary"
+              className="whitespace-nowrap text-red-500"
+            >
+              <span className="flex items-center gap-2">
                 <X className="w-4 h-4" />
-                Clear
-              </Button>
-            )}
+                Clear Filters
+              </span>
+            </Button>
           </div>
 
           {/* Filter Options */}
@@ -433,83 +417,195 @@ export default function ScheduleList() {
           </div>
         </div>
       </Card>
-      {view === 'week' ? (
-      <Card>
-        <div className="grid" style={{ gridTemplateColumns: '80px repeat(7, 1fr)' }}>
-          {/* Header row */}
-          <div />
-          {daysOfWeek.map((d) => (
-            <div key={d.toDateString()} className="px-2 py-2 text-xs font-semibold text-neutral-600 border-b border-neutral-200">
-              {d.toLocaleDateString('en-US', { weekday: 'short' })} {d.getDate()}
+
+      {/* Controls Section */}
+      <Card className="mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" onClick={() => setWeekOffset((v) => v - 1)} size="sm">
+                {"< Week"}
+              </Button>
+              <div className="text-sm text-neutral-700 px-3 py-2 bg-gray-50 rounded-md">
+                {daysOfWeek[0].toLocaleDateString()} - {daysOfWeek[6].toLocaleDateString()}
+              </div>
+              <Button variant="secondary" onClick={() => setWeekOffset((v) => v + 1)} size="sm">
+                {"Week >"}
+              </Button>
             </div>
-          ))}
-          {/* Time rows */}
-          {hours.map((h) => (
-            <>
-              <div key={`label-${h}`} className="text-xs text-neutral-500 border-r pr-2 py-2">{`${String(h).padStart(2, '0')}:00`}</div>
-              {daysOfWeek.map((d) => {
-                const key = `${d.toISOString().slice(0, 10)}|${h}`;
-                const items = sessionsByDayHour.get(key) || [];
-                const isToday = new Date().toDateString() === d.toDateString();
-                return (
-                  <div key={`${key}`} className={`min-h-16 border-b border-l p-1 ${isToday ? 'bg-primary-50' : ''}`}>
-                    <div className="flex flex-col gap-1">
-                      {items.map((s) => {
-                        // Kiểm tra nếu session đã qua
-                        const sessionDateTime = new Date(`${s.date}T${s.time}:00`);
+
+            <div className="rounded-md overflow-hidden border bg-white">
+              <button
+                className={`px-3 py-1 text-sm ${view === 'week' ? 'bg-primary-800 text-white' : 'text-neutral-700'}`}
+                onClick={() => setView('week')}
+              >Week</button>
+              <button
+                className={`px-3 py-1 text-sm border-l ${view === 'table' ? 'bg-primary-800 text-white' : 'text-neutral-700'}`}
+                onClick={() => setView('table')}
+              >Table</button>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {/* Quick Add Dropdown */}
+            <div className="relative" ref={quickAddRef}>
+              <Button
+                onClick={() => setShowQuickAdd(!showQuickAdd)}
+                variant="secondary"
+                className="flex items-center gap-2"
+                size="sm"
+              >
+                <Plus className="w-4 h-4" />
+                Quick Add
+              </Button>
+              
+              {showQuickAdd && (
+                <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                  <div className="p-3">
+                    <div className="text-sm font-medium text-gray-700 mb-3">Quick Add Templates</div>
+                    <button
+                      onClick={handleQuickAddIELTS}
+                      className="w-full flex items-center gap-3 p-3 text-left hover:bg-blue-50 rounded-md transition-colors border border-transparent hover:border-blue-200"
+                    >
+                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <BookOpen className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">IELTS A1 - New Class</div>
+                        <div className="text-sm text-gray-500">3 sessions/week (Mon, Wed, Fri at 9:00 AM)</div>
+                        <div className="text-xs text-blue-600 mt-1">Room: R101 • Teacher: IELTS Teacher</div>
+                      </div>
+                    </button>
+                    
+                    <div className="mt-2 pt-2 border-t border-gray-100">
+                      <div className="text-xs text-gray-500 text-center">
+                        More templates coming soon...
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <Button onClick={() => setOpenDialog(true)} size="sm">Add session</Button>
+          </div>
+        </div>
+      </Card>
+
+     
+      {view === 'week' ? (
+      <Card title="Weekly Schedule" description="View and manage your weekly class schedule">
+        <div className="overflow-x-auto">
+          <div className="flex min-w-[800px]">
+            {/* Time labels column - Left side */}
+            <div className="w-20 flex-shrink-0">
+              {/* Empty space for header - match the exact height of days header */}
+              <div className="h-16 bg-gray-50 border-b border-r"></div>
+              
+              {/* Time labels */}
+              {hours.map((h) => (
+                <div key={`label-${h}`} className="h-16 text-xs text-neutral-500 border-b border-r bg-gray-50 p-1 text-center font-medium flex items-center justify-center">
+                  {`${String(h).padStart(2, '0')}:00`}
+                </div>
+              ))}
+            </div>
+            
+            {/* Calendar grid - Right side */}
+            <div className="flex-1">
+              {/* Days header */}
+              <div className="grid grid-cols-7 h-16">
+                {daysOfWeek.map((d) => {
+                  const isToday = new Date().toDateString() === d.toDateString();
+                  return (
+                    <div key={d.toDateString()} className={`px-3 py-3 text-sm font-semibold text-center border-b border-r flex flex-col justify-center ${isToday ? 'bg-primary-100 text-primary-800' : 'text-neutral-700 bg-gray-50'}`}>
+                      <div>{d.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                      <div className={`text-lg ${isToday ? 'text-primary-900' : 'text-neutral-900'}`}>{d.getDate()}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {/* Calendar grid with sessions */}
+              <div className="grid grid-cols-7 relative" style={{ height: `${hours.length * 64}px` }}>
+                {/* Day columns with sessions */}
+                {daysOfWeek.map((d) => {
+                  const daySessions = sessionsByDay.get(d.toISOString().slice(0, 10)) || [];
+                  const isToday = new Date().toDateString() === d.toDateString();
+                  
+                  return (
+                    <div key={d.toDateString()} className={`relative border-r ${isToday ? 'bg-primary-25' : 'bg-white'}`}>
+                      {/* Time slots background */}
+                      {hours.map((h) => (
+                        <div key={`slot-${h}`} className={`h-16 border-b ${isToday ? 'bg-primary-25' : 'bg-white hover:bg-gray-25'}`} />
+                      ))}
+                      
+                      {/* Sessions positioned absolutely */}
+                      {daySessions.map((s) => {
+                        const sessionDateTime = new Date(`${s.date}T${s.startTime}:00`);
                         const isPast = sessionDateTime < new Date();
+                        const position = getSessionGridPosition(s);
+                        
                         return (
                           <div
                             key={s.id}
-                            className={`rounded-md px-2 py-1 text-[75%] border w-full group hover:shadow-sm transition-shadow
-  ${isPast 
-        ? "bg-gray-200 text-gray-600 border-gray-400" 
-        : s.type === "exam"
-        ? "bg-red-100 text-red-700 border-red-200"
-        : s.type === "lesson"
-        ? "bg-green-100 text-green-700 border-green-200"
-        : s.type === "break"
-        ? "bg-yellow-100 text-yellow-700 border-yellow-200"
-        : ""}
-      `}
+                            className={`absolute left-1 right-1 rounded-md px-2 py-1 text-[75%] border group hover:shadow-sm transition-all duration-200 cursor-pointer z-10
+                              ${isPast 
+                                ? "bg-gray-200 text-gray-600 border-gray-400" 
+                                : s.type === "exam"
+                                ? "bg-red-100 text-red-700 border-red-200 hover:bg-red-200"
+                                : s.type === "lesson"
+                                ? "bg-green-100 text-green-700 border-green-200 hover:bg-green-200"
+                                : s.type === "break"
+                                ? "bg-yellow-100 text-yellow-700 border-yellow-200 hover:bg-yellow-200"
+                                : ""}
+                            `}
+                            style={{
+                              top: `${(position.startHour - 7) * 64 + 2}px`,
+                              height: `${position.duration * 64 - 4}px`,
+                            }}
                           >
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1 min-w-0">
-                                <div className="font-semibold">{s.time}</div>
-                                <div className="truncate">{s.className} • {s.room}</div>
-                                <div className="text-xs opacity-75">{s.teacherName}</div>
+                            <div className="flex flex-col h-full">
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="font-semibold text-xs">{s.startTime} - {s.endTime}</div>
+                                                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                   <button
+                                     onClick={() => handleEdit(s)}
+                                     className="p-1 hover:bg-white/50 rounded inline-flex items-center justify-center"
+                                     title="Edit session"
+                                   >
+                                     <Edit className="w-3 h-3 flex-shrink-0" />
+                                   </button>
+                                   <button
+                                     onClick={() => handleDelete(s)}
+                                     className="p-1 hover:bg-white/50 rounded text-red-600 inline-flex items-center justify-center"
+                                     title="Delete session"
+                                   >
+                                     <Trash2 className="w-3 h-3 flex-shrink-0" />
+                                   </button>
+                                 </div>
                               </div>
-                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
-                                  onClick={() => handleEdit(s)}
-                                  className="p-1 hover:bg-white/50 rounded"
-                                  title="Edit session"
-                                >
-                                  <Edit className="w-3 h-3" />
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(s.id)}
-                                  className="p-1 hover:bg-white/50 rounded text-red-600"
-                                  title="Delete session"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
-                              </div>
+                              <div className="truncate font-medium text-sm">{s.className}</div>
+                              <div className="text-xs opacity-75 truncate">{s.room} • {s.teacherName}</div>
+                              {position.duration > 1 && (
+                                <div className="text-xs opacity-60 mt-auto">
+                                  {position.duration} hours
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
                       })}
                     </div>
-                  </div>
-                );
-              })}
-            </>
-          ))}
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
       </Card>
       ) : (
-      <Card>
-        <div className="rounded-lg">
+      <Card title="Schedule Table" description="List view of all scheduled sessions">
+        <div className="space-y-4">
           <Table 
             columns={columns} 
             data={currentTableData}
@@ -539,9 +635,17 @@ export default function ScheduleList() {
               </div>
             }
           />
-        </div>
-        <div className="mt-2">
-          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+          
+          <Pagination 
+              currentPage={currentPage} 
+              totalPages={totalPages} 
+              onPageChange={setCurrentPage}
+              itemsPerPage={itemsPerPage}
+              totalItems={weekSessions.length}
+              startIndex={(currentPage - 1) * itemsPerPage}
+              endIndex={Math.min(currentPage * itemsPerPage, weekSessions.length)}
+            />
+          
         </div>
       </Card>
       )}
@@ -552,12 +656,21 @@ export default function ScheduleList() {
         onSave={editingSession ? handleUpdate : handleAdd} 
         initial={editingSession ? {
           date: editingSession.date,
-          time: editingSession.time,
+          startTime: editingSession.startTime,
+          endTime: editingSession.endTime,
           room: editingSession.room,
           type: editingSession.type,
           teacherName: editingSession.teacherName,
           className: editingSession.className
         } : null} 
+      />
+
+      <DeleteConfirmDialog
+        open={deleteDialog.open}
+        onOpenChange={(open: boolean) => setDeleteDialog({ open, session: null })}
+        onConfirm={confirmDelete}
+        title="Delete Session"
+        message={`Are you sure you want to delete "${deleteDialog.session?.className}" session? This action cannot be undone.`}
       />
     </div>
   );

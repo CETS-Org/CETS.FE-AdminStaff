@@ -14,7 +14,8 @@ import {
   BookOpen, 
   Award,
   MessageSquare,
-  Plus
+  Plus,
+  ArrowLeft
 } from "lucide-react";
 
 interface EnrolledCourse {
@@ -155,54 +156,58 @@ export default function StudentDetailPage() {
     {
       header: "Actions",
       accessor: (course) => (
-        <div className="flex gap-2">
-          <button
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => handleViewCourse(course.id)}
-            className="p-1 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors"
+            className="inline-flex items-center justify-center gap-2"
           >
-            <Eye className="w-4 h-4" />
-          </button>
-          <button
+            <Eye className="w-4 h-4 flex-shrink-0" />
+            <span className="leading-none">View</span>
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => handleManageCourse(course.id)}
-            className="p-1 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors"
+            className="inline-flex items-center justify-center gap-2"
           >
-            <Settings className="w-4 h-4" />
-          </button>
+            <Settings className="w-4 h-4 flex-shrink-0" />
+            <span className="leading-none">Manage</span>
+          </Button>
         </div>
       )
     }
   ];
 
   return (
-    <div className="p-6 mx-auto mt-16 lg:pl-70">
+    <div className="p-6 w-full mt-16 lg:pl-70">
       {/* Header with Breadcrumb */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Link to="/staff" className="hover:text-gray-900">Dashboard</Link>
+            <Link to="/" className="hover:text-gray-900">Dashboard</Link>
             <ChevronRight className="w-4 h-4" />
-            <Link to="/staff/students" className="hover:text-gray-900">Students</Link>
+            <Link to="/students" className="hover:text-gray-900">Students</Link>
             <ChevronRight className="w-4 h-4" />
             <span className="text-gray-900 font-medium">Student Detail</span>
           </div>
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3">
             <Button
               onClick={handleEdit}
               variant="secondary"
-              size="sm"
-              className="rounded-full border border-gray-300 bg-white hover:bg-gray-50"
+              className="flex items-center gap-2"
             >
-              <Edit className="w-4 h-4 mr-2" />
-              Edit
+              <Edit className="w-4 h-4" />
+              Edit Student
             </Button>
             <Button
               onClick={handleDelete}
               variant="secondary"
-              size="sm"
-              className="rounded-full border border-gray-300 bg-white hover:bg-gray-50 text-red-600 hover:text-red-700"
+              className="flex items-center gap-2 text-red-600 hover:text-red-700"
             >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Delete
+              <Trash2 className="w-4 h-4" />
+              Delete Student
             </Button>
           </div>
         </div>
@@ -248,7 +253,7 @@ export default function StudentDetailPage() {
         {/* Right Column - Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Enrolled Courses */}
-          <Card title="Enrolled Courses">
+          <Card title="Enrolled Courses" description="View and manage student's course enrollments">
             <Table
               columns={courseColumns}
               data={enrolledCourses}
