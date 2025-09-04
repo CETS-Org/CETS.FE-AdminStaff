@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Table, { type TableColumn } from "@/components/ui/Table";
+import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
 import Pagination from "@/shared/pagination";
 import AddEditStudentDialog from "./AddEditStudentDialog";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
-import { Eye, Edit, Trash2 } from "lucide-react";
+import { Eye, Edit, Trash2, Search, Filter, X } from "lucide-react";
 
 export type Student = {
   id: number;
@@ -27,6 +29,12 @@ export default function StudentsList() {
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; student: Student | null }>({ open: false, student: null });
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   
+  // Search and filter states
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [levelFilter, setLevelFilter] = useState<string>("all");
+  const [showFilters, setShowFilters] = useState(false);
+  
     const [students, setStudents] = useState<Student[]>([
       { id: 1, name: "Nguyen Van A", email: "nguyenvana@email.com", phone: "0123456789", age: 18, level: "B1", enrolledCourses: ["IELTS Foundation"], status: "active", joinDate: "2024-09-01" },
       { id: 2, name: "Tran Thi B", email: "tranthib@email.com", phone: "0987654321", age: 22, level: "C1", enrolledCourses: ["TOEIC Advanced", "Business English"], status: "active", joinDate: "2024-08-15" },
@@ -35,13 +43,33 @@ export default function StudentsList() {
       { id: 5, name: "Hoang Van E", email: "hoangvane@email.com", phone: "0444555666", age: 20, level: "A2", enrolledCourses: ["Conversation Club"], status: "inactive", joinDate: "2024-07-01" },
     ]);
 
+  // Filter and search logic
+  const filteredStudents = useMemo(() => {
+    return students.filter(student => {
+      const matchesSearch = searchTerm === "" || 
+        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.phone.includes(searchTerm);
+      
+      const matchesStatus = statusFilter === "all" || student.status === statusFilter;
+      const matchesLevel = levelFilter === "all" || student.level === levelFilter;
+      
+      return matchesSearch && matchesStatus && matchesLevel;
+    });
+  }, [students, searchTerm, statusFilter, levelFilter]);
+
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
-  const totalPages = Math.ceil(students.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
   const currentData = useMemo(
-    () => students.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
-    [students, currentPage]
+    () => filteredStudents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
+    [filteredStudents, currentPage]
   );
+
+  // Reset page when filters change
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, levelFilter]);
 
   const columns: TableColumn<Student>[] = [
     { 
@@ -151,15 +179,137 @@ export default function StudentsList() {
     }
   };
 
+  const clearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setLevelFilter("all");
+  };
+
+  const hasActiveFilters = searchTerm !== "" || statusFilter !== "all" || levelFilter !== "all";
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Students Management</h1>
         <Button onClick={handleAdd}>Add New Student</Button>
       </div>
+
+      {/* Search and Filter Section */}
+      <Card className="mb-6">
+        <div className="space-y-4">
+          {/* Search Bar */}
+          <div className="flex items-center gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Search students by name, email, or phone..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button
+              onClick={() => setShowFilters(!showFilters)}
+              variant="secondary"
+              className="flex items-center gap-2"
+            >
+              <Filter className="w-4 h-4" />
+              Filters
+              {hasActiveFilters && (
+                <span className="bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {[searchTerm, statusFilter, levelFilter].filter(f => f !== "" && f !== "all").length}
+                </span>
+              )}
+            </Button>
+            {hasActiveFilters && (
+              <Button
+                onClick={clearFilters}
+                variant="secondary"
+                className="flex items-center gap-2 text-red-600 hover:text-red-700"
+              >
+                <X className="w-4 h-4" />
+                Clear
+              </Button>
+            )}
+          </div>
+
+          {/* Filter Options */}
+          {showFilters && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+              <Select
+                label="Status"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                options={[
+                  { label: "All Status", value: "all" },
+                  { label: "Active", value: "active" },
+                  { label: "Inactive", value: "inactive" },
+                  { label: "Graduated", value: "graduated" },
+                ]}
+              />
+              <Select
+                label="Level"
+                value={levelFilter}
+                onChange={(e) => setLevelFilter(e.target.value)}
+                options={[
+                  { label: "All Levels", value: "all" },
+                  { label: "Beginner", value: "Beginner" },
+                  { label: "A1", value: "A1" },
+                  { label: "A2", value: "A2" },
+                  { label: "B1", value: "B1" },
+                  { label: "B2", value: "B2" },
+                  { label: "C1", value: "C1" },
+                  { label: "C2", value: "C2" },
+                ]}
+              />
+            </div>
+          )}
+
+          {/* Results Summary */}
+          <div className="flex items-center justify-between text-sm text-gray-600 pt-2 border-t">
+            <span>
+              Showing {currentData.length} of {filteredStudents.length} students
+              {hasActiveFilters && " (filtered)"}
+            </span>
+            {hasActiveFilters && (
+              <span className="text-primary-600">
+                {students.length - filteredStudents.length} students hidden by filters
+              </span>
+            )}
+          </div>
+        </div>
+      </Card>
       
       <Card title="Students List">
-        <Table columns={columns} data={currentData} />
+        <Table 
+          columns={columns} 
+          data={currentData}
+          emptyState={
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Search className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {hasActiveFilters ? "No students match your filters" : "No students found"}
+              </h3>
+              <p className="text-gray-500 mb-4">
+                {hasActiveFilters 
+                  ? "Try adjusting your search criteria or clear the filters."
+                  : "Get started by adding your first student."
+                }
+              </p>
+              {hasActiveFilters ? (
+                <Button onClick={clearFilters} variant="secondary">
+                  Clear Filters
+                </Button>
+              ) : (
+                <Button onClick={handleAdd}>
+                  Add New Student
+                </Button>
+              )}
+            </div>
+          }
+        />
       </Card>
       
       <div className="mt-4">

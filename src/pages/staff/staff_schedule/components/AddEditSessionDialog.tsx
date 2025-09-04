@@ -8,8 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFoo
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (session: { date: string; time: string; room: string; type: string; teacherName?: string }) => void;
-  initial?: { date: string; time: string; room: string; type: string; teacherName?: string } | null;
+  onSave: (session: { date: string; time: string; room: string; type: string; teacherName?: string; className?: string }) => void;
+  initial?: { date: string; time: string; room: string; type: string; teacherName?: string; className?: string } | null;
 };
 
 export default function AddEditSessionDialog({ open, onOpenChange, onSave, initial }: Props) {
@@ -18,6 +18,7 @@ export default function AddEditSessionDialog({ open, onOpenChange, onSave, initi
   const [room, setRoom] = useState(initial?.room || "");
   const [type, setType] = useState(initial?.type || "lesson");
   const [teacherName, setTeacherName] = useState(initial?.teacherName || "");
+  const [className, setClassName] = useState(initial?.className || "");
 
   useEffect(() => {
     setDate(initial?.date || "");
@@ -25,6 +26,7 @@ export default function AddEditSessionDialog({ open, onOpenChange, onSave, initi
     setRoom(initial?.room || "");
     setType(initial?.type || "lesson");
     setTeacherName(initial?.teacherName || "");
+    setClassName(initial?.className || "");
   }, [initial, open]);
 
   const handleClose = () => {
@@ -32,7 +34,7 @@ export default function AddEditSessionDialog({ open, onOpenChange, onSave, initi
   };
 
   const handleSave = () => {
-    onSave({ date, time, room, type, teacherName });
+    onSave({ date, time, room, type, teacherName, className });
     handleClose();
   };
 
@@ -43,6 +45,7 @@ export default function AddEditSessionDialog({ open, onOpenChange, onSave, initi
           <DialogTitle>{initial ? "Edit Session" : "Add Session"}</DialogTitle>
         </DialogHeader>
         <DialogBody className="space-y-3">
+          <Input label="Class Name" placeholder="Enter class name" value={className} onChange={(e) => setClassName(e.target.value)} />
           <Input label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           <Input label="Time" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
           <Input label="Room" placeholder="Enter room" value={room} onChange={(e) => setRoom(e.target.value)} />

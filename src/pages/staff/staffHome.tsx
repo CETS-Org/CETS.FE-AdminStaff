@@ -12,6 +12,8 @@ import AddEditCoursePage from "./staff_courses/AddEditCoursePage";
 import AssignTeacherPage from "./staff_assign_teacher";
 import StaffRequestPage from "./staff_request";
 import StudentDetailPage from "./staff_students/StudentDetailPage";
+import TeacherDetailPage from "./staff_teachers/TeacherDetailPage";
+import AddEditTeacherPage from "./staff_teachers/AddEditTeacherPage";
 
 
 export default function StaffHome() {
@@ -26,7 +28,10 @@ export default function StaffHome() {
                 <Routes>
                     <Route path="/" element={<StaffAnalytics />} />
                     <Route path="analytics" element={<StaffAnalytics />} />
-                    <Route path="teachers" element={<TeacherManagement />} />          
+                    <Route path="teachers" element={<TeacherManagement />} /> 
+                    <Route path="teachers/add" element={<AddEditTeacherPage />} /> 
+                    <Route path="teachers/:id" element={<TeacherDetailPage />} />         
+                    <Route path="teachers/edit/:id" element={<AddEditTeacherPage />} />
                     <Route path="schedule" element={<StaffSchedulePage />} />
                     <Route path="students" element={<StaffStudentsPage />} />
                     <Route path="courses" element={<StaffCoursesPage />} />
