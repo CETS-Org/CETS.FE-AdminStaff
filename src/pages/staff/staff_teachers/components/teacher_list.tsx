@@ -263,15 +263,15 @@ export default function TeacherList() {
   ];
 
   const handleAdd = () => {
-    navigate("/teachers/add");
+    navigate("/staff/teachers/add");
   };
 
   const handleEdit = (teacher: Teacher) => {
-    navigate(`/teachers/edit/${teacher.id}`);
+    navigate(`/staff/teachers/edit/${teacher.id}`);
   };
 
   const handleView = (teacher: Teacher) => {
-    navigate(`/teachers/${teacher.id}`);
+    navigate(`/staff/teachers/${teacher.id}`);
   };
 
   const handleDelete = (teacher: Teacher) => {
