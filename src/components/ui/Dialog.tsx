@@ -94,7 +94,7 @@ export function DialogDescription({ className = "", ...props }: ComponentPropsWi
 }
 
 export function DialogBody({ className = "", ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={["px-6 py-4", className].join(" ")} {...props} />;
+  return <div className={["px-6 py-4 overflow-y-auto max-h-[60vh]", className].join(" ")} {...props} />;
 }
 
 export function DialogFooter({ className = "", ...props }: HTMLAttributes<HTMLDivElement>) {

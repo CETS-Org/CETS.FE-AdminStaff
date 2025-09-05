@@ -6,7 +6,11 @@ import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import PageHeader from "@/components/ui/PageHeader";
 import type { TableColumn } from "@/components/ui/Table";
 import Table from "@/components/ui/Table";
-import type { Student } from "../staff_students/components/students_list";
+import type { Student as BaseStudent } from "../staff_students/components/students_list";
+
+type Student = BaseStudent & {
+  currentClass?: string;
+};
 import { Calendar,dateFnsLocalizer } from "react-big-calendar";
 import AddEditClassDialog from "./components/AddEditClassDialog";
 import ClassDetailDialog from "./components/ClassDetailDialog";
@@ -93,11 +97,11 @@ const CourseDetail: React.FC = () => {
   const navigate = useNavigate();
   const course = coursesData[id || "ENGO01"] || coursesData["ENGO01"];
   const [students] = useState<Student[]>([
-    { id: 1, name: "Nguyen Van A", email: "nguyenvana@email.com", phone: "0123456789", age: 18, level: "B1", enrolledCourses: ["IELTS Foundation"], status: "active", joinDate: "2024-09-01" },
-    { id: 2, name: "Tran Thi B", email: "tranthib@email.com", phone: "0987654321", age: 22, level: "C1", enrolledCourses: ["TOEIC Advanced", "Business English"], status: "active", joinDate: "2024-08-15" },
-    { id: 3, name: "Le Van C", email: "levanc@email.com", phone: "0555666777", age: 16, level: "Beginner", enrolledCourses: ["Kids English"], status: "active", joinDate: "2024-10-01" },
-    { id: 4, name: "Pham Thi D", email: "phamthid@email.com", phone: "0111222333", age: 25, level: "B2", enrolledCourses: ["IELTS Foundation"], status: "graduated", joinDate: "2024-06-01" },
-    { id: 5, name: "Hoang Van E", email: "hoangvane@email.com", phone: "0444555666", age: 20, level: "A2", enrolledCourses: ["Conversation Club"], status: "inactive", joinDate: "2024-07-01" },
+    { id: 1, name: "Nguyen Van A", email: "nguyenvana@email.com", phone: "0123456789", age: 18, level: "B1", enrolledCourses: ["IELTS Foundation"], status: "active", joinDate: "2024-09-01", currentClass: "Basic English Class A" },
+    { id: 2, name: "Tran Thi B", email: "tranthib@email.com", phone: "0987654321", age: 22, level: "C1", enrolledCourses: ["TOEIC Advanced", "Business English"], status: "active", joinDate: "2024-08-15", currentClass: "Basic English Class B" },
+    { id: 3, name: "Le Van C", email: "levanc@email.com", phone: "0555666777", age: 16, level: "Beginner", enrolledCourses: ["Kids English"], status: "active", joinDate: "2024-10-01", currentClass: "Basic English Class A" },
+    { id: 4, name: "Pham Thi D", email: "phamthid@email.com", phone: "0111222333", age: 25, level: "B2", enrolledCourses: ["IELTS Foundation"], status: "graduated", joinDate: "2024-06-01", currentClass: "Basic English Class B" },
+    { id: 5, name: "Hoang Van E", email: "hoangvane@email.com", phone: "0444555666", age: 20, level: "A2", enrolledCourses: ["Conversation Club"], status: "inactive", joinDate: "2024-07-01", currentClass: "Basic English Class A" },
   ]);
 
   const [classSessions] = useState<ClassSession[]>([
@@ -154,9 +158,16 @@ const CourseDetail: React.FC = () => {
   const [studentStatusFilter, setStudentStatusFilter] = useState("");
   const [studentLevelFilter, setStudentLevelFilter] = useState("");
   const [studentDateFilter, setStudentDateFilter] = useState("");
+  const [studentClassFilter, setStudentClassFilter] = useState("");
   const [showStudentFilters, setShowStudentFilters] = useState(false);
   const [currentStudentPage, setCurrentStudentPage] = useState(1);
   const studentsPerPage = 5;
+
+  // Class list filter states
+  const [classSearch, setClassSearch] = useState("");
+  const [classStatusFilter, setClassStatusFilter] = useState("");
+  const [classTeacherFilter, setClassTeacherFilter] = useState("");
+  const [showClassFilters, setShowClassFilters] = useState(false);
 
   const handleEdit = () => {
     navigate(`/courses/edit/${id}`);
@@ -229,10 +240,11 @@ const CourseDetail: React.FC = () => {
       const matchesStatus = !studentStatusFilter || student.status === studentStatusFilter;
       const matchesLevel = !studentLevelFilter || student.level === studentLevelFilter;
       const matchesDate = !studentDateFilter || student.joinDate === studentDateFilter;
+      const matchesClass = !studentClassFilter || student.currentClass === studentClassFilter;
       
-      return matchesSearch && matchesStatus && matchesLevel && matchesDate;
+      return matchesSearch && matchesStatus && matchesLevel && matchesDate && matchesClass;
     });
-  }, [students, studentSearch, studentStatusFilter, studentLevelFilter, studentDateFilter]);
+  }, [students, studentSearch, studentStatusFilter, studentLevelFilter, studentDateFilter, studentClassFilter]);
 
   const paginatedStudents = useMemo(() => {
     const startIndex = (currentStudentPage - 1) * studentsPerPage;
@@ -244,13 +256,34 @@ const CourseDetail: React.FC = () => {
     setStudentStatusFilter("");
     setStudentLevelFilter("");
     setStudentDateFilter("");
+    setStudentClassFilter("");
     setCurrentStudentPage(1);
   };
 
   // Reset current page when filters change
   useEffect(() => {
     setCurrentStudentPage(1);
-  }, [studentSearch, studentStatusFilter, studentLevelFilter, studentDateFilter]);
+  }, [studentSearch, studentStatusFilter, studentLevelFilter, studentDateFilter, studentClassFilter]);
+
+  // Class filtering logic
+  const filteredClasses = useMemo(() => {
+    return classes.filter(classItem => {
+      const matchesSearch = classItem.name.toLowerCase().includes(classSearch.toLowerCase()) ||
+                           classItem.teacher.toLowerCase().includes(classSearch.toLowerCase()) ||
+                           classItem.room.toLowerCase().includes(classSearch.toLowerCase());
+      
+      const matchesStatus = !classStatusFilter || classItem.status === classStatusFilter;
+      const matchesTeacher = !classTeacherFilter || classItem.teacher === classTeacherFilter;
+      
+      return matchesSearch && matchesStatus && matchesTeacher;
+    });
+  }, [classes, classSearch, classStatusFilter, classTeacherFilter]);
+
+  const clearClassFilters = () => {
+    setClassSearch("");
+    setClassStatusFilter("");
+    setClassTeacherFilter("");
+  };
 
   const breadcrumbItems = [
     { label: 'Dashboard', to: '/dashboard' },
@@ -276,6 +309,7 @@ const studentColumns:  TableColumn<Student>[] = [
     { header: "Phone", accessor: (row) => row.phone },
     { header: "Age", accessor: (row) => row.age },
     { header: "Level", accessor: (row) => row.level },
+    { header: "Class", accessor: (row) => row.currentClass || "Not assigned" },
     { 
       header: "Courses", 
       accessor: (row) => (
@@ -523,29 +557,24 @@ const studentColumns:  TableColumn<Student>[] = [
         )}
 
         {activeTab === "students" && (
-          <Card className="p-6">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900">Student List</h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  Manage students enrolled in this course
-                </p>
-              </div>
+          <Card 
+            title="Student List" 
+            description="Manage students enrolled in this course"
+            actions={
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500">
                   {filteredStudents.length} students
                 </span>
               </div>
-            </div>
-
+            }
+          >
             {/* Search and Filter Section */}
-            <div className="mb-6">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="relative flex-1">
+            <div className="space-y-4 mb-6">
+              {/* Search Bar */}
+              <div className="flex items-center gap-4">
+                <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <Input
-                    type="text"
                     placeholder="Search students by name, email, or phone..."
                     value={studentSearch}
                     onChange={(e) => setStudentSearch(e.target.value)}
@@ -553,62 +582,61 @@ const studentColumns:  TableColumn<Student>[] = [
                   />
                 </div>
                 <Button
-                  variant="secondary"
                   onClick={() => setShowStudentFilters(!showStudentFilters)}
-                  className="flex items-center gap-2"
+                  variant="secondary"
+                  className="flex items-center gap-2 text-primary-500"
                 >
-                  <Filter className="w-4 h-4" />
-                  {showStudentFilters ? "Hide Filters" : "Show Filters"}
+                  <span className="flex items-center gap-2">
+                    <Filter className="w-4 h-4" />
+                    {showStudentFilters ? 'Hide Filters' : 'Show Filters'}
+                    {(studentSearch || studentStatusFilter || studentLevelFilter || studentDateFilter || studentClassFilter) && (
+                      <span className="bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        {[studentSearch, studentStatusFilter, studentLevelFilter, studentDateFilter, studentClassFilter].filter(f => f !== "").length}
+                      </span>
+                    )}
+                  </span>
                 </Button>
-                {(studentSearch || studentStatusFilter || studentLevelFilter || studentDateFilter) && (
-                  <Button
-                    variant="secondary"
-                    onClick={clearStudentFilters}
-                    className="flex items-center gap-2 text-red-600 hover:text-red-700"
-                  >
+                <Button
+                  onClick={clearStudentFilters}
+                  variant="secondary"
+                  className="whitespace-nowrap text-red-500"
+                >
+                  <span className="flex items-center gap-2">
                     <X className="w-4 h-4" />
                     Clear Filters
-                  </Button>
-                )}
+                  </span>
+                </Button>
               </div>
 
               {/* Filter Options */}
               {showStudentFilters && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Status
-                    </label>
-                    <Select
-                      value={studentStatusFilter}
-                      onChange={(e) => setStudentStatusFilter(e.target.value)}
-                      options={[
-                        { label: "All Status", value: "" },
-                        { label: "Active", value: "active" },
-                        { label: "Inactive", value: "inactive" },
-                        { label: "Graduated", value: "graduated" }
-                      ]}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Level
-                    </label>
-                    <Select
-                      value={studentLevelFilter}
-                      onChange={(e) => setStudentLevelFilter(e.target.value)}
-                      options={[
-                        { label: "All Levels", value: "" },
-                        { label: "Beginner", value: "Beginner" },
-                        { label: "A1", value: "A1" },
-                        { label: "A2", value: "A2" },
-                        { label: "B1", value: "B1" },
-                        { label: "B2", value: "B2" },
-                        { label: "C1", value: "C1" },
-                        { label: "C2", value: "C2" }
-                      ]}
-                    />
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t">
+                  <Select
+                    label="Status"
+                    value={studentStatusFilter}
+                    onChange={(e) => setStudentStatusFilter(e.target.value)}
+                    options={[
+                      { label: "All Status", value: "" },
+                      { label: "Active", value: "active" },
+                      { label: "Inactive", value: "inactive" },
+                      { label: "Graduated", value: "graduated" }
+                    ]}
+                  />
+                  <Select
+                    label="Level"
+                    value={studentLevelFilter}
+                    onChange={(e) => setStudentLevelFilter(e.target.value)}
+                    options={[
+                      { label: "All Levels", value: "" },
+                      { label: "Beginner", value: "Beginner" },
+                      { label: "A1", value: "A1" },
+                      { label: "A2", value: "A2" },
+                      { label: "B1", value: "B1" },
+                      { label: "B2", value: "B2" },
+                      { label: "C1", value: "C1" },
+                      { label: "C2", value: "C2" }
+                    ]}
+                  />
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Join Date
@@ -619,26 +647,61 @@ const studentColumns:  TableColumn<Student>[] = [
                       onChange={(e) => setStudentDateFilter(e.target.value)}
                     />
                   </div>
+                  <Select
+                    label="Class"
+                    value={studentClassFilter}
+                    onChange={(e) => setStudentClassFilter(e.target.value)}
+                    options={[
+                      { label: "All Classes", value: "" },
+                      { label: "Basic English Class A", value: "Basic English Class A" },
+                      { label: "Basic English Class B", value: "Basic English Class B" },
+                      { label: "Not assigned", value: "Not assigned" }
+                    ]}
+                  />
                 </div>
               )}
             </div>
 
             {/* Table */}
-            <Table columns={studentColumns} data={paginatedStudents} />
-
-            {/* Pagination */}
-            {filteredStudents.length > studentsPerPage && (
-              <div className="mt-6">
-                <Pagination
-                  currentPage={currentStudentPage}
-                  totalPages={Math.ceil(filteredStudents.length / studentsPerPage)}
-                  onPageChange={setCurrentStudentPage}
-                  totalItems={filteredStudents.length}
-                  itemsPerPage={studentsPerPage}
-                />
-              </div>
-            )}
+            <Table 
+              columns={studentColumns} 
+              data={paginatedStudents}
+              emptyState={
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Search className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    {(studentSearch || studentStatusFilter || studentLevelFilter || studentDateFilter || studentClassFilter) ? "No students match your filters" : "No students found"}
+                  </h3>
+                  <p className="text-gray-500 mb-4">
+                    {(studentSearch || studentStatusFilter || studentLevelFilter || studentDateFilter || studentClassFilter) 
+                      ? "Try adjusting your search criteria or clear the filters."
+                      : "No students are enrolled in this course yet."
+                    }
+                  </p>
+                  {(studentSearch || studentStatusFilter || studentLevelFilter || studentDateFilter || studentClassFilter) && (
+                    <Button onClick={clearStudentFilters} variant="secondary">
+                      Clear Filters
+                    </Button>
+                  )}
+                </div>
+              }
+            />
           </Card>
+        )}
+
+        {/* Pagination */}
+        {activeTab === "students" && filteredStudents.length > studentsPerPage && (
+          <div className="mt-6">
+            <Pagination
+              currentPage={currentStudentPage}
+              totalPages={Math.ceil(filteredStudents.length / studentsPerPage)}
+              onPageChange={setCurrentStudentPage}
+              totalItems={filteredStudents.length}
+              itemsPerPage={studentsPerPage}
+            />
+          </div>
         )}
 
         {activeTab === "class" && (
@@ -690,8 +753,115 @@ const studentColumns:  TableColumn<Student>[] = [
   />
               </Card>
             ) : (
-              <Card className="p-6" title="List Class">
-                <Table columns={classColumns} data={classes} />
+              <Card 
+                title="Class List" 
+                description="Manage classes for this course"
+                actions={
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">
+                      {filteredClasses.length} classes
+                    </span>
+                  </div>
+                }
+              >
+                {/* Search and Filter Section */}
+                <div className="space-y-4 mb-6">
+                  {/* Search Bar */}
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1 relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <Input
+                        placeholder="Search classes by name, teacher, or room..."
+                        value={classSearch}
+                        onChange={(e) => setClassSearch(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    <Button
+                      onClick={() => setShowClassFilters(!showClassFilters)}
+                      variant="secondary"
+                      className="flex items-center gap-2 text-primary-500"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Filter className="w-4 h-4" />
+                        {showClassFilters ? 'Hide Filters' : 'Show Filters'}
+                        {(classSearch || classStatusFilter || classTeacherFilter) && (
+                          <span className="bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                            {[classSearch, classStatusFilter, classTeacherFilter].filter(f => f !== "").length}
+                          </span>
+                        )}
+                      </span>
+                    </Button>
+                    <Button
+                      onClick={clearClassFilters}
+                      variant="secondary"
+                      className="whitespace-nowrap text-red-500"
+                    >
+                      <span className="flex items-center gap-2">
+                        <X className="w-4 h-4" />
+                        Clear Filters
+                      </span>
+                    </Button>
+                  </div>
+
+                  {/* Filter Options */}
+                  {showClassFilters && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+                      <Select
+                        label="Status"
+                        value={classStatusFilter}
+                        onChange={(e) => setClassStatusFilter(e.target.value)}
+                        options={[
+                          { label: "All Status", value: "" },
+                          { label: "Active", value: "active" },
+                          { label: "Inactive", value: "inactive" },
+                          { label: "Full", value: "full" }
+                        ]}
+                      />
+                      <Select
+                        label="Teacher"
+                        value={classTeacherFilter}
+                        onChange={(e) => setClassTeacherFilter(e.target.value)}
+                        options={[
+                          { label: "All Teachers", value: "" },
+                          ...classes.map(classItem => ({
+                            label: classItem.teacher,
+                            value: classItem.teacher
+                          })).filter((teacher, index, self) => 
+                            index === self.findIndex(t => t.value === teacher.value)
+                          )
+                        ]}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Table */}
+                <Table 
+                  columns={classColumns} 
+                  data={filteredClasses}
+                  emptyState={
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Search className="w-8 h-8 text-gray-400" />
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        {(classSearch || classStatusFilter || classTeacherFilter) ? "No classes match your filters" : "No classes found"}
+                      </h3>
+                      <p className="text-gray-500 mb-4">
+                        {(classSearch || classStatusFilter || classTeacherFilter) 
+                          ? "Try adjusting your search criteria or clear the filters."
+                          : "No classes are created for this course yet."
+                        }
+                      </p>
+                      {(classSearch || classStatusFilter || classTeacherFilter) && (
+                        <Button onClick={clearClassFilters} variant="secondary">
+                          Clear Filters
+                        </Button>
+                      )}
+                    </div>
+                  }
+                />
               </Card>
             )}
           </div>

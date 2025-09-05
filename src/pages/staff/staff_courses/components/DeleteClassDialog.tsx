@@ -35,14 +35,14 @@ export default function DeleteClassDialog({ open, onOpenChange, onConfirm, class
 
   return (
          <Dialog open={open} onOpenChange={onOpenChange}>
-       <DialogContent size="lg" className="max-w-2xl">
+       <DialogContent size="lg" className="max-w-3xl">
                  <DialogHeader className="sticky top-0 bg-white z-10 border-b pb-4 shadow-sm">
            <DialogTitle className="text-red-600 flex items-center gap-2">
              <AlertTriangle className="w-5 h-5" />
              Delete Class
            </DialogTitle>
          </DialogHeader>
-         <DialogBody className="pb-20 overflow-y-auto max-h-[60vh]">
+         <DialogBody>
           <div className="space-y-4">
             <p className="text-gray-700">
               Are you sure you want to delete the class <strong>"{classData.name}"</strong>?

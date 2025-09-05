@@ -7,10 +7,10 @@ export default function StaffCoursesPage() {
 
   return (
    
-        
-        <main className="mt-16 p-6 mx-auto lg:pl-70 lg:w-full bg-gray-50 md:w-[90%] w-[90%]">
+                 
+        <main className="mt-16 p-6 mx-auto lg:pl-70 lg:w-full bg-gray-50 md:w-[90%] w-[90%] ">
           {/* Header Section */}
-          <div className="mb-8">
+          <div className="mb-8 ">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">Course Management</h1>
@@ -73,6 +73,6 @@ export default function StaffCoursesPage() {
           {/* Courses List Component */}
           <CoursesList />
         </main>
-     
+    
   );
 }

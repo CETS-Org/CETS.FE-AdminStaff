@@ -14,6 +14,7 @@ import StaffRequestPage from "./staff_request";
 import StudentDetailPage from "./staff_students/StudentDetailPage";
 import TeacherDetailPage from "./staff_teachers/TeacherDetailPage";
 import AddEditTeacherPage from "./staff_teachers/AddEditTeacherPage";
+import Chat from "../Chat";
 
 
 export default function StaffHome() {
@@ -26,7 +27,6 @@ export default function StaffHome() {
             <main className="mt-10  ">
 
                 <Routes>
-                    <Route path="/" element={<StaffAnalytics />} />
                     <Route path="analytics" element={<StaffAnalytics />} />
                     <Route path="teachers" element={<TeacherManagement />} /> 
                     <Route path="teachers/add" element={<AddEditTeacherPage />} /> 
@@ -40,6 +40,7 @@ export default function StaffHome() {
                     <Route path="courses/:id" element={<CourseDetailPage/>} />
                     <Route path="assign-teacher" element={<AssignTeacherPage />} />
                     <Route path="requests" element={<StaffRequestPage />} />
+                    <Route path="chat" element={<Chat />} />
                     <Route path="students/:id" element={<StudentDetailPage />} />
                 </Routes>
             </main>

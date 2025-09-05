@@ -183,9 +183,9 @@ export default function StaffAnalytics() {
   ];
 
   return (
-    <div className=" mt-16 p-4 md:p-8 lg:pl-70 bg-gray-100">
+    <div className=" mt-16 p-4 md:p-8 lg:pl-70 bg-gray-50">
          <div className="min-h-screen ">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className=" mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

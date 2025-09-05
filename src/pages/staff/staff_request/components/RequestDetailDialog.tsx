@@ -100,7 +100,7 @@ export default function RequestDetailDialog({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent size="lg">
+        <DialogContent size="xl" className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Request Details</DialogTitle>
             <DialogDescription>View and manage student request details</DialogDescription>

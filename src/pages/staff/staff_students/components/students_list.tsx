@@ -203,9 +203,19 @@ export default function StudentsList() {
 
   return (
     <div>
-      {/* Search and Filter Section */}
-      <Card className="mb-6" title="Search and Filter" description="Search and filter your students">
-        <div className="space-y-4">
+      
+      
+      <Card title="Students List" description="View and manage your students" actions={
+        <Button onClick={handleAdd} size="sm" className="inline-flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            Add New Student
+          </div>
+        </Button>    
+      }>
+        {/* Search and Filter Section */}
+    
+        <div className="space-y-4 mb-6">
           {/* Search Bar */}
           <div className="flex items-center gap-4">
             <div className="flex-1 relative">
@@ -276,29 +286,8 @@ export default function StudentsList() {
             </div>
           )}
 
-          {/* Results Summary */}
-          <div className="flex items-center justify-between text-sm text-gray-600 pt-2 border-t">
-            <span>
-              Showing {currentData.length} of {filteredStudents.length} students
-              {hasActiveFilters && " (filtered)"}
-            </span>
-            {hasActiveFilters && (
-              <span className="text-primary-600">
-                {students.length - filteredStudents.length} students hidden by filters
-              </span>
-            )}
-          </div>
         </div>
-      </Card>
-      
-      <Card title="Students List" description="View and manage your students" actions={
-        <Button onClick={handleAdd} size="sm" className="inline-flex items-center gap-2">
-          <div className="flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Add New Student
-          </div>
-        </Button>    
-      }>
+     
         <Table 
           columns={columns} 
           data={currentData}

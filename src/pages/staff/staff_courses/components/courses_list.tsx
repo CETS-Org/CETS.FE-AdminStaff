@@ -298,73 +298,6 @@ export default function CoursesList() {
 
   return (
     <div className="space-y-6">
-      {/* Search and Filter Card */}
-      <Card title="Search & Filters" description="Filter courses by various criteria">
-        <div className="space-y-4">
-          <div className="flex gap-4">
-            <div className="flex-1 relative">
-              <Input
-                placeholder="Search courses..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            </div>
-            <Button
-              variant="secondary"
-              onClick={() => setShowFilters(!showFilters)}
-              className="text-primary-500 whitespace-nowrap"
-            >
-              <span className="flex items-center gap-2">
-                <Filter className="w-4 h-4" />
-                Show/Hide Filters
-                {activeFiltersCount > 0 && (
-                  <span className="bg-primary-500 text-white text-xs rounded-full px-2 py-1">
-                    {activeFiltersCount}
-                  </span>
-                )}
-              </span>
-            </Button>
-            {activeFiltersCount > 0 && (
-              <Button
-                variant="secondary"
-                onClick={clearFilters}
-                className="text-red-500 whitespace-nowrap"
-              >
-                <span className="flex items-center gap-2">
-                  <X className="w-4 h-4" />
-                  Clear Filters
-                </span>
-              </Button>
-            )}
-          </div>
-
-          {showFilters && (
-            <div className="grid grid-cols-2 gap-4">
-              <Select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                options={[
-                  { label: "All Status", value: "all" },
-                  { label: "Active", value: "active" },
-                  { label: "Inactive", value: "inactive" },
-                ]}
-              />
-              <Select
-                value={levelFilter}
-                onChange={(e) => setLevelFilter(e.target.value)}
-                options={[
-                  { label: "All Levels", value: "all" },
-                  { label: "Beginner", value: "beginner" },
-                  { label: "Intermediate", value: "intermediate" },
-                  { label: "Advanced", value: "advanced" },
-                ]}
-              />
-            </div>
-          )}
-        </div>
-      </Card>
-
       {/* Courses List Card */}
       <Card 
         title="Courses List" 
@@ -389,7 +322,7 @@ export default function CoursesList() {
                 <Grid3X3 className="w-4 h-4" />
               </Button>
             </div>
-            <Button size="sm">
+            <Button size="sm" onClick={() => navigate("/courses/add")}>
               <span className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />
                 Add Course
@@ -398,6 +331,73 @@ export default function CoursesList() {
           </div>
         }
       >
+        {/* Search and Filter Section */}
+        <div className="space-y-4 mb-6">
+          <div className="flex gap-4">
+            <div className="flex-1 relative">
+              <Input
+                placeholder="Search courses..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            </div>
+            <Button
+              variant="secondary"
+              onClick={() => setShowFilters(!showFilters)}
+              className="text-primary-500 whitespace-nowrap"
+            >
+              <span className="flex items-center gap-2">
+                <Filter className="w-4 h-4" />
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
+                {activeFiltersCount > 0 && (
+                  <span className="bg-primary-500 text-white text-xs rounded-full px-2 py-1">
+                    {activeFiltersCount}
+                  </span>
+                )}
+              </span>
+            </Button>
+            {activeFiltersCount > 0 && (
+              <Button
+                variant="secondary"
+                onClick={clearFilters}
+                className="text-red-500 whitespace-nowrap"
+              >
+                <span className="flex items-center gap-2">
+                  <X className="w-4 h-4" />
+                  Clear Filters
+                </span>
+              </Button>
+            )}
+          </div>
+
+          {showFilters && (
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+              <Select
+                label="Status"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                options={[
+                  { label: "All Status", value: "all" },
+                  { label: "Active", value: "active" },
+                  { label: "Inactive", value: "inactive" },
+                ]}
+              />
+              <Select
+                label="Level"
+                value={levelFilter}
+                onChange={(e) => setLevelFilter(e.target.value)}
+                options={[
+                  { label: "All Levels", value: "all" },
+                  { label: "Beginner", value: "beginner" },
+                  { label: "Intermediate", value: "intermediate" },
+                  { label: "Advanced", value: "advanced" },
+                ]}
+              />
+            </div>
+          )}
+        </div>
         <div className="space-y-4">
           {viewMode === "table" ? (
             <>

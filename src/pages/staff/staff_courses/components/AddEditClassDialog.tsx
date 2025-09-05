@@ -79,13 +79,13 @@ export default function AddEditClassDialog({ open, onOpenChange, onSave, classDa
 
   return (
          <Dialog open={open} onOpenChange={onOpenChange}>
-       <DialogContent size="xl" className="max-w-4xl">
+       <DialogContent size="xl" className="max-w-5xl">
                  <DialogHeader className="sticky top-0 bg-white z-10 border-b pb-4 shadow-sm">
            <DialogTitle className="text-xl font-semibold">
              {isEditMode ? "Edit Class" : "Add New Class"}
            </DialogTitle>
          </DialogHeader>
-         <DialogBody className="space-y-6 pt-4 pb-20 overflow-y-auto max-h-[60vh]">
+         <DialogBody className="space-y-6 pt-4">
           {/* Course Info */}
           <div className="bg-gray-50 p-4 rounded-lg">
             <h3 className="font-medium text-gray-900 mb-2">Course Information</h3>

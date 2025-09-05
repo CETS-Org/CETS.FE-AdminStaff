@@ -1,7 +1,6 @@
 // import { Avatar, AvatarImage, AvatarFallback } from "@radix-ui/react-avatar";
 // import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
 import { Bell, User, LogOut, Menu } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarImage, AvatarFallback } from "@radix-ui/react-avatar";
 
 export default function Navbar({ toggleSidebar }: { toggleSidebar: () => void }) {
 

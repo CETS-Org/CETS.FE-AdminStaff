@@ -142,11 +142,11 @@ export default function AddEditStudentDialog({ open, onOpenChange, onSave, initi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="xl" className="max-w-4xl">
+      <DialogContent size="xl" className="max-w-5xl">
         <DialogHeader className="sticky top-0 bg-white z-10 border-b pb-4 shadow-sm">
           <DialogTitle>{initial ? "Edit Student" : "Add New Student"}</DialogTitle>
         </DialogHeader>
-        <DialogBody className="space-y-6 pt-2 pb-20">
+        <DialogBody className="space-y-6 pt-2">
           {/* Avatar Section */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Profile Photo</h3>

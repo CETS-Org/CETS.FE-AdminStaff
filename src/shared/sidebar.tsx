@@ -5,7 +5,8 @@ import {
     GraduationCap,
     CalendarDays,
     UserPlus,
-    Mail
+    Mail,
+    MessageCircle
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "../lib/utils";
@@ -98,14 +99,15 @@ export default function Sidebar({ isOpen }: { isOpen: boolean }) {
                     <Mail className="h-4 w-4" />
                     Requests
                 </NavLink>
-                 <NavLink
-                    to="/requests"
+
+                <NavLink
+                    to="/staff/chat"
                     className={({ isActive }) => {
                         return isActive ? "navItemClasses bg-primary-800 text-white font-semibold border border-white shadow-[0_0_8px_white] " : "navItemClasses bg-white"
                     }}
                 >
-                    <Mail className="h-4 w-4" />
-                    Requests
+                    <MessageCircle className="h-4 w-4" />
+                    Chat
                 </NavLink>
             </div>
 

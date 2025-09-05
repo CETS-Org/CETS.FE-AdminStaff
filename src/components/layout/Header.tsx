@@ -34,6 +34,14 @@ export default function Header() {
             Reports
           </NavLink>
           <NavLink
+            to="/chat"
+            className={({ isActive }) =>
+              `hover:text-white/90 ${isActive ? 'underline font-semibold' : 'text-white'}`
+            }
+          >
+            Chat
+          </NavLink>
+          <NavLink
             to="/dev"
             className={({ isActive }) =>
               `hover:text-white/90 ${isActive ? 'underline font-semibold' : 'text-white'} text-primary-200`

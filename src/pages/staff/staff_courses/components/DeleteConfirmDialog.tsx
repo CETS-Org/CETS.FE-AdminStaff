@@ -17,11 +17,11 @@ export default function DeleteConfirmDialog({ open, onOpenChange, onConfirm, tit
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent size="md" className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-red-600">{title}</DialogTitle>
         </DialogHeader>
-        <DialogBody className="pb-20 overflow-y-auto max-h-[60vh]">
+        <DialogBody>
           <p className="text-neutral-700">{message}</p>
         </DialogBody>
         <DialogFooter className="sticky bottom-0 bg-gray-50 z-10 border-t pt-6 shadow-sm">

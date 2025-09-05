@@ -114,7 +114,7 @@ export default function AssignTeacherDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="lg">
+      <DialogContent size="lg" className="max-w-3xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserPlus className="w-5 h-5" />

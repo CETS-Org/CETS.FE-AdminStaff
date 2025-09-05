@@ -312,9 +312,18 @@ export default function TeacherList() {
 
   return (
     <div>
-      {/* Search and Filter Section */}
-      <Card className="mb-6" title="Search and Filter" description="Search and filter your teachers">
-        <div className="space-y-4">
+      <Card 
+        title="Teacher List" 
+        description="View and manage all teachers"
+        actions={
+          <Button onClick={handleAdd} size="sm" className="inline-flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            Add New Teacher
+          </Button>
+        }
+      >
+        {/* Search and Filter Section */}
+        <div className="space-y-4 mb-6">
           {/* Search Bar */}
           <div className="flex items-center gap-4">
             <div className="flex-1 relative">
@@ -386,32 +395,9 @@ export default function TeacherList() {
               />
             </div>
           )}
-
-          {/* Results Summary */}
-          <div className="flex items-center justify-between text-sm text-gray-600 pt-2 border-t">
-            <span>
-              Showing {currentData.length} of {filteredTeachers.length} teachers
-              {hasActiveFilters && " (filtered)"}
-            </span>
-            {hasActiveFilters && (
-              <span className="text-primary-600">
-                {teachers.length - filteredTeachers.length} teachers hidden by filters
-              </span>
-            )}
-          </div>
         </div>
-      </Card>
-      
-      <Card 
-        title="Teacher List" 
-        description="View and manage all teachers"
-                 actions={
-           <Button onClick={handleAdd} size="sm" className="inline-flex items-center gap-2">
-             <Plus className="w-4 h-4" />
-             Add New Teacher
-           </Button>
-         }
-      >
+
+        {/* Table */}
         <Table 
           columns={columns} 
           data={currentData}
@@ -433,12 +419,12 @@ export default function TeacherList() {
                 <Button onClick={clearFilters} variant="secondary">
                   Clear Filters
                 </Button>
-                             ) : (
-                 <Button onClick={handleAdd} className="inline-flex items-center gap-2">
-                   <Plus className="w-4 h-4" />
-                   Add New Teacher
-                 </Button>
-               )}
+              ) : (
+                <Button onClick={handleAdd} className="inline-flex items-center gap-2">
+                  <Plus className="w-4 h-4" />
+                  Add New Teacher
+                </Button>
+              )}
             </div>
           }
         />

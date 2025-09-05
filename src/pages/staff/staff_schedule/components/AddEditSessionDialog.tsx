@@ -42,7 +42,7 @@ export default function AddEditSessionDialog({ open, onOpenChange, onSave, initi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent size="md" className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{initial ? "Edit Session" : "Add Session"}</DialogTitle>
         </DialogHeader>

@@ -332,91 +332,6 @@ export default function ScheduleList() {
 
   return (
     <div>
- {/* Search and Filter Section */}
- <Card className="mb-6" title="Search and Filter" description="Search and filter your schedule">
-        <div className="space-y-4">
-          {/* Search Bar */}
-          <div className="flex items-center gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="Search by class name, teacher, or room..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Button
-              onClick={() => setShowFilters(!showFilters)}
-              variant="secondary"
-              className="flex items-center gap-2 text-primary-500"
-            >
-              <span className="flex items-center gap-2">
-                <Filter className="w-4 h-4" />
-                {showFilters ? 'Hide Filters' : 'Show Filters'}
-                {hasActiveFilters && (
-                  <span className="bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {[searchTerm, typeFilter, teacherFilter, roomFilter].filter(f => f !== "" && f !== "all").length}
-                  </span>
-                )}
-              </span>
-            </Button>
-            <Button
-              onClick={clearFilters}
-              variant="secondary"
-              className="whitespace-nowrap text-red-500"
-            >
-              <span className="flex items-center gap-2">
-                <X className="w-4 h-4" />
-                Clear Filters
-              </span>
-            </Button>
-          </div>
-
-          {/* Filter Options */}
-          {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
-              <Select
-                label="Session Type"
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                options={sessionTypes}
-              />
-              <Select
-                label="Teacher"
-                value={teacherFilter}
-                onChange={(e) => setTeacherFilter(e.target.value)}
-                options={[
-                  { label: "All Teachers", value: "all" },
-                  ...teachers.map(teacher => ({ label: teacher, value: teacher }))
-                ]}
-              />
-              <Select
-                label="Room"
-                value={roomFilter}
-                onChange={(e) => setRoomFilter(e.target.value)}
-                options={[
-                  { label: "All Rooms", value: "all" },
-                  ...rooms.map(room => ({ label: room, value: room }))
-                ]}
-              />
-            </div>
-          )}
-
-          {/* Results Summary */}
-          <div className="flex items-center justify-between text-sm text-gray-600 pt-2 border-t">
-            <span>
-              Showing {weekSessions.length} sessions this week
-              {hasActiveFilters && " (filtered)"}
-            </span>
-            {hasActiveFilters && (
-              <span className="text-primary-600">
-                {sessions.length - filteredSessions.length} sessions hidden by filters
-              </span>
-            )}
-          </div>
-        </div>
-      </Card>
 
       {/* Controls Section */}
       <Card className="mb-6">
@@ -495,6 +410,77 @@ export default function ScheduleList() {
      
       {view === 'week' ? (
       <Card title="Weekly Schedule" description="View and manage your weekly class schedule">
+        {/* Search and Filter Section */}
+        <div className="space-y-4 mb-6">
+          {/* Search Bar */}
+          <div className="flex items-center gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Search by class name, teacher, or room..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button
+              onClick={() => setShowFilters(!showFilters)}
+              variant="secondary"
+              className="flex items-center gap-2 text-primary-500"
+            >
+              <span className="flex items-center gap-2">
+                <Filter className="w-4 h-4" />
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
+                {hasActiveFilters && (
+                  <span className="bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {[searchTerm, typeFilter, teacherFilter, roomFilter].filter(f => f !== "" && f !== "all").length}
+                  </span>
+                )}
+              </span>
+            </Button>
+            <Button
+              onClick={clearFilters}
+              variant="secondary"
+              className="whitespace-nowrap text-red-500"
+            >
+              <span className="flex items-center gap-2">
+                <X className="w-4 h-4" />
+                Clear Filters
+              </span>
+            </Button>
+          </div>
+
+          {/* Filter Options */}
+          {showFilters && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
+              <Select
+                label="Session Type"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                options={sessionTypes}
+              />
+              <Select
+                label="Teacher"
+                value={teacherFilter}
+                onChange={(e) => setTeacherFilter(e.target.value)}
+                options={[
+                  { label: "All Teachers", value: "all" },
+                  ...teachers.map(teacher => ({ label: teacher, value: teacher }))
+                ]}
+              />
+              <Select
+                label="Room"
+                value={roomFilter}
+                onChange={(e) => setRoomFilter(e.target.value)}
+                options={[
+                  { label: "All Rooms", value: "all" },
+                  ...rooms.map(room => ({ label: room, value: room }))
+                ]}
+              />
+            </div>
+          )}
+        </div>
+
         <div className="overflow-x-auto">
           <div className="flex min-w-[800px]">
             {/* Time labels column - Left side */}
@@ -605,6 +591,77 @@ export default function ScheduleList() {
       </Card>
       ) : (
       <Card title="Schedule Table" description="List view of all scheduled sessions">
+        {/* Search and Filter Section */}
+        <div className="space-y-4 mb-6">
+          {/* Search Bar */}
+          <div className="flex items-center gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Search by class name, teacher, or room..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button
+              onClick={() => setShowFilters(!showFilters)}
+              variant="secondary"
+              className="flex items-center gap-2 text-primary-500"
+            >
+              <span className="flex items-center gap-2">
+                <Filter className="w-4 h-4" />
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
+                {hasActiveFilters && (
+                  <span className="bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {[searchTerm, typeFilter, teacherFilter, roomFilter].filter(f => f !== "" && f !== "all").length}
+                  </span>
+                )}
+              </span>
+            </Button>
+            <Button
+              onClick={clearFilters}
+              variant="secondary"
+              className="whitespace-nowrap text-red-500"
+            >
+              <span className="flex items-center gap-2">
+                <X className="w-4 h-4" />
+                Clear Filters
+              </span>
+            </Button>
+          </div>
+
+          {/* Filter Options */}
+          {showFilters && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
+              <Select
+                label="Session Type"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                options={sessionTypes}
+              />
+              <Select
+                label="Teacher"
+                value={teacherFilter}
+                onChange={(e) => setTeacherFilter(e.target.value)}
+                options={[
+                  { label: "All Teachers", value: "all" },
+                  ...teachers.map(teacher => ({ label: teacher, value: teacher }))
+                ]}
+              />
+              <Select
+                label="Room"
+                value={roomFilter}
+                onChange={(e) => setRoomFilter(e.target.value)}
+                options={[
+                  { label: "All Rooms", value: "all" },
+                  ...rooms.map(room => ({ label: room, value: room }))
+                ]}
+              />
+            </div>
+          )}
+        </div>
+
         <div className="space-y-4">
           <Table 
             columns={columns} 

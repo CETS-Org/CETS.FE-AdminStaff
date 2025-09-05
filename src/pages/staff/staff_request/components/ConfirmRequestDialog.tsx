@@ -39,7 +39,7 @@ export default function ConfirmRequestDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
-      <DialogContent>
+      <DialogContent size="lg" className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>{`${actionText} Request`}</DialogTitle>
           <DialogDescription>{`Are you sure you want to ${action.toLowerCase()} this request?`}</DialogDescription>

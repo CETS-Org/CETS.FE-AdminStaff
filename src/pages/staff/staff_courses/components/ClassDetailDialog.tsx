@@ -55,7 +55,7 @@ export default function ClassDetailDialog({ open, onOpenChange, classData, onEdi
              Class Details
            </DialogTitle>
          </DialogHeader>
-         <DialogBody className="space-y-6 pt-4 pb-20 overflow-y-auto max-h-[60vh]">
+         <DialogBody className="space-y-6 pt-4">
           {/* Header Section */}
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg">
             <div className="flex items-center justify-between">
