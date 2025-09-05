@@ -1,5 +1,7 @@
 // import { Avatar, AvatarImage, AvatarFallback } from "@radix-ui/react-avatar";
 // import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Bell, User, LogOut, Menu } from "lucide-react";
 import {
   DropdownMenu,
@@ -10,11 +12,33 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "@radix-ui/react-avatar";
+import ConfirmationDialog from "@/components/ui/ConfirmationDialog";
 
 export default function Navbar({ toggleSidebar }: { toggleSidebar: () => void }) {
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogoutClick = () => {
+    setIsLogoutDialogOpen(true);
+  };
+
+  const handleLogoutConfirm = () => {
+    // Clear any authentication tokens/data here
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userData');
+    
+    // Close dialog and navigate to login
+    setIsLogoutDialogOpen(false);
+    navigate('/login');
+  };
+
+  const handleLogoutCancel = () => {
+    setIsLogoutDialogOpen(false);
+  };
 
   return (
-    // <nav className="w-full h-16 bg-primary-800 shadow-xl flex items-center justify-between px-6 top-0 fixed z-10">
+    <>
+    {/* <nav className="w-full h-16 bg-primary-800 shadow-xl flex items-center justify-between px-6 top-0 fixed z-10"> */}
      <nav className="lg:pl-70 w-full h-16 right-0 bg-sky-200 shadow-md flex items-center justify-between px-6 top-0 fixed z-20 ">
       {/* Logo */}
       <div className=" flex items-center gap-2">
@@ -51,7 +75,7 @@ export default function Navbar({ toggleSidebar }: { toggleSidebar: () => void })
               <User className="h-4 w-4 mr-2" />
               Profile
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogoutClick}>
               <LogOut className="h-4 w-4 mr-2" />
               Logout
             </DropdownMenuItem>
@@ -59,5 +83,18 @@ export default function Navbar({ toggleSidebar }: { toggleSidebar: () => void })
         </DropdownMenu>
       </div>
     </nav>
+
+    {/* Logout Confirmation Dialog */}
+    <ConfirmationDialog
+      isOpen={isLogoutDialogOpen}
+      onClose={handleLogoutCancel}
+      onConfirm={handleLogoutConfirm}
+      title="Confirm Logout"
+      message="Are you sure you want to logout? You will be redirected to the login page."
+      confirmText="Logout"
+      cancelText="Cancel"
+      type="warning"
+    />
+    </>
   );
 }
