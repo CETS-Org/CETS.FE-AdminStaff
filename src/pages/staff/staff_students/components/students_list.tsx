@@ -164,7 +164,7 @@ export default function StudentsList() {
   };
 
   const handleView = (student: Student) => {
-    navigate(`/students/${student.id}`);
+    navigate(`/staff/students/${student.id}`);
   };
 
   const handleEdit = (student: Student) => {

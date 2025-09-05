@@ -11,6 +11,11 @@ import CourseDetailPage from "./staff_courses/CourseDetailPage";
 import AddEditCoursePage from "./staff_courses/AddEditCoursePage";
 import AssignTeacherPage from "./staff_assign_teacher";
 import StaffRequestPage from "./staff_request";
+import StaffEventsPage from "./staff_events";
+import EventDetailPage from "./staff_events/EventDetailPage";
+import StaffComplaintManagement from "./staff_complaints";
+import ComplaintDetailPage from "../shared/ComplaintDetailPage";
+import ComplaintResponsePage from "../shared/ComplaintResponsePage";
 import StudentDetailPage from "./staff_students/StudentDetailPage";
 import TeacherDetailPage from "./staff_teachers/TeacherDetailPage";
 import AddEditTeacherPage from "./staff_teachers/AddEditTeacherPage";
@@ -38,9 +43,14 @@ export default function StaffHome() {
                     <Route path="courses/add" element={<AddEditCoursePage />} />
                     <Route path="courses/edit/:id" element={<AddEditCoursePage />} />
                     <Route path="courses/:id" element={<CourseDetailPage/>} />
-                    <Route path="assign-teacher" element={<AssignTeacherPage />} />
-                    <Route path="requests" element={<StaffRequestPage />} />
-                    <Route path="students/:id" element={<StudentDetailPage />} />
+                                    <Route path="assign-teacher" element={<AssignTeacherPage />} />
+                <Route path="events" element={<StaffEventsPage />} />
+                <Route path="events/:id" element={<EventDetailPage />} />
+                <Route path="complaints" element={<StaffComplaintManagement />} />
+                <Route path="complaints/:id" element={<ComplaintDetailPage />} />
+                <Route path="complaints/:id/response" element={<ComplaintResponsePage />} />
+                <Route path="requests" element={<StaffRequestPage />} />
+                <Route path="students/:id" element={<StudentDetailPage />} />
                 </Routes>
             </main>
         </div>

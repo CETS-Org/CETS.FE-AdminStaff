@@ -266,11 +266,11 @@ export default function CoursesList() {
   ];
 
   const handleView = (course: Course) => {
-    navigate(`/courses/${course.id}`);
+    navigate(`/staff/courses/${course.id}`);
   };
 
   const handleEdit = (course: Course) => {
-    navigate(`/courses/${course.id}/edit`);
+    navigate(`/staff/courses/${course.id}/edit`);
   };
 
   const handleDelete = (course: Course) => {
