@@ -5,8 +5,8 @@ import AdminSidebar from "@/components/admin/AdminSidebar";
 import UserManagement from "./UserManagement";
 import UserDetailPage from "./UserDetailPage";
 import ComplaintManagement from "./ComplaintManagement";
-import ComplaintDetailPage from "../shared/ComplaintDetailPage";
-import ComplaintResponsePage from "../shared/ComplaintResponsePage";
+import ComplaintDetailPage from "../../shared/ComplaintDetailPage";
+import ComplaintResponsePage from "../../shared/ComplaintResponsePage";
 
 export default function AdminHome() {
     const [isToggleMenu, setIsToggleMenu] = useState(false);

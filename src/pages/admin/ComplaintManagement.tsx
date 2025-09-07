@@ -263,10 +263,17 @@ export default function ComplaintManagement() {
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-2">
                         <Link to={`/admin/reports/${complaint.id}`}>
-                          <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                            <Eye className="w-4 h-4" />
-                            <span>View</span>
-                          </Button>
+                          <Button
+                                      variant="secondary"
+                                      size="sm"
+                                      className="inline-flex items-center justify-center gap-2"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <Eye className="w-4 h-4 flex-shrink-0" />
+                                        <span className="leading-none">View</span>
+                                      </div>
+                                      
+                                    </Button>
                         </Link>
                       </div>
                     </td>

@@ -349,33 +349,18 @@ export default function UserManagement() {
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-2">
                         <Link to={`/admin/users/${user.id}`}>
-                          <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                            <Eye className="w-4 h-4" />
-                            <span>View</span>
-                          </Button>
-                        </Link>
-                        <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                          <Edit className="w-4 h-4" />
-                          <span>Edit</span>
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => openBanDialog(user)}
-                          className="flex items-center gap-2 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
-                        >
-                          <Ban className="w-4 h-4" />
-                          <span>Ban</span>
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => openDeleteDialog(user)}
-                          className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          <span>Delete</span>
-                        </Button>
+                          <Button
+                                  variant="secondary"
+                                    size="sm"
+                                    className="inline-flex items-center justify-center gap-2"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <Eye className="w-4 h-4 flex-shrink-0" />
+                                        <span className="leading-none">View</span>
+                                      </div>
+                                      
+                                    </Button>
+                        </Link>                      
                       </div>
                     </td>
                   </tr>
