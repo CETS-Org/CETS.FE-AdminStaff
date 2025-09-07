@@ -31,7 +31,7 @@ export default function StaffHome() {
             <Sidebar isOpen={isToggleMenu} />
             <main className="mt-10  ">
 
-                <Routes>
+                <Routes>               
                     <Route path="analytics" element={<StaffAnalytics />} />
                     <Route path="teachers" element={<TeacherManagement />} /> 
                     <Route path="teachers/add" element={<AddEditTeacherPage />} /> 
