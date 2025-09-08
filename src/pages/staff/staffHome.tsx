@@ -19,17 +19,23 @@ import ComplaintResponsePage from "../../shared/ComplaintResponsePage";
 import StudentDetailPage from "./staff_students/StudentDetailPage";
 import TeacherDetailPage from "./staff_teachers/TeacherDetailPage";
 import AddEditTeacherPage from "./staff_teachers/AddEditTeacherPage";
-import Chat from "../Chat";
 
 
 export default function StaffHome() {
-    const [isToggleMenu, setIsToggleMenu] = useState(false);
+    const [mobileOpen, setMobileOpen] = useState(false);
+    const [collapsed, setCollapsed] = useState(false);
 
     return (
         <div className="">
-            <Navbar toggleSidebar={() => setIsToggleMenu(!isToggleMenu)} />
-            <Sidebar isOpen={isToggleMenu} />
-            <main className="mt-10  ">
+            <Navbar toggleSidebar={() => setMobileOpen(!mobileOpen)} />
+            <Sidebar 
+                collapsed={collapsed}
+                mobileOpen={mobileOpen}
+                onToggleCollapse={() => setCollapsed(!collapsed)}
+                onCloseMobile={() => setMobileOpen(false)}
+                onNavigate={() => setMobileOpen(false)}
+            />
+            <div className={`transition-all duration-300 ${collapsed ? 'ml-0' : 'lg:ml-1'}`}>
 
                 <Routes>               
                     <Route path="analytics" element={<StaffAnalytics />} />
@@ -43,16 +49,16 @@ export default function StaffHome() {
                     <Route path="courses/add" element={<AddEditCoursePage />} />
                     <Route path="courses/edit/:id" element={<AddEditCoursePage />} />
                     <Route path="courses/:id" element={<CourseDetailPage/>} />
-                                    <Route path="assign-teacher" element={<AssignTeacherPage />} />
-                <Route path="events" element={<StaffEventsPage />} />
-                <Route path="events/:id" element={<EventDetailPage />} />
-                <Route path="complaints" element={<StaffComplaintManagement />} />
-                <Route path="complaints/:id" element={<ComplaintDetailPage />} />
-                <Route path="complaints/:id/response" element={<ComplaintResponsePage />} />
-                <Route path="requests" element={<StaffRequestPage />} />
-                <Route path="students/:id" element={<StudentDetailPage />} />
+                    <Route path="assign-teacher" element={<AssignTeacherPage />} />
+                    <Route path="events" element={<StaffEventsPage />} />
+                    <Route path="events/:id" element={<EventDetailPage />} />
+                    <Route path="complaints" element={<StaffComplaintManagement />} />
+                    <Route path="complaints/:id" element={<ComplaintDetailPage />} />
+                    <Route path="complaints/:id/response" element={<ComplaintResponsePage />} />
+                    <Route path="requests" element={<StaffRequestPage />} />
+                    <Route path="students/:id" element={<StudentDetailPage />} />
                 </Routes>
-            </main>
+            </div>
         </div>
     )
 }
