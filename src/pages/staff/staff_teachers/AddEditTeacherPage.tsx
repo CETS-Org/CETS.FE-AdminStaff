@@ -311,7 +311,7 @@ export default function AddEditTeacherPage() {
   }
 
   return (
-    <div className="p-6 w-full mt-16 lg:pl-70">
+    <div className="p-6 w-full mt-16 lg:pl-0">
       {/* Header with Breadcrumb */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">

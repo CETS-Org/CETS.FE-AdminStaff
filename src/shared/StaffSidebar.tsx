@@ -111,21 +111,7 @@ export default function StaffSidebar({
             </ul>
           </div>
           <div className="sticky bottom-0 z-10 border-t border-sky-100 bg-sky-50/95 backdrop-blur">
-            {(!collapsed || mobileOpen) && (
-              <div className="p-3">
-                <h2 className="font-semibold text-slate-800 mb-2 text-sm">Upcoming Deadlines</h2>
-                <div className="flex flex-col gap-2">
-                  <div className="rounded-lg p-2 bg-white border border-sky-100">
-                    <h3 className="text-xs font-semibold text-sky-800">Math 101 Registration</h3>
-                    <p className="text-[11px] text-gray-500">Due, Jan 15, 2025</p>
-                  </div>
-                  <div className="rounded-lg p-2 bg-white border border-sky-100">
-                    <h3 className="text-xs font-semibold text-sky-800">Physics 201 Registration</h3>
-                    <p className="text-[11px] text-gray-500">Due, Jan 20, 2025</p>
-                  </div>
-                </div>
-              </div>
-            )}
+          
             <div className="p-3 text-center text-[11px] text-slate-500">
               © 2025 CETS
             </div>

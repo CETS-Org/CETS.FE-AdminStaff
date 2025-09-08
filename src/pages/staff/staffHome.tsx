@@ -1,7 +1,9 @@
+// src/pages/staff/StaffHome.tsx
 import { useState } from "react";
 import { Routes, Route } from "react-router-dom";
 import Navbar from "@/shared/navbar";
 import Sidebar from "@/sidebar";
+
 import StaffSchedulePage from "./staff_schedule";
 import StaffStudentsPage from "./staff_students";
 import StaffCoursesPage from "./staff_courses";
@@ -20,45 +22,56 @@ import StudentDetailPage from "./staff_students/StudentDetailPage";
 import TeacherDetailPage from "./staff_teachers/TeacherDetailPage";
 import AddEditTeacherPage from "./staff_teachers/AddEditTeacherPage";
 
-
 export default function StaffHome() {
-    const [mobileOpen, setMobileOpen] = useState(false);
-    const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
-    return (
-        <div className="">
-            <Navbar toggleSidebar={() => setMobileOpen(!mobileOpen)} />
-            <Sidebar 
-                collapsed={collapsed}
-                mobileOpen={mobileOpen}
-                onToggleCollapse={() => setCollapsed(!collapsed)}
-                onCloseMobile={() => setMobileOpen(false)}
-                onNavigate={() => setMobileOpen(false)}
-            />
-            <div className={`transition-all duration-300 ${collapsed ? 'ml-0' : 'lg:ml-1'}`}>
+  const contentShiftClass = collapsed ? "lg:ml-16" : "lg:ml-64";
 
-                <Routes>               
-                    <Route path="analytics" element={<StaffAnalytics />} />
-                    <Route path="teachers" element={<TeacherManagement />} /> 
-                    <Route path="teachers/add" element={<AddEditTeacherPage />} /> 
-                    <Route path="teachers/:id" element={<TeacherDetailPage />} />         
-                    <Route path="teachers/edit/:id" element={<AddEditTeacherPage />} />
-                    <Route path="schedule" element={<StaffSchedulePage />} />
-                    <Route path="students" element={<StaffStudentsPage />} />
-                    <Route path="courses" element={<StaffCoursesPage />} />
-                    <Route path="courses/add" element={<AddEditCoursePage />} />
-                    <Route path="courses/edit/:id" element={<AddEditCoursePage />} />
-                    <Route path="courses/:id" element={<CourseDetailPage/>} />
-                    <Route path="assign-teacher" element={<AssignTeacherPage />} />
-                    <Route path="events" element={<StaffEventsPage />} />
-                    <Route path="events/:id" element={<EventDetailPage />} />
-                    <Route path="complaints" element={<StaffComplaintManagement />} />
-                    <Route path="complaints/:id" element={<ComplaintDetailPage />} />
-                    <Route path="complaints/:id/response" element={<ComplaintResponsePage />} />
-                    <Route path="requests" element={<StaffRequestPage />} />
-                    <Route path="students/:id" element={<StudentDetailPage />} />
-                </Routes>
-            </div>
+  return (
+    <div className="min-h-screen bg-neutral-50">
+      <Navbar toggleSidebar={() => setMobileOpen((v) => !v)} />
+
+      <Sidebar
+        collapsed={collapsed}
+        mobileOpen={mobileOpen}
+        onToggleCollapse={() => setCollapsed((v) => !v)}
+        onCloseMobile={() => setMobileOpen(false)}
+        onNavigate={() => setMobileOpen(false)}
+      />
+
+      <div
+        className={[
+          "transition-all duration-300",
+          contentShiftClass,
+          mobileOpen ? "hidden lg:block" : "",
+        ].join(" ")}
+      >
+        {/* Chỉ giữ padding ngang, bỏ margin/padding top */}
+        <div className="px-6 lg:px-8">
+          <Routes>
+            <Route path="analytics" element={<StaffAnalytics />} />
+            <Route path="teachers" element={<TeacherManagement />} />
+            <Route path="teachers/add" element={<AddEditTeacherPage />} />
+            <Route path="teachers/:id" element={<TeacherDetailPage />} />
+            <Route path="teachers/edit/:id" element={<AddEditTeacherPage />} />
+            <Route path="schedule" element={<StaffSchedulePage />} />
+            <Route path="students" element={<StaffStudentsPage />} />
+            <Route path="students/:id" element={<StudentDetailPage />} />
+            <Route path="courses" element={<StaffCoursesPage />} />
+            <Route path="courses/add" element={<AddEditCoursePage />} />
+            <Route path="courses/edit/:id" element={<AddEditCoursePage />} />
+            <Route path="courses/:id" element={<CourseDetailPage />} />
+            <Route path="assign-teacher" element={<AssignTeacherPage />} />
+            <Route path="events" element={<StaffEventsPage />} />
+            <Route path="events/:id" element={<EventDetailPage />} />
+            <Route path="complaints" element={<StaffComplaintManagement />} />
+            <Route path="complaints/:id" element={<ComplaintDetailPage />} />
+            <Route path="complaints/:id/response" element={<ComplaintResponsePage />} />
+            <Route path="requests" element={<StaffRequestPage />} />
+          </Routes>
         </div>
-    )
+      </div>
+    </div>
+  );
 }
