@@ -183,7 +183,7 @@ export default function StaffAnalytics() {
   ];
 
   return (
-    <div className=" mt-16 p-4 md:p-8 lg:pl-70 bg-gray-50">
+    <div className=" mt-16 p-4 md:p-8 lg:pl-0 bg-gray-50">
          <div className="min-h-screen ">
       <div className=" mx-auto space-y-6">
         {/* Header */}

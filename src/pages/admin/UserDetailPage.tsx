@@ -140,7 +140,7 @@ export default function UserDetailPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50/50 lg:ml-64">
+      <div className="min-h-screen bg-gray-50/50 pt-16">
         <div className="p-6">
           <div className="text-center py-12">
             <h2 className="text-2xl font-bold text-gray-900">User not found</h2>
@@ -155,7 +155,7 @@ export default function UserDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50 lg:ml-64">
+    <div className="min-h-screen bg-gray-50/50 pt-16">
       <div className="p-8">
                  {/* Header */}
          <div className="flex items-start justify-between gap-4 mb-6">

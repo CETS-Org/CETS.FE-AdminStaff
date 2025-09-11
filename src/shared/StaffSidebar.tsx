@@ -1,7 +1,8 @@
 import React from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
-  Users, FileText, Settings, Database, Shield, Activity,
+  BarChart3, BookOpenText, Users, GraduationCap, CalendarDays,
+  UserPlus, Mail, Calendar, MessageSquare,
   ChevronLeft, ChevronRight, X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,11 +16,18 @@ type Props = {
 };
 
 const items = [
-  { id: "users", label: "User Management", icon: Users, path: "/admin/users" },
-  { id: "reports", label: "Complaint Management", icon: FileText, path: "/admin/reports" },
+  { id: "analytics", label: "Analytics", icon: BarChart3, path: "/staff/analytics" },
+  { id: "courses", label: "Courses", icon: BookOpenText, path: "/staff/courses" },
+  { id: "students", label: "Students", icon: Users, path: "/staff/students" },
+  { id: "teachers", label: "Teachers", icon: GraduationCap, path: "/staff/teachers" },
+  { id: "schedule", label: "Schedule", icon: CalendarDays, path: "/staff/schedule" },
+  { id: "assign-teacher", label: "Assign Teacher", icon: UserPlus, path: "/staff/assign-teacher" },
+  { id: "events", label: "Events", icon: Calendar, path: "/staff/events" },
+  { id: "complaints", label: "Complaints", icon: MessageSquare, path: "/staff/complaints" },
+  { id: "requests", label: "Requests", icon: Mail, path: "/staff/requests" },
 ];
 
-export default function AdminSidebar({
+export default function StaffSidebar({
   collapsed,
   mobileOpen,
   onToggleCollapse,
@@ -55,7 +63,7 @@ export default function AdminSidebar({
             )}
           >
             {(!collapsed || mobileOpen) && (
-              <span className="text-sm font-semibold text-sky-700">Admin</span>
+              <span className="text-sm font-semibold text-sky-700">Staff</span>
             )}
             <button
               type="button"
@@ -103,21 +111,7 @@ export default function AdminSidebar({
             </ul>
           </div>
           <div className="sticky bottom-0 z-10 border-t border-sky-100 bg-sky-50/95 backdrop-blur">
-            {(!collapsed || mobileOpen) && (
-              <div className="p-3">
-                <h2 className="font-semibold text-slate-800 mb-2 text-sm">System Status</h2>
-                <div className="flex flex-col gap-2">
-                  <div className="rounded-lg p-2 bg-white border border-sky-100">
-                    <h3 className="text-xs font-semibold text-sky-800">Server Status</h3>
-                    <p className="text-[11px] text-green-600">Online - All systems operational</p>
-                  </div>
-                  <div className="rounded-lg p-2 bg-white border border-sky-100">
-                    <h3 className="text-xs font-semibold text-sky-800">Active Users</h3>
-                    <p className="text-[11px] text-gray-500">247 users online</p>
-                  </div>
-                </div>
-              </div>
-            )}
+          
             <div className="p-3 text-center text-[11px] text-slate-500">
               © 2025 CETS
             </div>

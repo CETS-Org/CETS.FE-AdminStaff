@@ -141,7 +141,7 @@ export default function ComplaintManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50 lg:ml-64">
+    <div className="min-h-screen bg-gray-50/50 lg:ml-64 pt-16">
       <div className="p-6">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">

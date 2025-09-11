@@ -314,7 +314,7 @@ export default function StaffRequestPage() {
   }
 
   return (
-    <div className="p-6 mx-auto mt-16 lg:pl-70 bg-gray-50">
+    <div className="p-6 mx-auto mt-16 lg:pl-0 bg-gray-50">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Student Requests</h1>
         <p className="text-gray-600">Manage and respond to student requests</p>

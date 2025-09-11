@@ -12,7 +12,7 @@ export default function StaffSchedulePage() {
     <div>
     
       
-      <main className="mt-16 p-6 mx-auto lg:pl-70">
+      <main className="mt-16 p-6 mx-auto lg:pl-0">
         {/* Header Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">

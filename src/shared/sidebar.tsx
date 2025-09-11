@@ -111,27 +111,7 @@ export default function Sidebar({ isOpen }: { isOpen: boolean }) {
                 </NavLink>
             </div>
 
-            <h2 className="font-bold mt-4  text-gray-500">Upcoming Deadlines</h2>
-            <div className=" h-[30vh] mt-auto mb-4 bot-0 bg-primary-900 w-full px-2 overflow-y-auto scrollbar-hide">                
-                <div className="flex flex-col gap-2 mt-4">
-                    <div className="border border-neutral-200 rounded-md p-2 bg-neutral-100 hover:bg-gray-200">
-                        <h3 className="text-sm">Math 101 Registration</h3>
-                        <p className="text-[70%]">Due, Jan 15, 2025</p>
-                    </div>
-                    <div className="border border-neutral-200 rounded-md p-2 bg-neutral-100 hover:bg-gray-200">
-                        <h3 className="text-sm">Physics 201 Registration</h3>
-                        <p className="text-[70%]">Due, Jan 20, 2025</p>
-                    </div>
-                     <div className="border border-neutral-200 rounded-md p-2 bg-neutral-100 hover:bg-gray-200">
-                        <h3 className="text-sm">Physics 201 Registration</h3>
-                        <p className="text-[70%]">Due, Jan 20, 2025</p>
-                    </div>
-                    <div className="border border-neutral-200 rounded-md p-2 bg-neutral-100 hover:bg-gray-200">
-                        <h3 className="text-sm">Physics 201 Registration</h3>
-                        <p className="text-[70%]">Due, Jan 20, 2025</p>
-                    </div>
-                </div>
-            </div>
+        
         </div>
     );
 }

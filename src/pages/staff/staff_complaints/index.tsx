@@ -215,7 +215,7 @@ export default function StaffComplaintManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50 lg:ml-64">
+    <div className="min-h-screen bg-gray-50/50 lg:ml-0 pt-11">
       <div className="p-6">
         {/* Page Header */}
         <PageHeader
