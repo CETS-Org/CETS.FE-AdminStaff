@@ -3,7 +3,7 @@ import Card from "@/components/ui/Card";
 import { Users, GraduationCap, Clock, Award } from "lucide-react";
 
 export default function TeacherManagement() {
-   
+    const a : string ="";
 
     return (
   

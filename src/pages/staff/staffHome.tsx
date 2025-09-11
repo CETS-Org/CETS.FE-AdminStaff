@@ -14,17 +14,18 @@ import StaffRequestPage from "./staff_request";
 import StaffEventsPage from "./staff_events";
 import EventDetailPage from "./staff_events/EventDetailPage";
 import StaffComplaintManagement from "./staff_complaints";
-import ComplaintDetailPage from "../../shared/ComplaintDetailPage";
-import ComplaintResponsePage from "../../shared/ComplaintResponsePage";
 import StudentDetailPage from "./staff_students/StudentDetailPage";
 import TeacherDetailPage from "./staff_teachers/TeacherDetailPage";
 import AddEditTeacherPage from "./staff_teachers/AddEditTeacherPage";
-import Chat from "../Chat";
+import ComplaintDetailPage from "@/shared/ComplaintDetailPage";
+import ComplaintResponsePage from "@/shared/ComplaintResponsePage";
+import { getTeachers } from "../api/account.api";
+
 
 
 export default function StaffHome() {
     const [isToggleMenu, setIsToggleMenu] = useState(false);
-
+const teachers = getTeachers();
     return (
         <div className="">
             <Navbar toggleSidebar={() => setIsToggleMenu(!isToggleMenu)} />

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
@@ -42,7 +41,7 @@ export default function AddEditSessionDialog({ open, onOpenChange, onSave, initi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="md" className="max-w-lg">
+      <DialogContent size="md" className="">
         <DialogHeader>
           <DialogTitle>{initial ? "Edit Session" : "Add Session"}</DialogTitle>
         </DialogHeader>
