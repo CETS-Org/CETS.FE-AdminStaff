@@ -1,0 +1,295 @@
+import { api } from "./api";
+
+export interface TeacherCredential {
+  id: string;
+  degree: string;
+  institution: string;
+  year: string;
+  field: string;
+  createdAt: string;
+  updatedAt: string | null;
+  isDeleted: boolean;
+}
+
+export interface TeacherInfo {
+  teacherId: string;
+  teacherCode: string;
+  yearsExperience: number;
+  bio: string;
+  createdAt: string;
+  updatedAt: string | null;
+  updatedBy: string | null;
+  isDeleted: boolean;
+  accountId: string;
+  email: string;
+  phoneNumber: string | null;
+  fullName: string;
+  dateOfBirth: string | null;
+  cid: string | null;
+  address: string | null;
+  avatarUrl: string | null;
+  accountStatusID: string;
+  isVerified: boolean;
+  verifiedCode: string | null;
+  verifiedCodeExpiresAt: string | null;
+  accountCreatedAt: string;
+  accountUpdatedAt: string | null;
+  accountUpdatedBy: string | null;
+  accountIsDeleted: boolean;
+  teacherCredentials: TeacherCredential[];
+}
+
+export interface Teacher {
+  accountId: string;
+  email: string;
+  phoneNumber: string | null;
+  fullName: string;
+  dateOfBirth: string | null;
+  cid: string | null;
+  address: string | null;
+  avatarUrl: string | null;
+  password?: string; // Optional for security reasons
+  accountStatusID: string;
+  isVerified: boolean;
+  verifiedCode: string | null;
+  verifiedCodeExpiresAt: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+  updatedBy: string | null;
+  isDeleted: boolean;
+  statusName: string;
+  roleNames: string[];
+  studentInfo: any | null;
+  teacherInfo: TeacherInfo | null;
+}
+  
+export interface FilterTeacherParam {
+  name: string | null;
+  email: string | null;
+  phoneNumber: string | null;
+  statusName: string | null;
+  sortOrder: string | null;
+}
+/**
+ * Get all teachers
+ */
+export const getTeachers = async (): Promise<Teacher[]> => {
+  try {
+    const response = await api.get<Teacher[]>('/api/IDN_Account', {
+      params: {   
+        RoleName: 'Teacher',     
+      },
+    });
+    return response.data as Teacher[];
+  } catch (error) {
+    console.error('Error fetching teachers:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get a single teacher by ID
+ */
+export const getTeacherById = async (id: string): Promise<Teacher> => {
+  try {
+    const url = `/api/IDN_Account/${id}`;
+    console.log("API URL:", url);
+    console.log("Base URL:", api.defaults.baseURL);
+    console.log("Full URL:", `${api.defaults.baseURL}${url}`);
+    
+    const response = await api.get<Teacher>(url);
+    console.log("API Response:", response);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching teacher ${id}:`, error);
+    if (error instanceof Error && 'response' in error) {
+      const axiosError = error as any;
+      console.error("Response status:", axiosError.response?.status);
+      console.error("Response data:", axiosError.response?.data);
+      console.error("Response headers:", axiosError.response?.headers);
+    }
+    throw error;
+  }
+};
+
+export const filterTeacher  = async (filterParam: FilterTeacherParam): Promise<Teacher[]> => {
+  try {
+    const response = await api.get<Teacher[]>(`/api/IDN_Account`,{
+      params: {
+        RoleName: 'Teacher',
+        Name: filterParam.name ?? "",
+        Email: filterParam.email ?? "",
+        PhoneNumber: filterParam.phoneNumber ?? "",
+        StatusName: filterParam.statusName ?? "",
+        SortOrder: filterParam.sortOrder ?? "",        
+      },
+    });
+    return response.data as Teacher[];
+  } catch (error) {
+    console.error(`Error filter teacher with filterParam: ${filterParam}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Create a new teacher
+ */
+export const createTeacher = async (teacherData: {
+  email: string;
+  password: string;
+  fullName: string;
+  phoneNumber?: string;
+  dateOfBirth?: string;
+  cid?: string;
+  address?: string;
+  yearsExperience: number;
+  bio: string;
+}): Promise<Teacher> => {
+  try {
+    const response = await api.post<Teacher>('/api/IDN_Account', {
+      ...teacherData,
+      roleNames: ['Teacher']
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error creating teacher:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update a teacher
+ */
+export const updateTeacher = async (id: string, teacherData: {
+  email?: string;
+  fullName?: string;
+  phoneNumber?: string;
+  dateOfBirth?: string;
+  cid?: string;
+  address?: string;
+  yearsExperience?: number;
+  bio?: string;
+}): Promise<Teacher> => {
+  try {
+    const response = await api.put<Teacher>(`/api/IDN_Account/${id}`, teacherData);
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating teacher ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a teacher
+ */
+export const deleteTeacher = async (id: string): Promise<void> => {
+  try {
+    await api.delete(`/api/IDN_Account/${id}`);
+  } catch (error) {
+    console.error(`Error deleting teacher ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Update teacher status
+ */
+export const updateTeacherStatus = async (id: string, status: string): Promise<Teacher> => {
+  try {
+    const response = await api.patch<Teacher>(`/api/IDN_Account/${id}/status`, { status });
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating teacher status ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Add teacher credential
+ */
+export const addTeacherCredential = async (teacherId: string, credential: {
+  degree: string;
+  institution: string;
+  year: string;
+  field: string;
+}): Promise<TeacherCredential> => {
+  try {
+    const response = await api.post<TeacherCredential>(`/api/Teacher/${teacherId}/credentials`, credential);
+    return response.data;
+  } catch (error) {
+    console.error(`Error adding credential for teacher ${teacherId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Update teacher credential
+ */
+export const updateTeacherCredential = async (teacherId: string, credentialId: string, credential: {
+  degree: string;
+  institution: string;
+  year: string;
+  field: string;
+}): Promise<TeacherCredential> => {
+  try {
+    const response = await api.put<TeacherCredential>(`/api/Teacher/${teacherId}/credentials/${credentialId}`, credential);
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating credential ${credentialId} for teacher ${teacherId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Delete teacher credential
+ */
+export const deleteTeacherCredential = async (teacherId: string, credentialId: string): Promise<void> => {
+  try {
+    await api.delete(`/api/Teacher/${teacherId}/credentials/${credentialId}`);
+  } catch (error) {
+    console.error(`Error deleting credential ${credentialId} for teacher ${teacherId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Upload teacher avatar
+ */
+export const uploadTeacherAvatar = async (id: string, file: File): Promise<Teacher> => {
+  try {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    
+    const response = await api.post<Teacher>(
+      `/api/IDN_Account/${id}/avatar`, 
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error(`Error uploading avatar for teacher ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Search teachers
+ */
+// export const searchTeachers = async (query: string): Promise<Teacher[]> => {
+//   try {
+//     const response = await api.get<Teacher[]>('/api/IDN_Account/search', {
+//       params: {
+//         q: query,
+//         RoleName: 'Teacher'
+//       }
+//     });
+//     return response.data;
+//   } catch (error) {
+//     console.error(`Error searching teachers with query "${query}":`, error);
+//     throw error;
+//   }
+// };

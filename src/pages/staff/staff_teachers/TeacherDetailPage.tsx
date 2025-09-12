@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Table, { type TableColumn } from "@/components/ui/Table";
+import Loader from "@/components/ui/Loader";
 import { 
   ChevronRight, 
   Edit, 
@@ -20,6 +21,11 @@ import {
   Star,
   Clock
 } from "lucide-react";
+// import { getTeacherById, type Teacher } from "@/pages/api/teacher.api";
+import { formatDate, getStatusColor, getStatusDisplay } from "@/helper/helper.service";
+import { getTeacherById, type Teacher } from "@/api/teacher.api";
+
+
 
 interface TeachingCourse {
   id: string;
@@ -29,13 +35,6 @@ interface TeachingCourse {
   status: "active" | "completed" | "upcoming";
 }
 
-interface Qualification {
-  id: string;
-  degree: string;
-  institution: string;
-  year: string;
-  field: string;
-}
 
 interface Note {
   id: string;
@@ -48,21 +47,41 @@ interface Note {
 export default function TeacherDetailPage() {
   const { id } = useParams();
   const [newNote, setNewNote] = useState("");
+  const [teacher, setTeacher] = useState<Teacher | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data
-  const teacher = {
-    id: id || "1",
-    name: "Dr. Michael Smith",
-    email: "michael.smith@email.com",
-    phone: "+1 (555) 987-6543",
-    dateOfBirth: "June 20, 1980",
-    hireDate: "August 15, 2020",
-    status: "active" as "active" | "inactive",
-    avatar: "https://via.placeholder.com/100x100?text=MS",
-    specialization: "English Literature & Linguistics",
-    experience: "15 years",
-    rating: 4.8
-  };
+  // Fetch teacher data
+  useEffect(() => {
+    const fetchTeacher = async () => {
+      if (!id) {
+        setError("Teacher ID is required");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+        console.log("Fetching teacher with ID:", id);
+        const teacherData = await getTeacherById(id);
+        console.log("Teacher data received:", teacherData);
+        setTeacher(teacherData);
+      } catch (err) {
+        console.error("Error fetching teacher:", err);
+        console.error("Error details:", {
+          message: err instanceof Error ? err.message : 'Unknown error',
+          status: err instanceof Error && 'response' in err ? (err as any).response?.status : 'No status',
+          data: err instanceof Error && 'response' in err ? (err as any).response?.data : 'No data'
+        });
+        setError(`Failed to load teacher data: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTeacher();
+  }, [id]);
 
   const teachingCourses: TeachingCourse[] = [
     {
@@ -95,29 +114,7 @@ export default function TeacherDetailPage() {
     }
   ];
 
-  const qualifications: Qualification[] = [
-    {
-      id: "1",
-      degree: "Ph.D.",
-      institution: "University of Oxford",
-      year: "2015",
-      field: "English Literature"
-    },
-    {
-      id: "2",
-      degree: "M.A.",
-      institution: "Cambridge University",
-      year: "2010",
-      field: "Linguistics"
-    },
-    {
-      id: "3",
-      degree: "B.A.",
-      institution: "University of London",
-      year: "2008",
-      field: "English Language"
-    }
-  ];
+
 
   const notes: Note[] = [
     {
@@ -224,8 +221,42 @@ export default function TeacherDetailPage() {
     }
   ];
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="p-6 mx-auto mt-16 lg:pl-70">
+        <div className="flex items-center justify-center h-64">
+          <Loader />
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !teacher) {
+    return (
+      <div className="p-6 mx-auto mt-16 lg:pl-70">
+        <div className="text-center py-12">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
+            <User className="w-8 h-8 text-red-600" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Teacher</h3>
+          <p className="text-gray-500 mb-4">{error || "Teacher not found"}</p>
+          <Button
+            onClick={() => window.location.reload()}
+            variant="secondary"
+            size="sm"
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+
   return (
-    <div className="p-6 mx-auto mt-16 lg:pl-70">
+    <div className="p-6 mx-auto mt-16 ">
       {/* Header with Breadcrumb */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
@@ -264,20 +295,28 @@ export default function TeacherDetailPage() {
         <div className="lg:col-span-1">
           <Card title="Teacher Information">
             <div className="text-center mb-6">
-              <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gray-200 flex items-center justify-center">
-                <User className="w-12 h-12 text-gray-600" />
+              <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                {teacher.avatarUrl ? (
+                  <img 
+                    src={teacher.avatarUrl} 
+                    alt={teacher.fullName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User className="w-12 h-12 text-gray-600" />
+                )}
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">{teacher.name}</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">{teacher.fullName}</h2>
               <div className="flex items-center justify-center gap-2 mb-3">
-                <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
-                  teacher.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                }`}>
-                  {teacher.status}
+                <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(teacher.accountStatusID)}`}>
+                  {getStatusDisplay(teacher.accountStatusID)}
                 </span>
-                <div className="flex items-center gap-1">
-                  <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                  <span className="text-sm font-medium">{teacher.rating}</span>
-                </div>
+                {teacher.isVerified && (
+                  <div className="flex items-center gap-1">
+                    <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                    <span className="text-sm font-medium">Verified</span>
+                  </div>
+                )}
               </div>
             </div>
             
@@ -288,39 +327,58 @@ export default function TeacherDetailPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                <p className="text-gray-900">{teacher.phone}</p>
+                <p className="text-gray-900">{teacher.phoneNumber || "N/A"}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
-                <p className="text-gray-900">{teacher.dateOfBirth}</p>
+                <p className="text-gray-900">{formatDate(teacher.dateOfBirth)}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Hire Date</label>
-                <p className="text-gray-900">{teacher.hireDate}</p>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Account Created</label>
+                <p className="text-gray-900">{formatDate(teacher.createdAt)}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Specialization</label>
-                <p className="text-gray-900">{teacher.specialization}</p>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                <p className="text-gray-900">{teacher.address || "N/A"}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Experience</label>
-                <p className="text-gray-900">{teacher.experience}</p>
+                <label className="block text-sm font-medium text-gray-700 mb-1">CID</label>
+                <p className="text-gray-900">{teacher.cid || "N/A"}</p>
               </div>
+              {teacher.teacherInfo && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Experience</label>
+                    <p className="text-gray-900">{teacher.teacherInfo.yearsExperience} years</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+                    <p className="text-gray-900">{teacher.teacherInfo.bio || "No bio available"}</p>
+                  </div>
+                </>
+              )}
             </div>
           </Card>
 
           {/* Qualifications */}
           <Card title="Qualifications" className="mt-6">
             <div className="space-y-4">
-              {qualifications.map((qual) => (
-                <div key={qual.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                  <GraduationCap className="w-5 h-5 text-blue-600 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-gray-900">{qual.degree} - {qual.field}</p>
-                    <p className="text-sm text-gray-600">{qual.institution}, {qual.year}</p>
+              {teacher.teacherInfo?.teacherCredentials && teacher.teacherInfo.teacherCredentials.length > 0 ? (
+                teacher.teacherInfo.teacherCredentials.map((credential) => (
+                  <div key={credential.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                    <GraduationCap className="w-5 h-5 text-blue-600 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-gray-900">{credential.degree} - {credential.field}</p>
+                      <p className="text-sm text-gray-600">{credential.institution}, {credential.year}</p>
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <GraduationCap className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">No qualifications available</p>
                 </div>
-              ))}
+              )}
             </div>
           </Card>
         </div>

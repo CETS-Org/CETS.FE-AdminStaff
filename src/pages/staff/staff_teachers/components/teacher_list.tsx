@@ -8,7 +8,8 @@ import Select from "@/components/ui/Select";
 import Pagination from "@/shared/pagination";
 import DeleteConfirmDialog from "./delete_confirm_dialog";
 import { Search, Filter, X, Eye, Edit, Trash2, Plus, Loader2 } from "lucide-react";
-import { getTeachers, type Teacher } from "@/pages/api/account.api";
+import { type Teacher, getTeachers, filterTeacher, type FilterTeacherParam } from "@/api/teacher.api";
+
 
 // interface Qualification {
 //   id: string;
@@ -43,8 +44,12 @@ export default function TeacherList() {
   
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState("");
+  const [emailFilter, setEmailFilter] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sortOrder, setSortOrder] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
   // Fetch teachers data
   useEffect(() => {
@@ -65,20 +70,41 @@ export default function TeacherList() {
     fetchTeachers();
   }, []);
 
-  // Filter and search logic
-  const filteredTeachers = useMemo(() => {
-    return teachers.filter(teacher => {
-      const matchesSearch = searchTerm === "" || 
-        teacher.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        teacher.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (teacher.phoneNumber && teacher.phoneNumber.includes(searchTerm)) ||
-        teacher.roleNames.some(role => role.toLowerCase().includes(searchTerm.toLowerCase()));
-      
-      const matchesStatus = statusFilter === "all" || teacher.statusName.toLowerCase() === statusFilter.toLowerCase();
-      
-      return matchesSearch && matchesStatus;
-    });
-  }, [teachers, searchTerm, statusFilter]);
+  // Combined search and filter with debouncing
+  useEffect(() => {
+    const filterTeachersAPI = async () => {
+      try {
+        setIsSearching(true);
+        
+        // Prepare filter parameters
+        const filterParams: FilterTeacherParam = {
+          name: searchTerm.trim() || null,
+          email: emailFilter.trim() || null,
+          phoneNumber: phoneNumber.trim() || null,
+          statusName: statusFilter === "all" ? null : statusFilter,
+          sortOrder: sortOrder || null
+        };
+
+        console.log("Filtering teachers with params:", filterParams);
+        const filteredResults = await filterTeacher(filterParams);
+        console.log("Filter results:", filteredResults);
+        setTeachers(filteredResults);
+      } catch (err) {
+        console.error("Error filtering teachers:", err);
+        setError("Failed to filter teachers");
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    // Debounce filter
+    const timeoutId = setTimeout(filterTeachersAPI, 1000); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, emailFilter, phoneNumber, statusFilter, sortOrder]);
+
+  // No need for client-side filtering anymore
+  const filteredTeachers = teachers;
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
@@ -91,7 +117,7 @@ export default function TeacherList() {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter]);
+  }, [searchTerm, emailFilter, phoneNumber, statusFilter, sortOrder]);
 
   const columns: TableColumn<Teacher>[] = [
     { 
@@ -120,21 +146,21 @@ export default function TeacherList() {
       header: "Phone", 
       accessor: (row) => row.phoneNumber || "N/A" 
     },
-    { 
-      header: "Role", 
-      accessor: (row) => (
-        <div className="flex flex-wrap gap-1">
-          {row.roleNames.map((role, index) => (
-            <span 
-              key={index}
-              className="inline-flex px-2 py-1 rounded-md text-xs bg-blue-100 text-blue-700 border border-blue-200"
-            >
-              {role}
-            </span>
-          ))}
-        </div>
-      )
-    },
+    // { 
+    //   header: "Role", 
+    //   accessor: (row) => (
+    //     <div className="flex flex-wrap gap-1">
+    //       {row.roleNames.map((role, index) => (
+    //         <span 
+    //           key={index}
+    //           className="inline-flex px-2 py-1 rounded-md text-xs bg-blue-100 text-blue-700 border border-blue-200"
+    //         >
+    //           {role}
+    //         </span>
+    //       ))}
+    //     </div>
+    //   )
+    // },
     { 
       header: "Date of Birth", 
       accessor: (row) => row.dateOfBirth ? new Date(row.dateOfBirth).toLocaleDateString() : "N/A" 
@@ -224,16 +250,32 @@ export default function TeacherList() {
 
   const clearFilters = () => {
     setSearchTerm("");
+    setEmailFilter("");
+    setPhoneNumber("");
     setStatusFilter("all");
+    setSortOrder("");
+    // The useEffect will automatically trigger with empty values
+    // which will call filterTeacher with null values to get all teachers
   };
 
-  const hasActiveFilters = searchTerm !== "" || statusFilter !== "all";
+  const hasActiveFilters = searchTerm !== "" || emailFilter !== "" || phoneNumber !== "" || statusFilter !== "all" || sortOrder !== "";
 
   // Get unique statuses for filter options
   const statuses = useMemo(() => {
     const uniqueStatuses = [...new Set(teachers.map(t => t.statusName))];
     return uniqueStatuses.sort();
   }, [teachers]);
+
+  // Sort order options
+  const sortOptions = [
+    { label: "Default", value: "" },
+    { label: "Name A-Z", value: "name_asc" },
+    { label: "Name Z-A", value: "name_desc" },
+    { label: "Email A-Z", value: "email_asc" },
+    { label: "Email Z-A", value: "email_desc" },
+    { label: "Created Date (Newest)", value: "created_desc" },
+    { label: "Created Date (Oldest)", value: "created_asc" }
+  ];
 
   return (
     <div>
@@ -250,16 +292,21 @@ export default function TeacherList() {
         {/* Search and Filter Section */}
         <div className="space-y-4 mb-6">
           {/* Search Bar */}
-          <div className="flex items-center gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="Search teachers by name, email, phone, or specialization..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex-1 relative">
+                {isSearching ? (
+                  <Loader2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 animate-spin" />
+                ) : (
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                )}
+                <Input
+                  placeholder="Search teachers by name..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                  disabled={isSearching}
+                />
+              </div>
             <Button
               onClick={() => setShowFilters(!showFilters)}
               variant="secondary"
@@ -270,7 +317,7 @@ export default function TeacherList() {
                 {showFilters ? 'Hide Filters' : 'Show Filters'}
                 {hasActiveFilters && (
                   <span className="bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {[searchTerm, statusFilter].filter(f => f !== "" && f !== "all").length}
+                    {[searchTerm, emailFilter, phoneNumber, statusFilter, sortOrder].filter(f => f !== "" && f !== "all").length}
                   </span>
                 )}
               </span>
@@ -289,16 +336,35 @@ export default function TeacherList() {
 
           {/* Filter Options */}
           {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t">
+              <Input
+                label="Email"
+                placeholder="Enter email..."
+                value={emailFilter}
+                onChange={(e) => setEmailFilter(e.target.value)}
+              />
+              <Input
+                label="Phone Number"
+                placeholder="Enter phone number..."
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+              />
               <Select
                 label="Status"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 options={[
                   { label: "All Status", value: "all" },
-                  ...statuses.map(status => ({ label: status, value: status.toLowerCase() }))
+                  ...statuses.map(status => ({ label: status, value: status }))
                 ]}
               />
+              <Select
+                label="Sort Order"
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+                options={sortOptions}
+              />
+             
             </div>
           )}
         </div>

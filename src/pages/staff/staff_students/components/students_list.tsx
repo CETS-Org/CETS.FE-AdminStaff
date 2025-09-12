@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
@@ -8,7 +8,9 @@ import Select from "@/components/ui/Select";
 import Pagination from "@/shared/pagination";
 import AddEditStudentDialog from "./AddEditStudentDialog";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
-import { Eye, Edit, Trash2, Search, Filter, X, Plus } from "lucide-react";
+import { Eye, Edit, Trash2, Search, Filter, X, Plus, Loader2 } from "lucide-react";
+import { getStudents, filterStudent } from "@/api/student.api";
+import type { FilterUserParam } from "@/types/filter.type";
 
 export type Student = {
   id: number;
@@ -17,10 +19,13 @@ export type Student = {
   phone: string;
   age: number;
   level: string;
-  enrolledCourses: string[];
   status: "active" | "inactive" | "graduated";
   joinDate: string;
   avatar?: string;
+  accountId?: string; // Store original accountId for API operations
+  studentCode?: string;
+  guardianName?: string;
+  school?: string;
 };
 
 export default function StudentsList() {
@@ -31,32 +36,144 @@ export default function StudentsList() {
   
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState("");
+  const [emailFilter, setEmailFilter] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [levelFilter, setLevelFilter] = useState<string>("all");
+  const [sortOrder, setSortOrder] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
-  
-    const [students, setStudents] = useState<Student[]>([
-      { id: 1, name: "Nguyen Van A", email: "nguyenvana@email.com", phone: "0123456789", age: 18, level: "B1", enrolledCourses: ["IELTS Foundation"], status: "active", joinDate: "2024-09-01" },
-      { id: 2, name: "Tran Thi B", email: "tranthib@email.com", phone: "0987654321", age: 22, level: "C1", enrolledCourses: ["TOEIC Advanced", "Business English"], status: "active", joinDate: "2024-08-15" },
-      { id: 3, name: "Le Van C", email: "levanc@email.com", phone: "0555666777", age: 16, level: "Beginner", enrolledCourses: ["Kids English"], status: "active", joinDate: "2024-10-01" },
-      { id: 4, name: "Pham Thi D", email: "phamthid@email.com", phone: "0111222333", age: 25, level: "B2", enrolledCourses: ["IELTS Foundation"], status: "graduated", joinDate: "2024-06-01" },
-      { id: 5, name: "Hoang Van E", email: "hoangvane@email.com", phone: "0444555666", age: 20, level: "A2", enrolledCourses: ["Conversation Club"], status: "inactive", joinDate: "2024-07-01" },
-    ]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Filter and search logic
-  const filteredStudents = useMemo(() => {
-    return students.filter(student => {
-      const matchesSearch = searchTerm === "" || 
-        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.phone.includes(searchTerm);
-      
-      const matchesStatus = statusFilter === "all" || student.status === statusFilter;
-      const matchesLevel = levelFilter === "all" || student.level === levelFilter;
-      
-      return matchesSearch && matchesStatus && matchesLevel;
-    });
-  }, [students, searchTerm, statusFilter, levelFilter]);
+  // Fetch students data from API
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const apiStudents = await getStudents();
+        
+        // Convert API data to component format
+        const convertedStudents: Student[] = apiStudents.map((apiStudent, index) => {
+          // Calculate age from dateOfBirth if available
+          const age = apiStudent.dateOfBirth 
+            ? new Date().getFullYear() - new Date(apiStudent.dateOfBirth).getFullYear()
+            : 18; // Default age if not available
+          
+          // Determine status based on API data
+          let status: "active" | "inactive" | "graduated";
+          if (apiStudent.isDeleted) {
+            status = "inactive";
+          } else if (apiStudent.statusName === "Active" || apiStudent.accountStatusID === "ac2b0bff-d3b2-4fb0-afb6-3c8c86e883da") {
+            status = "active";
+          } else {
+            status = "active"; // Default to active
+          }
+          
+          return {
+            id: index + 1, // Use index as ID
+            name: apiStudent.fullName,
+            email: apiStudent.email,
+            phone: apiStudent.phoneNumber || "0123456789", // Default phone if not available
+            age: age,
+            level: "Beginner", // Default level - will be updated with separate API
+            status: status,
+            joinDate: apiStudent.createdAt.split('T')[0],
+            avatar: apiStudent.avatarUrl || undefined,
+            accountId: apiStudent.accountId,
+            studentCode: apiStudent.studentInfo?.studentCode || undefined,
+            guardianName: apiStudent.studentInfo?.guardianName || undefined,
+            school: apiStudent.studentInfo?.school || undefined,
+          };
+        });
+        
+        setStudents(convertedStudents);
+      } catch (err) {
+        console.error("Error fetching students:", err);
+        setError("Failed to load students data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudents();
+  }, []);
+
+  // Combined search and filter with debouncing
+  useEffect(() => {
+    const filterStudentsAPI = async () => {
+      try {
+        setIsSearching(true);
+        
+        // Prepare filter parameters
+        const filterParams: FilterUserParam = {
+          name: searchTerm.trim() || null,
+          email: emailFilter.trim() || null,
+          phoneNumber: phoneNumber.trim() || null,
+          statusName: statusFilter === "all" ? null : statusFilter,
+          sortOrder: sortOrder || null,
+          currentRole: "Student"
+        };
+
+        const filteredResults = await filterStudent(filterParams);
+        
+        // Convert API results to Student type
+        const convertedStudents: Student[] = filteredResults.map((apiStudent, index) => {
+          const age = apiStudent.dateOfBirth ? new Date().getFullYear() - new Date(apiStudent.dateOfBirth).getFullYear() : 18;
+          let status: "active" | "inactive" | "graduated";
+          if (apiStudent.isDeleted) { 
+            status = "inactive"; 
+          } else if (apiStudent.statusName === "Active" || apiStudent.accountStatusID === "ac2b0bff-d3b2-4fb0-afb6-3c8c86e883da") { 
+            status = "active"; 
+          } else { 
+            status = "active"; 
+          }
+          let level = "Beginner"; // Hardcoded for now, will be updated
+          if (apiStudent.studentInfo?.academicNote) {
+            const note = apiStudent.studentInfo.academicNote.toLowerCase();
+            if (note.includes("advanced") || note.includes("expert")) {
+              level = "Advanced";
+            } else if (note.includes("intermediate") || note.includes("medium")) {
+              level = "Intermediate";
+            } else {
+              level = "Beginner";
+            }
+          }
+          return {
+            id: index + 1,
+            name: apiStudent.fullName,
+            email: apiStudent.email,
+            phone: apiStudent.phoneNumber || "0123456789",
+            age: age,
+            level: level,
+            status: status,
+            joinDate: apiStudent.createdAt.split('T')[0],
+            avatar: apiStudent.avatarUrl || undefined,
+            accountId: apiStudent.accountId,
+            studentCode: apiStudent.studentInfo?.studentCode || undefined,
+            guardianName: apiStudent.studentInfo?.guardianName || undefined,
+            school: apiStudent.studentInfo?.school || undefined,
+          };
+        });
+        
+        setStudents(convertedStudents);
+      } catch (err) {
+        console.error("Error filtering students:", err);
+        setError("Failed to filter students");
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    // Debounce filter
+    const timeoutId = setTimeout(filterStudentsAPI, 1000); // 1000ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, emailFilter, phoneNumber, statusFilter, sortOrder]);
+
+  // No need for client-side filtering anymore
+  const filteredStudents = students;
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
@@ -67,40 +184,41 @@ export default function StudentsList() {
   );
 
   // Reset page when filters change
-  useMemo(() => {
+  useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, levelFilter]);
+  }, [searchTerm, emailFilter, phoneNumber, statusFilter, sortOrder]);
 
   const columns: TableColumn<Student>[] = [
     { 
       header: "Student", 
       accessor: (row) => (
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-semibold">
-            {row.name.charAt(0)}
+          <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-semibold overflow-hidden">
+            {row.avatar ? (
+              <img 
+                src={row.avatar} 
+                alt={row.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              row.name.charAt(0)
+            )}
           </div>
           <div>
             <div className="font-medium">{row.name}</div>
             <div className="text-sm text-neutral-500">{row.email}</div>
+            {row.accountId && (
+              <div className="text-xs text-gray-400 font-mono">
+                ID: {row.accountId.substring(0, 8)}...
+              </div>
+            )}
           </div>
         </div>
       )
     },
     { header: "Phone", accessor: (row) => row.phone },
     { header: "Age", accessor: (row) => row.age },
-    { header: "Level", accessor: (row) => row.level },
-    { 
-      header: "Courses", 
-      accessor: (row) => (
-        <div className="flex flex-wrap gap-1">
-          {row.enrolledCourses.map((course, idx) => (
-            <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-md">
-              {course}
-            </span>
-          ))}
-        </div>
-      )
-    },
+  
     {
       header: "Status",
       accessor: (row) => (
@@ -164,7 +282,12 @@ export default function StudentsList() {
   };
 
   const handleView = (student: Student) => {
-    navigate(`/staff/students/${student.id}`);
+    // Use accountId for navigation to student detail page
+    if (student.accountId) {
+      navigate(`/staff/students/${student.accountId}`);
+    } else {
+      console.error("No accountId found for student:", student);
+    }
   };
 
   const handleEdit = (student: Student) => {
@@ -195,16 +318,67 @@ export default function StudentsList() {
 
   const clearFilters = () => {
     setSearchTerm("");
+    setEmailFilter("");
+    setPhoneNumber("");
     setStatusFilter("all");
-    setLevelFilter("all");
+    setSortOrder("");
+    // The useEffect will automatically trigger with empty values
+    // which will call filterStudent with null values to get all students
   };
 
-  const hasActiveFilters = searchTerm !== "" || statusFilter !== "all" || levelFilter !== "all";
+  const hasActiveFilters = searchTerm !== "" || emailFilter !== "" || phoneNumber !== "" || statusFilter !== "all" || sortOrder !== "";
+
+  // Get unique statuses for filter options
+  const statuses = useMemo(() => {
+    const uniqueStatuses = [...new Set(students.map(s => s.status))];
+    return uniqueStatuses.sort();
+  }, [students]);
+
+  // Sort order options
+  const sortOptions = [
+    { label: "Default", value: "" },
+    { label: "Name A-Z", value: "name_asc" },
+    { label: "Name Z-A", value: "name_desc" },
+    { label: "Email A-Z", value: "email_asc" },
+    { label: "Email Z-A", value: "email_desc" },
+    { label: "Created Date (Newest)", value: "created_desc" },
+    { label: "Created Date (Oldest)", value: "created_asc" }
+  ];
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex items-center gap-3">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span className="text-gray-600">Loading students...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
+          <X className="w-8 h-8 text-red-600" />
+        </div>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Students</h3>
+        <p className="text-gray-500 mb-4">{error}</p>
+        <Button
+          onClick={() => window.location.reload()}
+          variant="secondary"
+          size="sm"
+        >
+          Try Again
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div>
-      
-      
       <Card title="Students List" description="View and manage your students" actions={
         <Button onClick={handleAdd} size="sm" className="inline-flex items-center gap-2">
           <div className="flex items-center gap-2">
@@ -219,12 +393,17 @@ export default function StudentsList() {
           {/* Search Bar */}
           <div className="flex items-center gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              {isSearching ? (
+                <Loader2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 animate-spin" />
+              ) : (
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              )}
               <Input
-                placeholder="Search students by name, email, or phone..."
+                placeholder="Search students by name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
+                disabled={isSearching}
               />
             </div>
             <Button
@@ -237,7 +416,7 @@ export default function StudentsList() {
                 {showFilters ? 'Hide Filters' : 'Show Filters'}
                 {hasActiveFilters && (
                   <span className="bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {[searchTerm, statusFilter, levelFilter].filter(f => f !== "" && f !== "all").length}
+                    {[searchTerm, emailFilter, phoneNumber, statusFilter, sortOrder].filter(f => f !== "" && f !== "all").length}
                   </span>
                 )}
               </span>
@@ -256,32 +435,33 @@ export default function StudentsList() {
 
           {/* Filter Options */}
           {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t">
+              <Input
+                label="Email"
+                placeholder="Enter email..."
+                value={emailFilter}
+                onChange={(e) => setEmailFilter(e.target.value)}
+              />
+              <Input
+                label="Phone Number"
+                placeholder="Enter phone number..."
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+              />
               <Select
                 label="Status"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 options={[
                   { label: "All Status", value: "all" },
-                  { label: "Active", value: "active" },
-                  { label: "Inactive", value: "inactive" },
-                  { label: "Graduated", value: "graduated" },
+                  ...statuses.map(status => ({ label: status, value: status }))
                 ]}
               />
               <Select
-                label="Level"
-                value={levelFilter}
-                onChange={(e) => setLevelFilter(e.target.value)}
-                options={[
-                  { label: "All Levels", value: "all" },
-                  { label: "Beginner", value: "Beginner" },
-                  { label: "A1", value: "A1" },
-                  { label: "A2", value: "A2" },
-                  { label: "B1", value: "B1" },
-                  { label: "B2", value: "B2" },
-                  { label: "C1", value: "C1" },
-                  { label: "C2", value: "C2" },
-                ]}
+                label="Sort Order"
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+                options={sortOptions}
               />
             </div>
           )}

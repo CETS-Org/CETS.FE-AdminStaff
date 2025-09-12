@@ -12,10 +12,13 @@ type Student = {
   phone: string;
   age: number;
   level: string;
-  enrolledCourses: string[];
   status: "active" | "inactive" | "graduated";
   joinDate: string;
   avatar?: string;
+  accountId?: string;
+  studentCode?: string;
+  guardianName?: string;
+  school?: string;
 };
 
 type Props = {
@@ -25,13 +28,6 @@ type Props = {
   initial?: Student | null;
 };
 
-const availableCourses = [
-  "IELTS Foundation",
-  "TOEIC Advanced", 
-  "Kids English",
-  "Business English",
-  "Conversation Club"
-];
 
 export default function AddEditStudentDialog({ open, onOpenChange, onSave, initial }: Props) {
   const [name, setName] = useState("");
@@ -39,7 +35,6 @@ export default function AddEditStudentDialog({ open, onOpenChange, onSave, initi
   const [phone, setPhone] = useState("");
   const [age, setAge] = useState("");
   const [level, setLevel] = useState("");
-  const [enrolledCourses, setEnrolledCourses] = useState<string[]>([]);
   const [status, setStatus] = useState<"active" | "inactive" | "graduated">("active");
   const [joinDate, setJoinDate] = useState("");
   const [avatar, setAvatar] = useState("");
@@ -53,7 +48,6 @@ export default function AddEditStudentDialog({ open, onOpenChange, onSave, initi
       setPhone(initial.phone);
       setAge(initial.age.toString());
       setLevel(initial.level);
-      setEnrolledCourses(initial.enrolledCourses);
       setStatus(initial.status);
       setJoinDate(initial.joinDate);
       setAvatar(initial.avatar || "");
@@ -64,7 +58,6 @@ export default function AddEditStudentDialog({ open, onOpenChange, onSave, initi
       setPhone("");
       setAge("");
       setLevel("");
-      setEnrolledCourses([]);
       setStatus("active");
       setJoinDate(new Date().toISOString().slice(0, 10));
       setAvatar("");
@@ -125,20 +118,12 @@ export default function AddEditStudentDialog({ open, onOpenChange, onSave, initi
       phone,
       age: parseInt(age),
       level,
-      enrolledCourses,
       status,
       joinDate,
       avatar,
     });
   };
 
-  const toggleCourse = (course: string) => {
-    setEnrolledCourses(prev => 
-      prev.includes(course) 
-        ? prev.filter(c => c !== course)
-        : [...prev, course]
-    );
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -285,28 +270,6 @@ export default function AddEditStudentDialog({ open, onOpenChange, onSave, initi
             </div>
           </div>
 
-          {/* Course Enrollment */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Course Enrollment</h3>
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-4">
-                Enrolled Courses
-              </label>
-              <div className="grid grid-cols-3 gap-4">
-                {availableCourses.map((course) => (
-                  <label key={course} className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={enrolledCourses.includes(course)}
-                      onChange={() => toggleCourse(course)}
-                      className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
-                    />
-                    <span className="text-sm text-neutral-700 font-medium">{course}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
         </DialogBody>
         <DialogFooter className="sticky bottom-0 bg-gray-50 z-10 border-t pt-6 shadow-sm flex items-center justify-between gap-4">
           <div className="text-sm text-gray-500">

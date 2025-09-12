@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -14,9 +14,11 @@ import {
   BookOpen, 
   Award,
   MessageSquare,
-  Plus,
-  ArrowLeft
+  Plus
 } from "lucide-react";
+import { getStudentById, type Student } from "@/api/student.api";
+import { formatDate, getStatusColor, getStatusDisplay } from "@/helper/helper.service";
+import Loader from "@/components/ui/Loader";
 
 interface EnrolledCourse {
   id: string;
@@ -37,18 +39,41 @@ interface Note {
 export default function StudentDetailPage() {
   const { id } = useParams();
   const [newNote, setNewNote] = useState("");
+  const [student, setStudent] = useState<Student | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data
-  const student = {
-    id: id || "1",
-    name: "Sarah Johnson",
-    email: "sarah.johnson@email.com",
-    phone: "+1 (555) 123-4567",
-    dateOfBirth: "March 15, 1995",
-    enrollmentDate: "January 10, 2025",
-    status: "active" as "active" | "inactive",
-    avatar: "https://via.placeholder.com/100x100?text=SJ"
-  };
+  // Fetch student data
+  useEffect(() => {
+    const fetchStudent = async () => {
+      if (!id) {
+        setError("Student ID is required");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+        console.log("Fetching student with accountId:", id);
+        const studentData = await getStudentById(id);
+        console.log("Student data received:", studentData);
+        setStudent(studentData);
+      } catch (err) {
+        console.error("Error fetching student:", err);
+        console.error("Error details:", {
+          message: err instanceof Error ? err.message : 'Unknown error',
+          status: err instanceof Error && 'response' in err ? (err as any).response?.status : 'No status',
+          data: err instanceof Error && 'response' in err ? (err as any).response?.data : 'No data'
+        });
+        setError(`Failed to load student data: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudent();
+  }, [id]);
 
   const enrolledCourses: EnrolledCourse[] = [
     {
@@ -180,8 +205,41 @@ export default function StudentDetailPage() {
     }
   ];
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="p-6 mx-auto mt-16 lg:pl-70">
+        <div className="flex items-center justify-center h-64">
+          <Loader />
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !student) {
+    return (
+      <div className="p-6 mx-auto mt-16 lg:pl-70">
+        <div className="text-center py-12">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
+            <User className="w-8 h-8 text-red-600" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Student</h3>
+          <p className="text-gray-500 mb-4">{error || "Student not found"}</p>
+          <Button
+            onClick={() => window.location.reload()}
+            variant="secondary"
+            size="sm"
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-6 w-full mt-16 lg:pl-70">
+    <div className="p-6 w-full mt-16 ">
       {/* Header with Breadcrumb */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
@@ -218,14 +276,20 @@ export default function StudentDetailPage() {
         <div className="lg:col-span-1">
           <Card title="Student Information">
             <div className="text-center mb-6">
-              <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gray-200 flex items-center justify-center">
-                <User className="w-12 h-12 text-gray-600" />
+              <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                {student.avatarUrl ? (
+                  <img 
+                    src={student.avatarUrl} 
+                    alt={student.fullName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User className="w-12 h-12 text-gray-600" />
+                )}
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">{student.name}</h2>
-              <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
-                student.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-              }`}>
-                {student.status}
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">{student.fullName}</h2>
+              <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(student.accountStatusID)}`}>
+                {getStatusDisplay(student.accountStatusID)}
               </span>
             </div>
             
@@ -236,16 +300,40 @@ export default function StudentDetailPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                <p className="text-gray-900">{student.phone}</p>
+                <p className="text-gray-900">{student.phoneNumber || "N/A"}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
-                <p className="text-gray-900">{student.dateOfBirth}</p>
+                <p className="text-gray-900">{formatDate(student.dateOfBirth)}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Enrollment Date</label>
-                <p className="text-gray-900">{student.enrollmentDate}</p>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Account Created</label>
+                <p className="text-gray-900">{formatDate(student.createdAt)}</p>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                <p className="text-gray-900">{student.address || "N/A"}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">CID</label>
+                <p className="text-gray-900">{student.cid || "N/A"}</p>
+              </div>
+              {student.studentInfo && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Student Code</label>
+                    <p className="text-gray-900">{student.studentInfo.studentCode}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Guardian Name</label>
+                    <p className="text-gray-900">{student.studentInfo.guardianName}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">School</label>
+                    <p className="text-gray-900">{student.studentInfo.school || "N/A"}</p>
+                  </div>
+                </>
+              )}
             </div>
           </Card>
         </div>
