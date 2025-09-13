@@ -1,75 +1,7 @@
+import type { FilterUserParam } from "@/types/filter.type";
+import type { CourseTeaching, Teacher, TeacherCredential } from "@/types/teacher.type";
 import { api } from "./api";
 
-export interface TeacherCredential {
-  id: string;
-  degree: string;
-  institution: string;
-  year: string;
-  field: string;
-  createdAt: string;
-  updatedAt: string | null;
-  isDeleted: boolean;
-}
-
-export interface TeacherInfo {
-  teacherId: string;
-  teacherCode: string;
-  yearsExperience: number;
-  bio: string;
-  createdAt: string;
-  updatedAt: string | null;
-  updatedBy: string | null;
-  isDeleted: boolean;
-  accountId: string;
-  email: string;
-  phoneNumber: string | null;
-  fullName: string;
-  dateOfBirth: string | null;
-  cid: string | null;
-  address: string | null;
-  avatarUrl: string | null;
-  accountStatusID: string;
-  isVerified: boolean;
-  verifiedCode: string | null;
-  verifiedCodeExpiresAt: string | null;
-  accountCreatedAt: string;
-  accountUpdatedAt: string | null;
-  accountUpdatedBy: string | null;
-  accountIsDeleted: boolean;
-  teacherCredentials: TeacherCredential[];
-}
-
-export interface Teacher {
-  accountId: string;
-  email: string;
-  phoneNumber: string | null;
-  fullName: string;
-  dateOfBirth: string | null;
-  cid: string | null;
-  address: string | null;
-  avatarUrl: string | null;
-  password?: string; // Optional for security reasons
-  accountStatusID: string;
-  isVerified: boolean;
-  verifiedCode: string | null;
-  verifiedCodeExpiresAt: string | null;
-  createdAt: string;
-  updatedAt: string | null;
-  updatedBy: string | null;
-  isDeleted: boolean;
-  statusName: string;
-  roleNames: string[];
-  studentInfo: any | null;
-  teacherInfo: TeacherInfo | null;
-}
-  
-export interface FilterTeacherParam {
-  name: string | null;
-  email: string | null;
-  phoneNumber: string | null;
-  statusName: string | null;
-  sortOrder: string | null;
-}
 /**
  * Get all teachers
  */
@@ -112,7 +44,7 @@ export const getTeacherById = async (id: string): Promise<Teacher> => {
   }
 };
 
-export const filterTeacher  = async (filterParam: FilterTeacherParam): Promise<Teacher[]> => {
+export const filterTeacher  = async (filterParam: FilterUserParam): Promise<Teacher[]> => {
   try {
     const response = await api.get<Teacher[]>(`/api/IDN_Account`,{
       params: {
@@ -127,6 +59,16 @@ export const filterTeacher  = async (filterParam: FilterTeacherParam): Promise<T
     return response.data as Teacher[];
   } catch (error) {
     console.error(`Error filter teacher with filterParam: ${filterParam}:`, error);
+    throw error;
+  }
+}
+
+export const getListCourseTeaching = async (teacherId: string): Promise<CourseTeaching[]> => {
+  try {
+    const response = await api.get<CourseTeaching[]>(`/api/ACAD_CourseTeacherAssignment/CoursesByTeacher/${teacherId}`);
+    return response.data ;
+  } catch (error) {
+    console.error(`Error fetching list course teaching:`, error);
     throw error;
   }
 }

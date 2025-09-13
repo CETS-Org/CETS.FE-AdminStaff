@@ -60,4 +60,17 @@ export interface TeacherCredential {
     studentInfo: any | null;
     teacherInfo: TeacherInfo | null;
   }
+export interface CourseTeaching {
+  courseId: string;
+  courseCode: string | null;
+  courseName: string | null;
+  description: string | null;
+  courseImageUrl: string | null;
+  categoryName: string | null;
+  courseLevelName: string | null;
+  courseFormatName: string | null;
+  studentCount: number  ;
+  assignedAt: string ;
+}
     
+  

@@ -1,16 +1,10 @@
-import { useState } from "react";
-import Navbar from "@/shared/navbar";
-import Sidebar from "@/shared/sidebar";
 import Card from "@/components/ui/Card";
 import StudentsList from "./components/students_list";
 import { Users, GraduationCap, Clock, Award } from "lucide-react";
 
 export default function StaffStudentsPage() {
-  const [isToggleMenu, setIsToggleMenu] = useState(false);
 
-  return (
-   
-        
+  return (   
         <main className="mt-16 p-6 mx-auto lg:pl-0 lg:w-full bg-gray-50 md:w-[90%] w-[90%]">
           {/* Header Section */}
           <div className="mb-8">

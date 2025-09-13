@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Table, { type TableColumn } from "@/components/ui/Table";
@@ -23,17 +23,12 @@ import {
 } from "lucide-react";
 // import { getTeacherById, type Teacher } from "@/pages/api/teacher.api";
 import { formatDate, getStatusColor, getStatusDisplay } from "@/helper/helper.service";
-import { getTeacherById, type Teacher } from "@/api/teacher.api";
+import { getListCourseTeaching, getTeacherById } from "@/api/teacher.api";
+import type { CourseTeaching, Teacher, TeacherCredential } from "@/types/teacher.type";
 
 
 
-interface TeachingCourse {
-  id: string;
-  courseName: string;
-  students: number;
-  schedule: string;
-  status: "active" | "completed" | "upcoming";
-}
+// Remove TeachingCourse interface as we'll use CourseTeaching from types
 
 
 interface Note {
@@ -50,7 +45,9 @@ export default function TeacherDetailPage() {
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+  const [teachingCourses, setTeachingCourses] = useState<CourseTeaching[]>([]);
+  const [coursesLoading, setCoursesLoading] = useState(false);
+  const navigate = useNavigate();
   // Fetch teacher data
   useEffect(() => {
     const fetchTeacher = async () => {
@@ -83,36 +80,41 @@ export default function TeacherDetailPage() {
     fetchTeacher();
   }, [id]);
 
-  const teachingCourses: TeachingCourse[] = [
-    {
-      id: "1",
-      courseName: "Advanced English Grammar",
-      students: 25,
-      schedule: "Mon, Wed 2:00 PM",
-      status: "active"
-    },
-    {
-      id: "2",
-      courseName: "Business English",
-      students: 18,
-      schedule: "Tue, Thu 4:00 PM",
-      status: "active"
-    },
-    {
-      id: "3",
-      courseName: "IELTS Preparation",
-      students: 30,
-      schedule: "Fri 10:00 AM",
-      status: "active"
-    },
-    {
-      id: "4",
-      courseName: "Creative Writing",
-      students: 15,
-      schedule: "Sat 9:00 AM",
-      status: "upcoming"
-    }
-  ];
+  useEffect(() => {
+    const fetchTeachingCourses = async () => {
+      if (!id) return;
+
+      try {
+        setCoursesLoading(true);
+        console.log("Fetching teaching courses for teacher:", id);
+        const coursesData = await getListCourseTeaching(id);
+        // Sort so that courses with more students are at the top, then by assignedAt descending
+        coursesData.sort((a, b) => {
+          // First, sort by student count (descending)
+          const aStudents = a.studentCount || 0;
+          const bStudents = b.studentCount || 0;
+          if (aStudents !== bStudents) {
+            return bStudents - aStudents;
+          }
+          // Then, sort by assignedAt descending
+          const aDate = new Date(a.assignedAt || 0).getTime();
+          const bDate = new Date(b.assignedAt || 0).getTime();
+          return bDate - aDate;
+        });
+        console.log("Teaching courses data received:", coursesData);
+        setTeachingCourses(coursesData);
+      } catch (err) {
+        console.error("Error fetching teaching courses:", err);
+        // Don't set error state for courses, just log it
+        setTeachingCourses([]);
+      } finally {
+        setCoursesLoading(false);
+      }
+    };
+
+    fetchTeachingCourses();
+  }, [id]);
+   // Remove hardcoded teachingCourses data - now using API data
 
 
 
@@ -156,17 +158,29 @@ export default function TeacherDetailPage() {
   };
 
   const handleManageCourse = (courseId: string) => {
-    console.log("Manage course:", courseId);
+    navigate(`/staff/courses/${courseId}`);
   };
 
   // Table columns for teaching courses
-  const courseColumns: TableColumn<TeachingCourse>[] = [
+  const courseColumns: TableColumn<CourseTeaching>[] = [
     {
       header: "Course Name",
       accessor: (course) => (
         <div className="flex items-center gap-3">
           <BookOpen className="w-4 h-4 text-blue-600" />
-          <span className="font-medium">{course.courseName}</span>
+          <div>
+            <span className="font-medium">{course.courseName || "N/A"}</span>
+            <div className="text-sm text-gray-500">{course.courseCode || "N/A"}</div>
+          </div>
+        </div>
+      )
+    },
+    {
+      header: "Category & Level",
+      accessor: (course) => (
+        <div className="space-y-1">
+          <div className="text-sm font-medium">{course.categoryName || "N/A"}</div>
+          <div className="text-xs text-gray-500">{course.courseLevelName || "N/A"}</div>
         </div>
       )
     },
@@ -175,29 +189,25 @@ export default function TeacherDetailPage() {
       accessor: (course) => (
         <div className="flex items-center gap-2">
           <Users className="w-4 h-4 text-gray-500" />
-          <span>{course.students}</span>
+          <span className="font-medium">{course.studentCount || 0}</span>
         </div>
       )
     },
     {
-      header: "Schedule",
+      header: "Format",
+      accessor: (course) => (
+        <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+          {course.courseFormatName || "N/A"}
+        </span>
+      )
+    },
+    {
+      header: "Assigned Date",
       accessor: (course) => (
         <div className="flex items-center gap-2">
           <Calendar className="w-4 h-4 text-gray-500" />
-          <span>{course.schedule}</span>
+          <span className="text-sm">{formatDate(course.assignedAt)}</span>
         </div>
-      )
-    },
-    {
-      header: "Status",
-      accessor: (course) => (
-        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-          course.status === 'active' ? 'bg-green-100 text-green-800' :
-          course.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-          'bg-yellow-100 text-yellow-800'
-        }`}>
-          {course.status}
-        </span>
       )
     },
     {
@@ -205,13 +215,13 @@ export default function TeacherDetailPage() {
       accessor: (course) => (
         <div className="flex gap-2">
           <button
-            onClick={() => handleViewCourse(course.id)}
+            onClick={() => handleViewCourse(course.courseId)}
             className="p-1 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors"
           >
             <Eye className="w-4 h-4" />
           </button>
           <button
-            onClick={() => handleManageCourse(course.id)}
+            onClick={() => handleManageCourse(course.courseId)}
             className="p-1 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors"
           >
             <Settings className="w-4 h-4" />
@@ -322,38 +332,38 @@ export default function TeacherDetailPage() {
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <p className="text-gray-900">{teacher.email}</p>
+                <label className="block text-sm font-medium text-gray-900 mb-1">Email</label>
+                <p className="text-gray-600">{teacher.email}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                <p className="text-gray-900">{teacher.phoneNumber || "N/A"}</p>
+                <label className="block text-sm font-medium text-gray-900 mb-1">Phone</label>
+                <p className="text-gray-600">{teacher.phoneNumber || "N/A"}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
-                <p className="text-gray-900">{formatDate(teacher.dateOfBirth)}</p>
+                <label className="block text-sm font-medium text-gray-900 mb-1">Date of Birth</label>
+                <p className="text-gray-600">{formatDate(teacher.dateOfBirth) || "N/A"}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Account Created</label>
-                <p className="text-gray-900">{formatDate(teacher.createdAt)}</p>
+                <label className="block text-sm font-medium text-gray-900 mb-1">Account Created</label>
+                <p className="text-gray-600">{formatDate(teacher.createdAt) || "N/A"}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                <p className="text-gray-900">{teacher.address || "N/A"}</p>
+                <label className="block text-sm font-medium text-gray-900 mb-1">Address</label>
+                <p className="text-gray-600">{teacher.address || "N/A"}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">CID</label>
-                <p className="text-gray-900">{teacher.cid || "N/A"}</p>
+                <label className="block text-sm font-medium text-gray-900 mb-1">CID</label>
+                <p className="text-gray-600">{teacher.cid || "N/A"}</p>
               </div>
               {teacher.teacherInfo && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Experience</label>
-                    <p className="text-gray-900">{teacher.teacherInfo.yearsExperience} years</p>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">Experience</label>
+                    <p className="text-gray-600">{teacher.teacherInfo.yearsExperience || "N/A"} years</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
-                    <p className="text-gray-900">{teacher.teacherInfo.bio || "No bio available"}</p>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">Bio</label>
+                    <p className="text-gray-600">{teacher.teacherInfo.bio || "No bio available"}</p>
                   </div>
                 </>
               )}
@@ -364,7 +374,7 @@ export default function TeacherDetailPage() {
           <Card title="Qualifications" className="mt-6">
             <div className="space-y-4">
               {teacher.teacherInfo?.teacherCredentials && teacher.teacherInfo.teacherCredentials.length > 0 ? (
-                teacher.teacherInfo.teacherCredentials.map((credential) => (
+                teacher.teacherInfo.teacherCredentials.map((credential: TeacherCredential) => (
                   <div key={credential.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
                     <GraduationCap className="w-5 h-5 text-blue-600 mt-0.5" />
                     <div>
@@ -387,16 +397,22 @@ export default function TeacherDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           {/* Teaching Courses */}
           <Card title="Teaching Courses">
-            <Table
-              columns={courseColumns}
-              data={teachingCourses}
-              emptyState={
-                <div className="text-center py-8">
-                  <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">No courses assigned</p>
-                </div>
-              }
-            />
+            {coursesLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader />
+              </div>
+            ) : (
+              <Table
+                columns={courseColumns}
+                data={teachingCourses}
+                emptyState={
+                  <div className="text-center py-8">
+                    <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">No courses assigned</p>
+                  </div>
+                }
+              />
+            )}
           </Card>
 
           {/* Performance Overview */}

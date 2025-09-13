@@ -16,17 +16,12 @@ import {
   MessageSquare,
   Plus
 } from "lucide-react";
-import { getStudentById, type Student } from "@/api/student.api";
 import { formatDate, getStatusColor, getStatusDisplay } from "@/helper/helper.service";
 import Loader from "@/components/ui/Loader";
+import { getStudentById, getListCourseEnrollment } from "@/api/student.api";
+import type { Student, CourseEnrollment } from "@/types/student.type";
 
-interface EnrolledCourse {
-  id: string;
-  courseName: string;
-  teacher: string;
-  schedule: string;
-  status: "active" | "completed" | "dropped";
-}
+// Remove EnrolledCourse interface as we'll use CourseEnrollment from types
 
 interface Note {
   id: string;
@@ -40,7 +35,9 @@ export default function StudentDetailPage() {
   const { id } = useParams();
   const [newNote, setNewNote] = useState("");
   const [student, setStudent] = useState<Student | null>(null);
+  const [enrolledCourses, setEnrolledCourses] = useState<CourseEnrollment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [coursesLoading, setCoursesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch student data
@@ -75,29 +72,39 @@ export default function StudentDetailPage() {
     fetchStudent();
   }, [id]);
 
-  const enrolledCourses: EnrolledCourse[] = [
-    {
-      id: "1",
-      courseName: "Advanced English Grammar",
-      teacher: "Dr. Smith",
-      schedule: "Mon, Wed 2:00 PM",
-      status: "active"
-    },
-    {
-      id: "2",
-      courseName: "Business English",
-      teacher: "Ms. Davis",
-      schedule: "Tue, Thu 4:00 PM",
-      status: "active"
-    },
-    {
-      id: "3",
-      courseName: "IELTS Preparation",
-      teacher: "Prof. Wilson",
-      schedule: "Fri 10:00 AM",
-      status: "active"
-    }
-  ];
+  // Fetch enrolled courses
+  useEffect(() => {
+    const fetchEnrolledCourses = async () => {
+      if (!id) return;
+
+      try {
+        setCoursesLoading(true);
+        console.log("Fetching enrolled courses for student:", id);
+        const coursesData = await getListCourseEnrollment(id);
+        // Sort so that active courses are at the top, then by createdAt descending
+        coursesData.sort((a, b) => {
+          // First, sort by isActive (active first)
+          if (a.isActive !== b.isActive) {
+            return a.isActive ? -1 : 1;
+          }
+          // Then, sort by createdAt descending
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+        console.log("Enrolled courses data received:", coursesData);
+        setEnrolledCourses(coursesData);
+      } catch (err) {
+        console.error("Error fetching enrolled courses:", err);
+        // Don't set error state for courses, just log it
+        setEnrolledCourses([]);
+      } finally {
+        setCoursesLoading(false);
+      }
+    };
+
+    fetchEnrolledCourses();
+  }, [id]);
+
+  // Remove hardcoded enrolledCourses data - now using API data
 
   const notes: Note[] = [
     {
@@ -143,39 +150,49 @@ export default function StudentDetailPage() {
   };
 
   // Table columns for enrolled courses
-  const courseColumns: TableColumn<EnrolledCourse>[] = [
+  const courseColumns: TableColumn<CourseEnrollment>[] = [
     {
       header: "Course Name",
       accessor: (course) => (
         <div className="flex items-center gap-3">
           <BookOpen className="w-4 h-4 text-blue-600" />
-          <span className="font-medium">{course.courseName}</span>
+          <div>
+            <span className="font-medium">{course.courseName}</span>
+            <div className="text-sm text-gray-500">{course.courseCode}</div>
+          </div>
         </div>
       )
     },
     {
-      header: "Teacher",
-      accessor: (course) => course.teacher
-    },
-    {
-      header: "Schedule",
+      header: "Teachers",
       accessor: (course) => (
-        <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-gray-500" />
-          <span>{course.schedule}</span>
+        <div className="space-y-1">
+          {course.teachers.map((teacher, index) => (
+            <div key={index} className="text-sm">{teacher}</div>
+          ))}
         </div>
       )
     },
     {
       header: "Status",
       accessor: (course) => (
-        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-          course.status === 'active' ? 'bg-green-100 text-green-800' :
-          course.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-          'bg-red-100 text-red-800'
-        }`}>
-          {course.status}
-        </span>
+        <div className="space-y-1">
+          <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+            course.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+          }`}>
+            {course.isActive ? 'Active' : 'Inactive'}
+          </span>
+          {/* <div className="text-xs text-gray-500">{course.enrollmentStatus}</div> */}
+        </div>
+      )
+    },
+    {
+      header: "Enrolled Date",
+      accessor: (course) => (
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-gray-500" />
+          <span className="text-sm">{formatDate(course.createdAt)}</span>
+        </div>
       )
     },
     {
@@ -188,8 +205,11 @@ export default function StudentDetailPage() {
             onClick={() => handleViewCourse(course.id)}
             className="inline-flex items-center justify-center gap-2"
           >
-            <Eye className="w-4 h-4 flex-shrink-0" />
-            <span className="leading-none">View</span>
+            <div className="flex gap-2">
+              <Eye className="w-4 h-4 flex-shrink-0" />
+              <span className="leading-none">View</span>
+            </div>
+           
           </Button>
           <Button
             variant="secondary"
@@ -197,8 +217,10 @@ export default function StudentDetailPage() {
             onClick={() => handleManageCourse(course.id)}
             className="inline-flex items-center justify-center gap-2"
           >
+            <div className="flex gap-2">
             <Settings className="w-4 h-4 flex-shrink-0" />
             <span className="leading-none">Manage</span>
+            </div>
           </Button>
         </div>
       )
@@ -295,42 +317,46 @@ export default function StudentDetailPage() {
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <p className="text-gray-900">{student.email}</p>
+                <label className="block text-sm font-medium text-gray-900 mb-1">Email</label>
+                <p className="text-gray-600">{student.email || "N/A"}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                <p className="text-gray-900">{student.phoneNumber || "N/A"}</p>
+                <label className="block text-sm font-medium text-gray-900 mb-1">Phone</label>
+                <p className="text-gray-600">{student.phoneNumber || "N/A"}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
-                <p className="text-gray-900">{formatDate(student.dateOfBirth)}</p>
+                <label className="block text-sm font-medium text-gray-900 mb-1">Date of Birth</label>
+                <p className="text-gray-600">{formatDate(student.dateOfBirth || "N/A")}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Account Created</label>
-                <p className="text-gray-900">{formatDate(student.createdAt)}</p>
+                <label className="block text-sm font-medium text-gray-900 mb-1">Account Created</label>
+                <p className="text-gray-600">{formatDate(student.createdAt || "N/A")}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                <p className="text-gray-900">{student.address || "N/A"}</p>
+                <label className="block text-sm font-medium text-gray-900 mb-1">Address</label>
+                <p className="text-gray-600">{student.address || "N/A"}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">CID</label>
-                <p className="text-gray-900">{student.cid || "N/A"}</p>
+                <label className="block text-sm font-medium text-gray-900 mb-1">CID</label>
+                <p className="text-gray-600">{student.cid || "N/A"}</p>
               </div>
               {student.studentInfo && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Student Code</label>
-                    <p className="text-gray-900">{student.studentInfo.studentCode}</p>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">Student Code</label>
+                    <p className="text-gray-600">{student.studentInfo.studentCode || "N/A"}</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Guardian Name</label>
-                    <p className="text-gray-900">{student.studentInfo.guardianName}</p>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">Guardian Name</label>
+                    <p className="text-gray-600">{student.studentInfo.guardianName || "N/A"}</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">School</label>
-                    <p className="text-gray-900">{student.studentInfo.school || "N/A"}</p>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">Guardian Phone</label>
+                    <p className="text-gray-600">{student.studentInfo.guardianPhone || "N/A"}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">School</label>
+                    <p className="text-gray-600">{student.studentInfo.school || "N/A"}</p>
                   </div>
                 </>
               )}
@@ -342,16 +368,22 @@ export default function StudentDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           {/* Enrolled Courses */}
           <Card title="Enrolled Courses" description="View and manage student's course enrollments">
-            <Table
-              columns={courseColumns}
-              data={enrolledCourses}
-              emptyState={
-                <div className="text-center py-8">
-                  <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">No courses enrolled</p>
-                </div>
-              }
-            />
+            {coursesLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader />
+              </div>
+            ) : (
+              <Table
+                columns={courseColumns}
+                data={enrolledCourses}
+                emptyState={
+                  <div className="text-center py-8">
+                    <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">No courses enrolled</p>
+                  </div>
+                }
+              />
+            )}
           </Card>
 
           {/* Performance Overview */}
