@@ -6,32 +6,12 @@ import Table, { type TableColumn } from "@/components/ui/Table";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Pagination from "@/shared/pagination";
-import DeleteConfirmDialog from "./delete_confirm_dialog";
 import { Search, Filter, X, Eye, Edit, Trash2, Plus, Loader2 } from "lucide-react";
-import { type Teacher, getTeachers, filterTeacher, type FilterTeacherParam } from "@/api/teacher.api";
+import { filterTeacher, getTeachers } from "@/api/teacher.api";
+import type { Teacher } from "@/types/teacher.type";
+import type { FilterUserParam } from "@/types/filter.type";
+import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
 
-
-// interface Qualification {
-//   id: string;
-//   degree: string;
-//   institution: string;
-//   year: string;
-//   field: string;
-// }
-
-// type Teacher = {
-//   id: string;
-//   name: string;
-//   email: string;
-//   phone: string;
-//   dateOfBirth: string;
-//   hireDate: string;
-//   specialization: string;
-//   experience: string;
-//   status: "active" | "inactive";
-//   avatar?: string;
-//   qualifications: Qualification[];
-// };
 
 export default function TeacherList() {
   const navigate = useNavigate();
@@ -47,9 +27,51 @@ export default function TeacherList() {
   const [emailFilter, setEmailFilter] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sortOrderDisplay, setSortOrderDisplay] = useState<string>("");
+  const [sortBy, setSortBy] = useState<string>("");
   const [sortOrder, setSortOrder] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+
+  // Parse sort order from display value
+  const parseSortOrder = (displayValue: string) => {
+    if (displayValue === "") {
+      setSortBy("");
+      setSortOrder("");
+      return;
+    }
+    
+    const [sortByValue, sortOrderValue] = displayValue.split("_");
+    setSortBy(sortByValue);
+    setSortOrder(sortOrderValue);
+  };
+
+  // Filter teachers with API
+  const filterTeachersAPI = async () => {
+    try {
+      setIsSearching(true);
+      setError(null);
+      
+      const filterParam: FilterUserParam = {
+        name: searchTerm || null,
+        email: emailFilter || null,
+        phoneNumber: phoneNumber || null,
+        statusName: statusFilter === "all" ? null : statusFilter,
+        sortBy: sortBy || null,
+        sortOrder: sortOrder || null,
+        roleName: "Teacher",
+        currentRole: "Teacher"
+      };
+      
+      const data = await filterTeacher(filterParam);
+      setTeachers(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to filter teachers');
+      console.error('Error filtering teachers:', err);
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   // Fetch teachers data
   useEffect(() => {
@@ -70,38 +92,6 @@ export default function TeacherList() {
     fetchTeachers();
   }, []);
 
-  // Combined search and filter with debouncing
-  useEffect(() => {
-    const filterTeachersAPI = async () => {
-      try {
-        setIsSearching(true);
-        
-        // Prepare filter parameters
-        const filterParams: FilterTeacherParam = {
-          name: searchTerm.trim() || null,
-          email: emailFilter.trim() || null,
-          phoneNumber: phoneNumber.trim() || null,
-          statusName: statusFilter === "all" ? null : statusFilter,
-          sortOrder: sortOrder || null
-        };
-
-        console.log("Filtering teachers with params:", filterParams);
-        const filteredResults = await filterTeacher(filterParams);
-        console.log("Filter results:", filteredResults);
-        setTeachers(filteredResults);
-      } catch (err) {
-        console.error("Error filtering teachers:", err);
-        setError("Failed to filter teachers");
-      } finally {
-        setIsSearching(false);
-      }
-    };
-
-    // Debounce filter
-    const timeoutId = setTimeout(filterTeachersAPI, 1000); // 500ms debounce
-
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm, emailFilter, phoneNumber, statusFilter, sortOrder]);
 
   // No need for client-side filtering anymore
   const filteredTeachers = teachers;
@@ -146,21 +136,6 @@ export default function TeacherList() {
       header: "Phone", 
       accessor: (row) => row.phoneNumber || "N/A" 
     },
-    // { 
-    //   header: "Role", 
-    //   accessor: (row) => (
-    //     <div className="flex flex-wrap gap-1">
-    //       {row.roleNames.map((role, index) => (
-    //         <span 
-    //           key={index}
-    //           className="inline-flex px-2 py-1 rounded-md text-xs bg-blue-100 text-blue-700 border border-blue-200"
-    //         >
-    //           {role}
-    //         </span>
-    //       ))}
-    //     </div>
-    //   )
-    // },
     { 
       header: "Date of Birth", 
       accessor: (row) => row.dateOfBirth ? new Date(row.dateOfBirth).toLocaleDateString() : "N/A" 
@@ -169,12 +144,12 @@ export default function TeacherList() {
       header: "Status",
       accessor: (row) => (
         <span className={`inline-flex px-2 py-0.5 rounded-md text-[75%] border
-          ${row.statusName.toLowerCase() === 'active' ? 'bg-green-100 text-green-700 border-green-200' : ''}
-          ${row.statusName.toLowerCase() === 'inactive' ? 'bg-gray-100 text-gray-700 border-gray-200' : ''}
-          ${row.statusName.toLowerCase() === 'pending' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' : ''}
-          ${row.statusName.toLowerCase() === 'suspended' ? 'bg-red-100 text-red-700 border-red-200' : ''}
+          ${row.statusName?.toLowerCase() === 'active' ? 'bg-green-100 text-green-700 border-green-200' : ''}
+          ${row.statusName?.toLowerCase() === 'inactive' ? 'bg-gray-100 text-gray-700 border-gray-200' : ''}
+          ${row.statusName?.toLowerCase() === 'pending' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' : ''}
+          ${row.statusName?.toLowerCase() === 'suspended' ? 'bg-red-100 text-red-700 border-red-200' : ''}
         `}>
-          {row.statusName}
+          {row.statusName || 'Unknown'}
         </span>
       )
     },
@@ -248,21 +223,31 @@ export default function TeacherList() {
     }
   };
 
-  const clearFilters = () => {
+  const clearFilters = async () => {
     setSearchTerm("");
     setEmailFilter("");
     setPhoneNumber("");
     setStatusFilter("all");
+    setSortOrderDisplay("");
+    setSortBy("");
     setSortOrder("");
-    // The useEffect will automatically trigger with empty values
-    // which will call filterTeacher with null values to get all teachers
+    
+    // Reload initial teacher list without showing loading state
+    try {
+      setError(null);
+      const data = await getTeachers();
+      setTeachers(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch teachers');
+      console.error('Error fetching teachers:', err);
+    }
   };
 
-  const hasActiveFilters = searchTerm !== "" || emailFilter !== "" || phoneNumber !== "" || statusFilter !== "all" || sortOrder !== "";
+  const hasActiveFilters = searchTerm !== "" || emailFilter !== "" || phoneNumber !== "" || statusFilter !== "all" || sortOrderDisplay !== "";
 
   // Get unique statuses for filter options
   const statuses = useMemo(() => {
-    const uniqueStatuses = [...new Set(teachers.map(t => t.statusName))];
+    const uniqueStatuses = [...new Set(teachers.map(t => t.statusName).filter(Boolean))];
     return uniqueStatuses.sort();
   }, [teachers]);
 
@@ -284,8 +269,10 @@ export default function TeacherList() {
         description="View and manage all teachers"
         actions={
           <Button onClick={handleAdd} size="sm" className="inline-flex items-center gap-2">
+            <div className="flex items-center gap-2">
             <Plus className="w-4 h-4" />
             Add New Teacher
+            </div>
           </Button>
         }
       >
@@ -317,9 +304,23 @@ export default function TeacherList() {
                 {showFilters ? 'Hide Filters' : 'Show Filters'}
                 {hasActiveFilters && (
                   <span className="bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {[searchTerm, emailFilter, phoneNumber, statusFilter, sortOrder].filter(f => f !== "" && f !== "all").length}
+                    {[searchTerm, emailFilter, phoneNumber, statusFilter, sortOrderDisplay].filter(f => f !== "" && f !== "all").length}
                   </span>
                 )}
+              </span>
+            </Button>
+            <Button
+              onClick={filterTeachersAPI}
+              disabled={isSearching}
+              className="whitespace-nowrap bg-primary-600 hover:bg-primary-700 text-white"
+            >
+              <span className="flex items-center gap-2">
+                {isSearching ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Search className="w-4 h-4" />
+                )}
+                Search
               </span>
             </Button>
             <Button
@@ -329,7 +330,7 @@ export default function TeacherList() {
             >
               <span className="flex items-center gap-2">
                 <X className="w-4 h-4" />
-                Clear Filters
+                Clear All
               </span>
             </Button>
           </div>
@@ -355,13 +356,16 @@ export default function TeacherList() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 options={[
                   { label: "All Status", value: "all" },
-                  ...statuses.map(status => ({ label: status, value: status }))
+                  ...statuses.map(status => ({ label: status || "Unknown", value: status || "unknown" }))
                 ]}
               />
               <Select
                 label="Sort Order"
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value)}
+                value={sortOrderDisplay}
+                onChange={(e) => {
+                  setSortOrderDisplay(e.target.value);
+                  parseSortOrder(e.target.value);
+                }}
                 options={sortOptions}
               />
              

@@ -1,7 +1,7 @@
 import React from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
-  Users, FileText, Settings, Database, Shield, Activity,
+  Users, FileText, Settings, Database, Shield, Activity, UserCheck,
   ChevronLeft, ChevronRight, X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,7 @@ type Props = {
 };
 
 const items = [
-  { id: "users", label: "User Management", icon: Users, path: "/admin/users" },
+  { id: "staffs", label: "Staff Management", icon: UserCheck, path: "/admin/staffs" },
   { id: "reports", label: "Complaint Management", icon: FileText, path: "/admin/reports" },
 ];
 

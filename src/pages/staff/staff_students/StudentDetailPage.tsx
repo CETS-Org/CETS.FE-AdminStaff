@@ -14,7 +14,12 @@ import {
   BookOpen, 
   Award,
   MessageSquare,
-  Plus
+  Plus,
+  Mail,
+  Phone,
+  MapPin,
+  IdCard,
+  Clock
 } from "lucide-react";
 import { formatDate, getStatusColor, getStatusDisplay } from "@/helper/helper.service";
 import Loader from "@/components/ui/Loader";
@@ -310,53 +315,83 @@ export default function StudentDetailPage() {
                 )}
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">{student.fullName}</h2>
-              <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(student.accountStatusID)}`}>
-                {getStatusDisplay(student.accountStatusID)}
+              <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(student.accountStatusID ?? "" )}`}>
+                {getStatusDisplay(student.accountStatusID ?? "")}
               </span>
             </div>
             
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">Email</label>
-                <p className="text-gray-600">{student.email || "N/A"}</p>
+              <div className="flex items-start gap-3">
+                <Mail className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">Email</label>
+                  <p className="text-gray-600">{student.email || "N/A"}</p>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">Phone</label>
-                <p className="text-gray-600">{student.phoneNumber || "N/A"}</p>
+              <div className="flex items-start gap-3">
+                <Phone className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">Phone</label>
+                  <p className="text-gray-600">{student.phoneNumber || "N/A"}</p>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">Date of Birth</label>
-                <p className="text-gray-600">{formatDate(student.dateOfBirth || "N/A")}</p>
+              <div className="flex items-start gap-3">
+                <Calendar className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">Date of Birth</label>
+                  <p className="text-gray-600">{formatDate(student.dateOfBirth || "N/A")}</p>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">Account Created</label>
-                <p className="text-gray-600">{formatDate(student.createdAt || "N/A")}</p>
+              <div className="flex items-start gap-3">
+                <Clock className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">Account Created</label>
+                  <p className="text-gray-600">{formatDate(student.createdAt || "N/A")}</p>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">Address</label>
-                <p className="text-gray-600">{student.address || "N/A"}</p>
+              <div className="flex items-start gap-3">
+                <MapPin className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">Address</label>
+                  <p className="text-gray-600">{student.address || "N/A"}</p>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">CID</label>
-                <p className="text-gray-600">{student.cid || "N/A"}</p>
+              <div className="flex items-start gap-3">
+                <IdCard className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">CID</label>
+                  <p className="text-gray-600">{student.cid || "N/A"}</p>
+                </div>
               </div>
               {student.studentInfo && (
                 <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">Student Code</label>
-                    <p className="text-gray-600">{student.studentInfo.studentCode || "N/A"}</p>
+                  <div className="flex items-start gap-3">
+                    <IdCard className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 mb-1">Student Code</label>
+                      <p className="text-gray-600">{student.studentInfo.studentCode || "N/A"}</p>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">Guardian Name</label>
-                    <p className="text-gray-600">{student.studentInfo.guardianName || "N/A"}</p>
+                  <div className="flex items-start gap-3">
+                    <User className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 mb-1">Guardian Name</label>
+                      <p className="text-gray-600">{student.studentInfo.guardianName || "N/A"}</p>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">Guardian Phone</label>
-                    <p className="text-gray-600">{student.studentInfo.guardianPhone || "N/A"}</p>
+                  <div className="flex items-start gap-3">
+                    <Phone className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 mb-1">Guardian Phone</label>
+                      <p className="text-gray-600">{student.studentInfo.guardianPhone || "N/A"}</p>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">School</label>
-                    <p className="text-gray-600">{student.studentInfo.school || "N/A"}</p>
+                  <div className="flex items-start gap-3">
+                    <BookOpen className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 mb-1">School</label>
+                      <p className="text-gray-600">{student.studentInfo.school || "N/A"}</p>
+                    </div>
                   </div>
                 </>
               )}

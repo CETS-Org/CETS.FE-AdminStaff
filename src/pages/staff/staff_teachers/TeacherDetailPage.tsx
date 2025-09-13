@@ -19,7 +19,11 @@ import {
   GraduationCap,
   Users,
   Star,
-  Clock
+  Clock,
+  Mail,
+  Phone,
+  MapPin,
+  IdCard
 } from "lucide-react";
 // import { getTeacherById, type Teacher } from "@/pages/api/teacher.api";
 import { formatDate, getStatusColor, getStatusDisplay } from "@/helper/helper.service";
@@ -318,8 +322,8 @@ export default function TeacherDetailPage() {
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">{teacher.fullName}</h2>
               <div className="flex items-center justify-center gap-2 mb-3">
-                <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(teacher.accountStatusID)}`}>
-                  {getStatusDisplay(teacher.accountStatusID)}
+                <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(teacher.accountStatusID || "")}`}>
+                  {getStatusDisplay(teacher.accountStatusID || "")}
                 </span>
                 {teacher.isVerified && (
                   <div className="flex items-center gap-1">
@@ -331,29 +335,47 @@ export default function TeacherDetailPage() {
             </div>
             
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">Email</label>
-                <p className="text-gray-600">{teacher.email}</p>
+              <div className="flex items-start gap-3">
+                <Mail className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">Email</label>
+                  <p className="text-gray-600">{teacher.email}</p>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">Phone</label>
-                <p className="text-gray-600">{teacher.phoneNumber || "N/A"}</p>
+              <div className="flex items-start gap-3">
+                <Phone className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">Phone</label>
+                  <p className="text-gray-600">{teacher.phoneNumber || "N/A"}</p>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">Date of Birth</label>
-                <p className="text-gray-600">{formatDate(teacher.dateOfBirth) || "N/A"}</p>
+              <div className="flex items-start gap-3">
+                <Calendar className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">Date of Birth</label>
+                  <p className="text-gray-600">{formatDate(teacher.dateOfBirth) || "N/A"}</p>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">Account Created</label>
-                <p className="text-gray-600">{formatDate(teacher.createdAt) || "N/A"}</p>
+              <div className="flex items-start gap-3">
+                <Clock className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">Account Created</label>
+                  <p className="text-gray-600">{formatDate(teacher.createdAt) || "N/A"}</p>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">Address</label>
-                <p className="text-gray-600">{teacher.address || "N/A"}</p>
+              <div className="flex items-start gap-3">
+                <MapPin className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">Address</label>
+                  <p className="text-gray-600">{teacher.address || "N/A"}</p>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">CID</label>
-                <p className="text-gray-600">{teacher.cid || "N/A"}</p>
+              <div className="flex items-start gap-3">
+                <IdCard className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">CID</label>
+                  <p className="text-gray-600">{teacher.cid || "N/A"}</p>
+                </div>
               </div>
               {teacher.teacherInfo && (
                 <>

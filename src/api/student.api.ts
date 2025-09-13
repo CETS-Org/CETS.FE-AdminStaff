@@ -1,13 +1,14 @@
 import type { FilterUserParam } from "@/types/filter.type";
 import type { CourseEnrollment, Student } from "@/types/student.type";
-import { api } from "./api";
+import { api, endpoint } from "./api";
+
 
 /**
  * Get all students
  */
 export const getStudents = async (): Promise<Student[]> => {
   try {
-    const url = '/api/IDN_Account';
+    const url = `${endpoint.account}`;
     console.log("API URL:", url);
     console.log("Base URL:", api.defaults.baseURL);
     console.log("Full URL:", `${api.defaults.baseURL}${url}`);
@@ -19,7 +20,7 @@ export const getStudents = async (): Promise<Student[]> => {
     });
     console.log("API Response:", response);
     console.log("Students data:", response.data);
-    return response.data as Student[];
+    return response.data;
   } catch (error) {
     console.error('Error fetching students:', error);
     if (error instanceof Error && 'response' in error) {
@@ -37,7 +38,7 @@ export const getStudents = async (): Promise<Student[]> => {
  */
 export const getStudentById = async (id: string): Promise<Student> => {
   try {
-    const url = `/api/IDN_Account/${id}`;
+    const url = `${endpoint.account}/${id}`;
     console.log("API URL:", url);
     console.log("Base URL:", api.defaults.baseURL);
     console.log("Full URL:", `${api.defaults.baseURL}${url}`);
@@ -59,17 +60,19 @@ export const getStudentById = async (id: string): Promise<Student> => {
 
 export const filterStudent  = async (filterParam: FilterUserParam): Promise<Student[]> => {
   try {
-    const response = await api.get<Student[]>(`/api/IDN_Account`,{
+    const response = await api.get<Student[]>(`${endpoint.account}`,{
       params: {
         RoleName: 'Student',
         Name: filterParam.name ?? "",
         Email: filterParam.email ?? "",
         PhoneNumber: filterParam.phoneNumber ?? "",
         StatusName: filterParam.statusName ?? "",
-        SortOrder: filterParam.sortOrder ?? "",        
+        SortOrder: filterParam.sortOrder ?? "",     
+        SortBy: filterParam.sortBy ?? "",
+        CurrentRole: filterParam.currentRole ?? "",
       },
     });
-    return response.data as Student[];
+    return response.data ;
   } catch (error) {
     console.error(`Error filter student with filterParam: ${filterParam}:`, error);
     throw error;
@@ -78,7 +81,7 @@ export const filterStudent  = async (filterParam: FilterUserParam): Promise<Stud
 
 export const getListCourseEnrollment = async (studentId: string): Promise<CourseEnrollment[]> => {
   try {
-    const response = await api.get<CourseEnrollment[]>(`/api/ACAD_Enrollment/student/${studentId}/courses`);
+    const response = await api.get<CourseEnrollment[]>(`${endpoint.enrollment}/CoursesByStudent/${studentId}`);
     return response.data as CourseEnrollment[];
   } catch (error) {
     console.error('Error fetching list course enrollment:', error);

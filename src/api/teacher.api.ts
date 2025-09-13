@@ -1,13 +1,13 @@
 import type { FilterUserParam } from "@/types/filter.type";
 import type { CourseTeaching, Teacher, TeacherCredential } from "@/types/teacher.type";
-import { api } from "./api";
+import { api, endpoint } from "./api";
 
 /**
  * Get all teachers
  */
 export const getTeachers = async (): Promise<Teacher[]> => {
   try {
-    const response = await api.get<Teacher[]>('/api/IDN_Account', {
+    const response = await api.get<Teacher[]>(`${endpoint.account}`, {
       params: {   
         RoleName: 'Teacher',     
       },
@@ -24,7 +24,7 @@ export const getTeachers = async (): Promise<Teacher[]> => {
  */
 export const getTeacherById = async (id: string): Promise<Teacher> => {
   try {
-    const url = `/api/IDN_Account/${id}`;
+    const url = `${endpoint.account}/${id}`;
     console.log("API URL:", url);
     console.log("Base URL:", api.defaults.baseURL);
     console.log("Full URL:", `${api.defaults.baseURL}${url}`);
@@ -46,14 +46,16 @@ export const getTeacherById = async (id: string): Promise<Teacher> => {
 
 export const filterTeacher  = async (filterParam: FilterUserParam): Promise<Teacher[]> => {
   try {
-    const response = await api.get<Teacher[]>(`/api/IDN_Account`,{
+    const response = await api.get<Teacher[]>(`${endpoint.account}`,{
       params: {
         RoleName: 'Teacher',
         Name: filterParam.name ?? "",
         Email: filterParam.email ?? "",
         PhoneNumber: filterParam.phoneNumber ?? "",
         StatusName: filterParam.statusName ?? "",
-        SortOrder: filterParam.sortOrder ?? "",        
+        SortOrder: filterParam.sortOrder ?? "",  
+        SortBy: filterParam.sortBy ?? "",
+        CurrentRole: filterParam.currentRole ?? "",
       },
     });
     return response.data as Teacher[];
@@ -65,7 +67,7 @@ export const filterTeacher  = async (filterParam: FilterUserParam): Promise<Teac
 
 export const getListCourseTeaching = async (teacherId: string): Promise<CourseTeaching[]> => {
   try {
-    const response = await api.get<CourseTeaching[]>(`/api/ACAD_CourseTeacherAssignment/CoursesByTeacher/${teacherId}`);
+    const response = await api.get<CourseTeaching[]>(`${endpoint.courseTeacherAssignment}/CoursesByTeacher/${teacherId}`);
     return response.data ;
   } catch (error) {
     console.error(`Error fetching list course teaching:`, error);
@@ -88,7 +90,7 @@ export const createTeacher = async (teacherData: {
   bio: string;
 }): Promise<Teacher> => {
   try {
-    const response = await api.post<Teacher>('/api/IDN_Account', {
+    const response = await api.post<Teacher>(`${endpoint.account}`, {
       ...teacherData,
       roleNames: ['Teacher']
     });
@@ -113,7 +115,7 @@ export const updateTeacher = async (id: string, teacherData: {
   bio?: string;
 }): Promise<Teacher> => {
   try {
-    const response = await api.put<Teacher>(`/api/IDN_Account/${id}`, teacherData);
+    const response = await api.put<Teacher>(`${endpoint.account}/${id}`, teacherData);
     return response.data;
   } catch (error) {
     console.error(`Error updating teacher ${id}:`, error);

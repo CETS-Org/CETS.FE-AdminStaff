@@ -7,26 +7,11 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Pagination from "@/shared/pagination";
 import AddEditStudentDialog from "./AddEditStudentDialog";
-import DeleteConfirmDialog from "./DeleteConfirmDialog";
 import { Eye, Edit, Trash2, Search, Filter, X, Plus, Loader2 } from "lucide-react";
 import { getStudents, filterStudent } from "@/api/student.api";
 import type { FilterUserParam } from "@/types/filter.type";
-
-export type Student = {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  age: number;
-  level: string;
-  status: "active" | "inactive" | "graduated";
-  joinDate: string;
-  avatar?: string;
-  accountId?: string; // Store original accountId for API operations
-  studentCode?: string;
-  guardianName?: string;
-  school?: string;
-};
+import type { Student } from "@/types/student.type";
+import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
 
 export default function StudentsList() {
   const navigate = useNavigate();
@@ -39,12 +24,54 @@ export default function StudentsList() {
   const [emailFilter, setEmailFilter] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sortOrderDisplay, setSortOrderDisplay] = useState<string>("");
+  const [sortBy, setSortBy] = useState<string>("");
   const [sortOrder, setSortOrder] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Parse sort order from display value
+  const parseSortOrder = (displayValue: string) => {
+    if (displayValue === "") {
+      setSortBy("");
+      setSortOrder("");
+      return;
+    }
+    
+    const [sortByValue, sortOrderValue] = displayValue.split("_");
+    setSortBy(sortByValue);
+    setSortOrder(sortOrderValue);
+  };
+
+  // Filter students with API
+  const filterStudentsAPI = async () => {
+    try {
+      setIsSearching(true);
+      setError(null);
+      
+      const filterParam: FilterUserParam = {
+        name: searchTerm || null,
+        email: emailFilter || null,
+        phoneNumber: phoneNumber || null,
+        statusName: statusFilter === "all" ? null : statusFilter,
+        sortBy: sortBy || null,
+        sortOrder: sortOrder || null,
+        roleName: "Student",
+        currentRole: "Student"
+      };
+      
+      const data = await filterStudent(filterParam);
+      setStudents(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to filter students');
+      console.error('Error filtering students:', err);
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   // Fetch students data from API
   useEffect(() => {
@@ -54,41 +81,8 @@ export default function StudentsList() {
         setError(null);
         const apiStudents = await getStudents();
         
-        // Convert API data to component format
-        const convertedStudents: Student[] = apiStudents.map((apiStudent, index) => {
-          // Calculate age from dateOfBirth if available
-          const age = apiStudent.dateOfBirth 
-            ? new Date().getFullYear() - new Date(apiStudent.dateOfBirth).getFullYear()
-            : 18; // Default age if not available
-          
-          // Determine status based on API data
-          let status: "active" | "inactive" | "graduated";
-          if (apiStudent.isDeleted) {
-            status = "inactive";
-          } else if (apiStudent.statusName === "Active" || apiStudent.accountStatusID === "ac2b0bff-d3b2-4fb0-afb6-3c8c86e883da") {
-            status = "active";
-          } else {
-            status = "active"; // Default to active
-          }
-          
-          return {
-            id: index + 1, // Use index as ID
-            name: apiStudent.fullName,
-            email: apiStudent.email,
-            phone: apiStudent.phoneNumber || "0123456789", // Default phone if not available
-            age: age,
-            level: "Beginner", // Default level - will be updated with separate API
-            status: status,
-            joinDate: apiStudent.createdAt.split('T')[0],
-            avatar: apiStudent.avatarUrl || undefined,
-            accountId: apiStudent.accountId,
-            studentCode: apiStudent.studentInfo?.studentCode || undefined,
-            guardianName: apiStudent.studentInfo?.guardianName || undefined,
-            school: apiStudent.studentInfo?.school || undefined,
-          };
-        });
-        
-        setStudents(convertedStudents);
+        // Use API data directly
+        setStudents(apiStudents);
       } catch (err) {
         console.error("Error fetching students:", err);
         setError("Failed to load students data");
@@ -100,77 +94,6 @@ export default function StudentsList() {
     fetchStudents();
   }, []);
 
-  // Combined search and filter with debouncing
-  useEffect(() => {
-    const filterStudentsAPI = async () => {
-      try {
-        setIsSearching(true);
-        
-        // Prepare filter parameters
-        const filterParams: FilterUserParam = {
-          name: searchTerm.trim() || null,
-          email: emailFilter.trim() || null,
-          phoneNumber: phoneNumber.trim() || null,
-          statusName: statusFilter === "all" ? null : statusFilter,
-          sortOrder: sortOrder || null,
-          currentRole: "Student"
-        };
-
-        const filteredResults = await filterStudent(filterParams);
-        
-        // Convert API results to Student type
-        const convertedStudents: Student[] = filteredResults.map((apiStudent, index) => {
-          const age = apiStudent.dateOfBirth ? new Date().getFullYear() - new Date(apiStudent.dateOfBirth).getFullYear() : 18;
-          let status: "active" | "inactive" | "graduated";
-          if (apiStudent.isDeleted) { 
-            status = "inactive"; 
-          } else if (apiStudent.statusName === "Active" || apiStudent.accountStatusID === "ac2b0bff-d3b2-4fb0-afb6-3c8c86e883da") { 
-            status = "active"; 
-          } else { 
-            status = "active"; 
-          }
-          let level = "Beginner"; // Hardcoded for now, will be updated
-          if (apiStudent.studentInfo?.academicNote) {
-            const note = apiStudent.studentInfo.academicNote.toLowerCase();
-            if (note.includes("advanced") || note.includes("expert")) {
-              level = "Advanced";
-            } else if (note.includes("intermediate") || note.includes("medium")) {
-              level = "Intermediate";
-            } else {
-              level = "Beginner";
-            }
-          }
-          return {
-            id: index + 1,
-            name: apiStudent.fullName,
-            email: apiStudent.email,
-            phone: apiStudent.phoneNumber || "0123456789",
-            age: age,
-            level: level,
-            status: status,
-            joinDate: apiStudent.createdAt.split('T')[0],
-            avatar: apiStudent.avatarUrl || undefined,
-            accountId: apiStudent.accountId,
-            studentCode: apiStudent.studentInfo?.studentCode || undefined,
-            guardianName: apiStudent.studentInfo?.guardianName || undefined,
-            school: apiStudent.studentInfo?.school || undefined,
-          };
-        });
-        
-        setStudents(convertedStudents);
-      } catch (err) {
-        console.error("Error filtering students:", err);
-        setError("Failed to filter students");
-      } finally {
-        setIsSearching(false);
-      }
-    };
-
-    // Debounce filter
-    const timeoutId = setTimeout(filterStudentsAPI, 1000); // 1000ms debounce
-
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm, emailFilter, phoneNumber, statusFilter, sortOrder]);
 
   // No need for client-side filtering anymore
   const filteredStudents = students;
@@ -194,44 +117,63 @@ export default function StudentsList() {
       accessor: (row) => (
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-semibold overflow-hidden">
-            {row.avatar ? (
+            {row.avatarUrl ? (
               <img 
-                src={row.avatar} 
-                alt={row.name}
+                src={row.avatarUrl} 
+                alt={row.fullName}
                 className="w-full h-full object-cover"
               />
             ) : (
-              row.name.charAt(0)
+              row.fullName.charAt(0)
             )}
           </div>
           <div>
-            <div className="font-medium">{row.name}</div>
+            <div className="font-medium">{row.fullName}</div>
             <div className="text-sm text-neutral-500">{row.email}</div>
-            {row.accountId && (
+            {row.studentInfo?.studentCode && (
               <div className="text-xs text-gray-400 font-mono">
-                ID: {row.accountId.substring(0, 8)}...
+                Code: {row.studentInfo.studentCode}
               </div>
             )}
           </div>
         </div>
       )
     },
-    { header: "Phone", accessor: (row) => row.phone },
-    { header: "Age", accessor: (row) => row.age },
-  
+    { 
+      header: "Phone", 
+      accessor: (row) => (
+        <div className="text-sm">
+          <div>{row.phoneNumber || "N/A"}</div>
+          {row.studentInfo?.guardianName && (
+            <div className="text-xs text-gray-500">Guardian: {row.studentInfo.guardianName}</div>
+          )}
+        </div>
+      )
+    },
+    { 
+      header: "Age", 
+      accessor: (row) => (
+        <div className="text-sm">
+          <div>{row.dateOfBirth ? new Date().getFullYear() - new Date(row.dateOfBirth).getFullYear() : "N/A"} years old</div>
+          {row.studentInfo?.school && (
+            <div className="text-xs text-gray-500">{row.studentInfo.school}</div>
+          )}
+        </div>
+      )
+    },
     {
       header: "Status",
       accessor: (row) => (
         <span className={`inline-flex px-2 py-0.5 rounded-md text-[75%] border
-          ${row.status === 'active' ? 'bg-green-100 text-green-700 border-green-200' : ''}
-          ${row.status === 'inactive' ? 'bg-gray-100 text-gray-700 border-gray-200' : ''}
-          ${row.status === 'graduated' ? 'bg-blue-100 text-blue-700 border-blue-200' : ''}
+          ${row.statusName === 'Active' ? 'bg-green-100 text-green-700 border-green-200' : ''}
+          ${row.isDeleted ? 'bg-gray-100 text-gray-700 border-gray-200' : ''}
+          ${!row.statusName && !row.isDeleted ? 'bg-blue-100 text-blue-700 border-blue-200' : ''}
         `}>
-          {row.status}
+          {row.statusName || (row.isDeleted ? 'Inactive' : 'Active')}
         </span>
       )
     },
-    { header: "Join Date", accessor: (row) => new Date(row.joinDate).toLocaleDateString() },
+    { header: "Join Date", accessor: (row) => new Date(row.createdAt).toLocaleDateString() },
     {
       header: "Actions",
       accessor: (row) => (
@@ -283,54 +225,91 @@ export default function StudentsList() {
 
   const handleView = (student: Student) => {
     // Use accountId for navigation to student detail page
-    if (student.accountId) {
-      navigate(`/staff/students/${student.accountId}`);
-    } else {
-      console.error("No accountId found for student:", student);
-    }
+    navigate(`/staff/students/${student.accountId}`);
   };
 
   const handleEdit = (student: Student) => {
-    setEditingStudent(student);
+    // Convert Student to the format expected by the dialog
+    const editingStudent = {
+      id: 1,
+      name: student.fullName,
+      email: student.email,
+      phone: student.phoneNumber || "",
+      age: student.dateOfBirth ? new Date().getFullYear() - new Date(student.dateOfBirth).getFullYear() : 18,
+      level: "Beginner",
+      status: student.statusName === 'Active' ? 'active' as const : 'inactive' as const,
+      joinDate: student.createdAt.split('T')[0],
+      avatar: student.avatarUrl,
+      accountId: student.accountId,
+      studentCode: student.studentInfo?.studentCode,
+      guardianName: student.studentInfo?.guardianName,
+      school: student.studentInfo?.school,
+    };
+    setEditingStudent(editingStudent as any);
     setOpenDialog(true);
   };
 
   const handleDelete = (student: Student) => {
-    setDeleteDialog({ open: true, student });
+    // Convert Student to the format expected by the dialog
+    const deleteStudent = {
+      id: 1,
+      name: student.fullName,
+      email: student.email,
+      phone: student.phoneNumber || "",
+      age: student.dateOfBirth ? new Date().getFullYear() - new Date(student.dateOfBirth).getFullYear() : 18,
+      level: "Beginner",
+      status: student.statusName === 'Active' ? 'active' as const : 'inactive' as const,
+      joinDate: student.createdAt.split('T')[0],
+      avatar: student.avatarUrl,
+      accountId: student.accountId,
+      studentCode: student.studentInfo?.studentCode,
+      guardianName: student.studentInfo?.guardianName,
+      school: student.studentInfo?.school,
+    };
+    setDeleteDialog({ open: true, student: deleteStudent as any });
   };
 
-  const handleSave = (payload: Omit<Student, 'id'>) => {
-    if (editingStudent) {
-      setStudents(prev => prev.map(s => s.id === editingStudent.id ? { ...payload, id: s.id } : s));
-    } else {
-      setStudents(prev => [{ ...payload, id: prev.length ? Math.max(...prev.map(s => s.id)) + 1 : 1 }, ...prev]);
-    }
+  const handleSave = (student: Omit<Student, 'accountId'>) => {
+    // This function is for the dialog component which uses a different interface
+    // We'll need to convert between interfaces or update the dialog component
+    console.log("Save student:", student);
     setOpenDialog(false);
     setEditingStudent(null);
   };
 
   const confirmDelete = () => {
     if (deleteDialog.student) {
-      setStudents(prev => prev.filter(s => s.id !== deleteDialog.student!.id));
+      // This function is for the dialog component which uses a different interface
+      console.log("Delete student:", deleteDialog.student);
       setDeleteDialog({ open: false, student: null });
     }
   };
 
-  const clearFilters = () => {
+  const clearFilters = async () => {
     setSearchTerm("");
     setEmailFilter("");
     setPhoneNumber("");
     setStatusFilter("all");
+    setSortOrderDisplay("");
+    setSortBy("");
     setSortOrder("");
-    // The useEffect will automatically trigger with empty values
-    // which will call filterStudent with null values to get all students
+    
+    // Reload initial student list without showing loading state
+    try {
+      setError(null);
+      const data = await getStudents();
+      setStudents(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch students');
+      console.error('Error fetching students:', err);
+    }
   };
 
-  const hasActiveFilters = searchTerm !== "" || emailFilter !== "" || phoneNumber !== "" || statusFilter !== "all" || sortOrder !== "";
+  const hasActiveFilters = searchTerm !== "" || emailFilter !== "" || phoneNumber !== "" || statusFilter !== "all" || sortOrderDisplay !== "";
 
   // Get unique statuses for filter options
   const statuses = useMemo(() => {
-    const uniqueStatuses = [...new Set(students.map(s => s.status))];
+    const uniqueStatuses = [...new Set(students.map(s => s.statusName || (s.isDeleted ? 'Inactive' : 'Active')))];
     return uniqueStatuses.sort();
   }, [students]);
 
@@ -416,9 +395,23 @@ export default function StudentsList() {
                 {showFilters ? 'Hide Filters' : 'Show Filters'}
                 {hasActiveFilters && (
                   <span className="bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {[searchTerm, emailFilter, phoneNumber, statusFilter, sortOrder].filter(f => f !== "" && f !== "all").length}
+                    {[searchTerm, emailFilter, phoneNumber, statusFilter, sortOrderDisplay].filter(f => f !== "" && f !== "all").length}
                   </span>
                 )}
+              </span>
+            </Button>
+            <Button
+              onClick={filterStudentsAPI}
+              disabled={isSearching}
+              className="whitespace-nowrap bg-primary-600 hover:bg-primary-700 text-white"
+            >
+              <span className="flex items-center gap-2">
+                {isSearching ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Search className="w-4 h-4" />
+                )}
+                Search
               </span>
             </Button>
             <Button
@@ -428,7 +421,7 @@ export default function StudentsList() {
             >
               <span className="flex items-center gap-2">
                 <X className="w-4 h-4" />
-                Clear Filters
+                Clear All
               </span>
             </Button>
           </div>
@@ -459,8 +452,11 @@ export default function StudentsList() {
               />
               <Select
                 label="Sort Order"
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value)}
+                value={sortOrderDisplay}
+                onChange={(e) => {
+                  setSortOrderDisplay(e.target.value);
+                  parseSortOrder(e.target.value);
+                }}
                 options={sortOptions}
               />
             </div>
@@ -513,8 +509,8 @@ export default function StudentsList() {
       <AddEditStudentDialog 
         open={openDialog} 
         onOpenChange={setOpenDialog} 
-        onSave={handleSave} 
-        initial={editingStudent} 
+        onSave={handleSave as any} 
+        initial={editingStudent as any} 
       />
 
       <DeleteConfirmDialog
@@ -522,8 +518,9 @@ export default function StudentsList() {
         onOpenChange={(open: boolean) => setDeleteDialog({ open, student: null })}
         onConfirm={confirmDelete}
         title="Delete Student"
-        message={`Are you sure you want to delete "${deleteDialog.student?.name}"? This action cannot be undone.`}
+        message={`Are you sure you want to delete this student? This action cannot be undone.`}
       />
     </div>
   );
 }
+

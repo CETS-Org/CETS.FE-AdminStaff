@@ -1,3 +1,5 @@
+import type { Account } from "./account.type";
+
 export interface TeacherCredential {
     id: string;
     degree: string;
@@ -37,29 +39,9 @@ export interface TeacherCredential {
     teacherCredentials: TeacherCredential[];
   }
   
-  export interface Teacher {
-    accountId: string;
-    email: string;
-    phoneNumber: string | null;
-    fullName: string;
-    dateOfBirth: string | null;
-    cid: string | null;
-    address: string | null;
-    avatarUrl: string | null;
-    password?: string; // Optional for security reasons
-    accountStatusID: string;
-    isVerified: boolean;
-    verifiedCode: string | null;
-    verifiedCodeExpiresAt: string | null;
-    createdAt: string;
-    updatedAt: string | null;
-    updatedBy: string | null;
-    isDeleted: boolean;
-    statusName: string;
-    roleNames: string[];
-    studentInfo: any | null;
-    teacherInfo: TeacherInfo | null;
-  }
+export interface Teacher extends Account {
+  teacherInfo: TeacherInfo | null;
+}
 export interface CourseTeaching {
   courseId: string;
   courseCode: string | null;
