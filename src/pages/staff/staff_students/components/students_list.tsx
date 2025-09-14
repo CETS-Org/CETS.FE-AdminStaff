@@ -7,17 +7,18 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Pagination from "@/shared/pagination";
 import AddEditStudentDialog from "./AddEditStudentDialog";
-import { Eye, Edit, Trash2, Search, Filter, X, Plus, Loader2 } from "lucide-react";
+import { Eye, Edit, Trash2, Search, Filter, X, Plus, Loader2, User } from "lucide-react";
 import { getStudents, filterStudent, getStudentById } from "@/api/student.api";
 import type { FilterUserParam } from "@/types/filter.type";
 import type { Student, UpdateStudent} from "@/types/student.type";
 import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
 import { useStudentStore } from "@/store/student.store";
+import { setIsDelete, setIsActive } from "@/api/account.api";
 
 export default function StudentsList() {
   const navigate = useNavigate();
   const [openDialog, setOpenDialog] = useState(false);
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; student: Student | null }>({ open: false, student: null });
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; student: Student | null; action?: 'ban' | 'unban' }>({ open: false, student: null });
   const [editingStudent, setEditingStudent] = useState<UpdateStudent | null>(null);
  const { students, setStudents, updatedStudent } = useStudentStore();
 
@@ -203,18 +204,31 @@ export default function StudentsList() {
             <span className="leading-none">Edit</span>
             </div>
           </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => handleDelete(row)}
-            className="inline-flex items-center justify-center gap-2 text-red-600 hover:text-red-700"
-          >
-            <div className="flex items-center gap-2">
-            <Trash2 className="w-4 h-4 flex-shrink-0" />
-            <span className="leading-none">Delete</span>
-            </div>
-            
-          </Button>
+          {row.isDeleted ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleUnban(row)}
+              className="inline-flex items-center justify-center gap-2 text-green-600 hover:text-green-700"
+            >
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 flex-shrink-0" />
+                <span className="leading-none">Unban</span>
+              </div>
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleBan(row)}
+              className="inline-flex items-center justify-center gap-2 text-red-600 hover:text-red-700"
+            >
+              <div className="flex items-center gap-2">
+                <Trash2 className="w-4 h-4 flex-shrink-0" />
+                <span className="leading-none">Ban</span>
+              </div>
+            </Button>
+          )}
         </div>
       )
     }
@@ -253,24 +267,12 @@ export default function StudentsList() {
     setOpenDialog(true);
   };
 
-  const handleDelete = (student: Student) => {
-    // Convert Student to the format expected by the dialog
-    const deleteStudent = {
+  const handleBan = (student: Student) => {
+    setDeleteDialog({ open: true, student, action: 'ban' });
+  };
 
-      fullfullname: student.fullName,
-      email: student.email,
-      phone: student.phoneNumber || "",
-      age: student.dateOfBirth ? new Date().getFullYear() - new Date(student.dateOfBirth).getFullYear() : 18,
-      level: "Beginner",
-      status: student.statusName === 'Active' ? 'active' as const : 'inactive' as const,
-      joinDate: student.createdAt.split('T')[0],
-      avatar: student.avatarUrl,
-      accountId: student.accountId,
-      studentCode: student.studentInfo?.studentCode,
-      guardianName: student.studentInfo?.guardianName,
-      school: student.studentInfo?.school,
-    };
-    setDeleteDialog({ open: true, student: deleteStudent as any });
+  const handleUnban = (student: Student) => {
+    setDeleteDialog({ open: true, student, action: 'unban' });
   };
 
   const handleSave = (updatedStudentData: UpdateStudent) => {
@@ -283,11 +285,30 @@ export default function StudentsList() {
     setEditingStudent(null);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deleteDialog.student) {
-      // This function is for the dialog component which uses a different interface
-      console.log("Delete student:", deleteDialog.student);
-      setDeleteDialog({ open: false, student: null });
+      try {
+        if (deleteDialog.action === 'ban') {
+          await setIsDelete(deleteDialog.student.accountId);
+          console.log("Banned student:", deleteDialog.student.accountId);
+        } else if (deleteDialog.action === 'unban') {
+          await setIsActive(deleteDialog.student.accountId);
+          console.log("Unbanned student:", deleteDialog.student.accountId);
+        }
+        
+        // // Update local state
+        // setStudents(prev => 
+        //   prev.map(student => 
+        //     student.accountId === deleteDialog.student!.accountId 
+        //       ? { ...student, isDeleted: deleteDialog.action === 'ban' }
+        //       : student
+        //   )
+        // );
+        
+        setDeleteDialog({ open: false, student: null });
+      } catch (error) {
+        console.error("Error updating student status:", error);
+      }
     }
   };
 
@@ -523,8 +544,11 @@ export default function StudentsList() {
         open={deleteDialog.open}
         onOpenChange={(open: boolean) => setDeleteDialog({ open, student: null })}
         onConfirm={confirmDelete}
-        title="Delete Student"
-        message={`Are you sure you want to delete this student? This action cannot be undone.`}
+        title={deleteDialog.action === 'ban' ? "Ban Student" : "Unban Student"}
+        message={deleteDialog.action === 'ban' 
+          ? `Are you sure you want to ban "${deleteDialog.student?.fullName}"? This will deactivate their account.`
+          : `Are you sure you want to unban "${deleteDialog.student?.fullName}"? This will reactivate their account.`
+        }
       />
     </div>
   );

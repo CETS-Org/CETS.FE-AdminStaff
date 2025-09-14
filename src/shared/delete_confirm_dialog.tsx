@@ -26,7 +26,7 @@ export default function DeleteConfirmDialog({ open, onOpenChange, onConfirm, tit
         </DialogBody>
         <DialogFooter>
           <Button variant="secondary" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button variant="secondary" onClick={handleConfirm} className="bg-red-600 hover:bg-red-700 text-white">Delete</Button>
+          <Button variant="secondary" onClick={handleConfirm} className="bg-red-600 hover:bg-red-700 text-white">Yes</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

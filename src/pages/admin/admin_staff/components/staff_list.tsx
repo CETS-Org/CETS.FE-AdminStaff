@@ -6,17 +6,17 @@ import Table, { type TableColumn } from "@/components/ui/Table";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Pagination from "@/shared/pagination";
-import { Search, X, Eye, Edit, Trash2, Plus, Loader2, Ban } from "lucide-react";
+import { Search, X, Eye, Edit, Trash2, Plus, Loader2, User } from "lucide-react";
 import { filterStaff, getStaffs } from "@/api/staff.api";
 import type { Account } from "@/types/account.type";
 import type { FilterUserParam } from "@/types/filter.type";
 import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
 import AddEditStaffDialog from "./AddEditStaffDialog";
+import { setIsDelete, setIsActive } from "@/api/account.api";
 
 export default function StaffList() {
   const navigate = useNavigate();
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; staff: Account | null }>({ open: false, staff: null });
-  const [banDialog, setBanDialog] = useState<{ open: boolean; staff: Account | null }>({ open: false, staff: null });
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; staff: Account | null; action?: 'ban' | 'unban' }>({ open: false, staff: null });
   const [addEditDialog, setAddEditDialog] = useState<{ open: boolean; staff: Account | null; mode: "add" | "edit" }>({ open: false, staff: null, mode: "add" });
   
   // Data states
@@ -246,28 +246,31 @@ export default function StaffList() {
               <span className="leading-none">Edit</span>
             </div>
           </Button>          
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => handleBan(row)}
-            className="inline-flex items-center justify-center gap-2 text-red-600 hover:text-red-700"
-          >
-            <div className="flex items-center gap-2">
-              <Ban className="w-4 h-4 flex-shrink-0" />
-              <span className="leading-none">Ban</span>
-            </div>
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => handleDelete(row)}
-            className="inline-flex items-center justify-center gap-2 text-red-600 hover:text-red-700"
-          >
-            <div className="flex items-center gap-2">
-              <Trash2 className="w-4 h-4 flex-shrink-0" />
-              <span className="leading-none">Delete</span>
-            </div>
-          </Button>
+          {row.isDeleted ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleUnban(row)}
+              className="inline-flex items-center justify-center gap-2 text-green-600 hover:text-green-700"
+            >
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 flex-shrink-0" />
+                <span className="leading-none">Unban</span>
+              </div>
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleBan(row)}
+              className="inline-flex items-center justify-center gap-2 text-red-600 hover:text-red-700"
+            >
+              <div className="flex items-center gap-2">
+                <Trash2 className="w-4 h-4 flex-shrink-0" />
+                <span className="leading-none">Ban</span>
+              </div>
+            </Button>
+          )}
 
         </div>
       )
@@ -286,24 +289,38 @@ export default function StaffList() {
     setAddEditDialog({ open: true, staff, mode: "edit" });
   };
 
-  const handleDelete = (staff: Account) => {
-    setDeleteDialog({ open: true, staff });
+  const handleBan = (staff: Account) => {
+    setDeleteDialog({ open: true, staff, action: 'ban' });
   };
 
-  const confirmDelete = () => {
+  const handleUnban = (staff: Account) => {
+    setDeleteDialog({ open: true, staff, action: 'unban' });
+  };
+
+  const confirmDelete = async () => {
     if (deleteDialog.staff) {
-      // Implement delete logic
-      console.log("Delete staff:", deleteDialog.staff.accountId);
-      setDeleteDialog({ open: false, staff: null });
-    }
-  };
-  const handleBan = (staff: Account) => {
-    setBanDialog({ open: true, staff });
-  };
-  const confirmBan = () => {
-    if (banDialog.staff) {
-      console.log("Ban staff:", banDialog.staff.accountId);
-      setBanDialog({ open: false, staff: null });
+      try {
+        if (deleteDialog.action === 'ban') {
+          await setIsDelete(deleteDialog.staff.accountId);
+          console.log("Banned staff:", deleteDialog.staff.accountId);
+        } else if (deleteDialog.action === 'unban') {
+          await setIsActive(deleteDialog.staff.accountId);
+          console.log("Unbanned staff:", deleteDialog.staff.accountId);
+        }
+        
+        // Update local state
+        setStaffs(prev => 
+          prev.map(staff => 
+            staff.accountId === deleteDialog.staff!.accountId 
+              ? { ...staff, isDeleted: deleteDialog.action === 'ban' }
+              : staff
+          )
+        );
+        
+        setDeleteDialog({ open: false, staff: null });
+      } catch (error) {
+        console.error("Error updating staff status:", error);
+      }
     }
   };
 
@@ -549,16 +566,11 @@ export default function StaffList() {
         open={deleteDialog.open}
         onOpenChange={(open: boolean) => setDeleteDialog({ open, staff: null })}
         onConfirm={confirmDelete}
-        title="Delete Staff"
-        message={`Are you sure you want to delete "${deleteDialog.staff?.fullName}"? This action cannot be undone.`}
-      />
-
-<DeleteConfirmDialog
-        open={banDialog.open}
-        onOpenChange={(open: boolean) => setBanDialog({ open, staff: null })}
-        onConfirm={confirmBan}
-        title="Ban Staff"
-        message={`Are you sure you want to ban "${banDialog.staff?.fullName}"? This action cannot be undone.`}
+        title={deleteDialog.action === 'ban' ? "Ban Staff" : "Unban Staff"}
+        message={deleteDialog.action === 'ban' 
+          ? `Are you sure you want to ban "${deleteDialog.staff?.fullName}"? This will deactivate their account.`
+          : `Are you sure you want to unban "${deleteDialog.staff?.fullName}"? This will reactivate their account.`
+        }
       />
 
 

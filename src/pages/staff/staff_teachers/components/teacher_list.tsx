@@ -6,17 +6,18 @@ import Table, { type TableColumn } from "@/components/ui/Table";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Pagination from "@/shared/pagination";
-import { Search, Filter, X, Eye, Edit, Trash2, Plus, Loader2 } from "lucide-react";
+import { Search, Filter, X, Eye, Edit, Trash2, Plus, Loader2, User } from "lucide-react";
 import { filterTeacher, getTeachers } from "@/api/teacher.api";
 import type { Teacher } from "@/types/teacher.type";
 import type { FilterUserParam } from "@/types/filter.type";
 import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
 import EditTeacherProfileDialog from "./EditTeacherProfileDialog";
+import { setIsDelete, setIsActive } from "@/api/account.api";
 
 
 export default function TeacherList() {
   const navigate = useNavigate();
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; teacher: Teacher | null }>({ open: false, teacher: null });
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; teacher: Teacher | null; action?: 'ban' | 'unban' }>({ open: false, teacher: null });
   const [editDialog, setEditDialog] = useState<{ open: boolean; teacher: Teacher | null }>({ open: false, teacher: null });
   
   // Data states
@@ -185,17 +186,31 @@ export default function TeacherList() {
               <span className="leading-none">Edit</span>
             </div>
           </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => handleDelete(row)}
-            className="inline-flex items-center justify-center gap-2 text-red-600 hover:text-red-700"
-          >
-            <div className="flex items-center gap-2">
-              <Trash2 className="w-4 h-4 flex-shrink-0" />
-              <span className="leading-none">Delete</span>
-            </div>
-          </Button>
+          {row.isDeleted ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleUnban(row)}
+              className="inline-flex items-center justify-center gap-2 text-green-600 hover:text-green-700"
+            >
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 flex-shrink-0" />
+                <span className="leading-none">Unban</span>
+              </div>
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleBan(row)}
+              className="inline-flex items-center justify-center gap-2 text-red-600 hover:text-red-700"
+            >
+              <div className="flex items-center gap-2">
+                <Trash2 className="w-4 h-4 flex-shrink-0" />
+                <span className="leading-none">Ban</span>
+              </div>
+            </Button>
+          )}
         </div>
       )
     }
@@ -213,15 +228,39 @@ export default function TeacherList() {
     navigate(`/staff/teachers/${teacher.accountId}`);
   };
 
-  const handleDelete = (teacher: Teacher) => {
-    setDeleteDialog({ open: true, teacher });
+  const handleBan = (teacher: Teacher) => {
+    setDeleteDialog({ open: true, teacher, action: 'ban' });
+  };
+
+  const handleUnban = (teacher: Teacher) => {
+    setDeleteDialog({ open: true, teacher, action: 'unban' });
   };
 
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deleteDialog.teacher) {
-      setTeachers(prev => prev.filter(t => t.accountId !== deleteDialog.teacher!.accountId));
-      setDeleteDialog({ open: false, teacher: null });
+      try {
+        if (deleteDialog.action === 'ban') {
+          await setIsDelete(deleteDialog.teacher.accountId);
+          console.log("Banned teacher:", deleteDialog.teacher.accountId);
+        } else if (deleteDialog.action === 'unban') {
+          await setIsActive(deleteDialog.teacher.accountId);
+          console.log("Unbanned teacher:", deleteDialog.teacher.accountId);
+        }
+        
+        // Update local state
+        setTeachers(prev => 
+          prev.map(teacher => 
+            teacher.accountId === deleteDialog.teacher!.accountId 
+              ? { ...teacher, isDeleted: deleteDialog.action === 'ban' }
+              : teacher
+          )
+        );
+        
+        setDeleteDialog({ open: false, teacher: null });
+      } catch (error) {
+        console.error("Error updating teacher status:", error);
+      }
     }
   };
 
@@ -461,8 +500,11 @@ export default function TeacherList() {
         open={deleteDialog.open}
         onOpenChange={(open: boolean) => setDeleteDialog({ open, teacher: null })}
         onConfirm={confirmDelete}
-        title="Delete Teacher"
-        message={`Are you sure you want to delete "${deleteDialog.teacher?.fullName}"? This action cannot be undone.`}
+        title={deleteDialog.action === 'ban' ? "Ban Teacher" : "Unban Teacher"}
+        message={deleteDialog.action === 'ban' 
+          ? `Are you sure you want to ban "${deleteDialog.teacher?.fullName}"? This will deactivate their account.`
+          : `Are you sure you want to unban "${deleteDialog.teacher?.fullName}"? This will reactivate their account.`
+        }
       />
 
       <EditTeacherProfileDialog
