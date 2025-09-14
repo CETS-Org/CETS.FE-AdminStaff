@@ -23,8 +23,8 @@ import {
 } from "lucide-react";
 import { formatDate, getStatusColor, getStatusDisplay } from "@/helper/helper.service";
 import Loader from "@/components/ui/Loader";
-import { getStudentById, getListCourseEnrollment } from "@/api/student.api";
-import type { Student, CourseEnrollment } from "@/types/student.type";
+import { getStudentById, getListCourseEnrollment, getAssignmentByStudentId } from "@/api/student.api";
+import type { Student, CourseEnrollment, AssignmentSubmited } from "@/types/student.type";
 
 // Remove EnrolledCourse interface as we'll use CourseEnrollment from types
 
@@ -44,6 +44,9 @@ export default function StudentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [coursesLoading, setCoursesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<CourseEnrollment | null>(null);
+  const [assignmentData, setAssignmentData] = useState<AssignmentSubmited | null>(null);
+  const [performanceLoading, setPerformanceLoading] = useState(false);
 
   // Fetch student data
   useEffect(() => {
@@ -146,8 +149,19 @@ export default function StudentDetailPage() {
     }
   };
 
-  const handleViewCourse = (courseId: string) => {
-    console.log("View course:", courseId);
+  const handleViewCourse = async (course: CourseEnrollment) => {
+    setSelectedCourse(course);
+    setPerformanceLoading(true);
+    
+    try {
+      const data = await getAssignmentByStudentId(id || "", course.id);
+      setAssignmentData(data);
+    } catch (err) {
+      console.error("Error fetching assignment data:", err);
+      setAssignmentData(null);
+    } finally {
+      setPerformanceLoading(false);
+    }
   };
 
   const handleManageCourse = (courseId: string) => {
@@ -207,7 +221,7 @@ export default function StudentDetailPage() {
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => handleViewCourse(course.id)}
+            onClick={() => handleViewCourse(course)}
             className="inline-flex items-center justify-center gap-2"
           >
             <div className="flex gap-2">
@@ -422,49 +436,189 @@ export default function StudentDetailPage() {
           </Card>
 
           {/* Performance Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Attendance Overview */}
-            <Card title="Attendance Overview">
-              <div className="text-center">
-                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
-                  <Calendar className="w-8 h-8 text-blue-600" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">92%</h3>
-                <p className="text-gray-600">Overall Attendance</p>
-                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-500">Attendance Chart Placeholder</p>
-                </div>
-              </div>
-            </Card>
-
-            {/* Performance Summary */}
-            <Card title="Performance Summary">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-700">Overall Grade:</span>
-                  <span className="font-bold text-green-600">A-</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-700">Assignments Completed:</span>
-                  <span className="font-bold text-blue-600">18/20</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-700">Quiz Average:</span>
-                  <span className="font-bold text-purple-600">87%</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-700">Participation:</span>
-                  <span className="font-bold text-green-600">Excellent</span>
-                </div>
-                <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <div className="flex items-center gap-2">
-                    <Award className="w-4 h-4 text-yellow-600" />
-                    <span className="text-sm text-yellow-800">Outstanding performance in class discussions</span>
+          {selectedCourse && (
+            <div 
+              className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-slide-down"
+              style={{
+                animation: 'slideDown 0.5s ease-out'
+              }}
+            >
+              {/* Attendance Overview */}
+              <Card title={`Attendance Overview - ${selectedCourse.courseName}`}>
+                <div className="text-center">
+                  <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+                    <Calendar className="w-8 h-8 text-blue-600" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">92%</h3>
+                  <p className="text-gray-600">Overall Attendance</p>
+                  
+                  {/* Attendance Chart */}
+                  <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Present</span>
+                        <span className="font-medium">23/25</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="bg-green-500 h-2 rounded-full transition-all duration-1000" style={{ width: '92%' }}></div>
+                      </div>
+                      <div className="flex justify-between text-sm text-gray-500">
+                        <span>Absent</span>
+                        <span>2 days</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Card>
-          </div>
+              </Card>
+
+              {/* Performance Summary */}
+              <Card title={`Assignment Performance - ${selectedCourse.courseName}`}>
+                {performanceLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader />
+                  </div>
+                ) : assignmentData ? (
+                  <div className="space-y-4">
+                    {/* Circular Progress */}
+                    <div className="relative w-24 h-24 mx-auto mb-4">
+                      <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
+                        {/* Background circle */}
+                        <circle
+                          cx="50"
+                          cy="50"
+                          r="40"
+                          stroke="currentColor"
+                          strokeWidth="6"
+                          fill="none"
+                          className="text-gray-200"
+                        />
+                        {/* Progress circle */}
+                        <circle
+                          cx="50"
+                          cy="50"
+                          r="40"
+                          stroke="currentColor"
+                          strokeWidth="6"
+                          fill="none"
+                          strokeDasharray={`${2 * Math.PI * 40}`}
+                          strokeDashoffset={`${2 * Math.PI * 40 * (1 - (assignmentData.submitted / assignmentData.total))}`}
+                          className={`${
+                            (assignmentData.submitted / assignmentData.total) >= 0.8 
+                              ? 'text-green-500' 
+                              : (assignmentData.submitted / assignmentData.total) >= 0.6 
+                                ? 'text-yellow-500' 
+                                : 'text-red-500'
+                          } transition-all duration-1000 ease-out`}
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      
+                      {/* Center content */}
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-lg font-bold text-gray-900">
+                          {assignmentData.submitted}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          / {assignmentData.total}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Assignment Stats */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-700">Assignments Completed:</span>
+                        <span className="font-bold text-blue-600">{assignmentData.submitted}/{assignmentData.total}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-700">Completion Rate:</span>
+                        <span className={`font-bold ${
+                          (assignmentData.submitted / assignmentData.total) >= 0.8 
+                            ? 'text-green-600' 
+                            : (assignmentData.submitted / assignmentData.total) >= 0.6 
+                              ? 'text-yellow-600' 
+                              : 'text-red-600'
+                        }`}>
+                          {Math.round((assignmentData.submitted / assignmentData.total) * 100)}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Summary Message */}
+                    {assignmentData.summary && (
+                      <div className={`mt-4 p-3 rounded-lg ${
+                        (assignmentData.submitted / assignmentData.total) >= 0.8 
+                          ? 'bg-green-50 border border-green-200' 
+                          : (assignmentData.submitted / assignmentData.total) >= 0.6 
+                            ? 'bg-yellow-50 border border-yellow-200' 
+                            : 'bg-red-50 border border-red-200'
+                      }`}>
+                        <div className="flex items-center gap-2">
+                          <Award className={`w-4 h-4 ${
+                            (assignmentData.submitted / assignmentData.total) >= 0.8 
+                              ? 'text-green-600' 
+                              : (assignmentData.submitted / assignmentData.total) >= 0.6 
+                                ? 'text-yellow-600' 
+                                : 'text-red-600'
+                          }`} />
+                          <span className={`text-sm font-medium ${
+                            (assignmentData.submitted / assignmentData.total) >= 0.8 
+                              ? 'text-green-800' 
+                              : (assignmentData.submitted / assignmentData.total) >= 0.6 
+                                ? 'text-yellow-800' 
+                                : 'text-red-800'
+                          }`}>
+                            Performance Summary
+                          </span>
+                        </div>
+                        <p className={`text-sm mt-1 ${
+                          (assignmentData.submitted / assignmentData.total) >= 0.8 
+                            ? 'text-green-700' 
+                            : (assignmentData.submitted / assignmentData.total) >= 0.6 
+                              ? 'text-yellow-700' 
+                              : 'text-red-700'
+                        }`}>
+                          {assignmentData.summary}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Award className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">No assignment data available</p>
+                  </div>
+                )}
+              </Card>
+            </div>
+          )}
+
+          {/* Default Performance Overview when no course selected */}
+          {!selectedCourse && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Attendance Overview */}
+              <Card title="Attendance Overview">
+                <div className="text-center">
+                  <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+                    <Calendar className="w-8 h-8 text-blue-600" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">92%</h3>
+                  <p className="text-gray-600">Overall Attendance</p>
+                  <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-500">Select a course to view detailed performance</p>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Performance Summary */}
+              <Card title="Performance Summary">
+                <div className="text-center py-8">
+                  <Award className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">Click "View" on any enrolled course to see detailed performance</p>
+                </div>
+              </Card>
+            </div>
+          )}
 
           {/* Notes & Comments */}
           <Card title="Notes & Comments">
@@ -516,6 +670,7 @@ export default function StudentDetailPage() {
           </Card>
         </div>
       </div>
+
     </div>
   );
 }

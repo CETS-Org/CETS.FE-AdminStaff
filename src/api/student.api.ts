@@ -1,5 +1,5 @@
 import type { FilterUserParam } from "@/types/filter.type";
-import type { CourseEnrollment, Student } from "@/types/student.type";
+import type { AssignmentSubmited, CourseEnrollment, Student } from "@/types/student.type";
 import { api, endpoint } from "./api";
 
 
@@ -85,6 +85,16 @@ export const getListCourseEnrollment = async (studentId: string): Promise<Course
     return response.data as CourseEnrollment[];
   } catch (error) {
     console.error('Error fetching list course enrollment:', error);
+    throw error;
+  }
+}
+
+export const getAssignmentByStudentId = async (studentId: string, courseId: string): Promise<AssignmentSubmited> => {
+  try {
+    const response = await api.get<AssignmentSubmited>(`/api/ACAD_Submissions/courses/assignments-summary/${courseId}/students/${studentId}`);
+    return response.data ;
+  } catch (error) {
+    console.error('Error fetching assignment by student id:', error);
     throw error;
   }
 }
