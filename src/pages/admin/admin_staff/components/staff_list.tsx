@@ -123,22 +123,22 @@ export default function StaffList() {
     }
   };
 
-  useEffect(() => {
-    const fetchStaffs = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await getStaffs();
-        console.log("Staffs data:", data);
-        setStaffs(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch staffs');
-        console.error('Error fetching staffs:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchStaffs = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getStaffs();
+      console.log("Staffs data:", data);
+      setStaffs(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch staffs');
+      console.error('Error fetching staffs:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchStaffs();
   }, []);
   // No need for client-side filtering anymore
@@ -308,14 +308,8 @@ export default function StaffList() {
           console.log("Unbanned staff:", deleteDialog.staff.accountId);
         }
         
-        // Update local state
-        setStaffs(prev => 
-          prev.map(staff => 
-            staff.accountId === deleteDialog.staff!.accountId 
-              ? { ...staff, isDeleted: deleteDialog.action === 'ban' }
-              : staff
-          )
-        );
+        // Refresh data from API to get updated status
+        await fetchStaffs();
         
         setDeleteDialog({ open: false, staff: null });
       } catch (error) {
@@ -328,14 +322,6 @@ export default function StaffList() {
     console.log("Save staff:", staffData);
     // Implement save logic here
     // After saving, refresh the staff list
-    const fetchStaffs = async () => {
-      try {
-        const data = await getStaffs();
-        setStaffs(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch staffs');
-      }
-    };
     fetchStaffs();
   };
 

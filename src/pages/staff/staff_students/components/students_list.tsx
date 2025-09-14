@@ -77,23 +77,23 @@ export default function StudentsList() {
   };
 
   // Fetch students data from API
-  useEffect(() => {
-    const fetchStudents = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const apiStudents = await getStudents();
-        
-        // Use API data directly
-        setStudents(apiStudents);
-      } catch (err) {
-        console.error("Error fetching students:", err);
-        setError("Failed to load students data");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchStudents = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const apiStudents = await getStudents();
+      
+      // Use API data directly
+      setStudents(apiStudents);
+    } catch (err) {
+      console.error("Error fetching students:", err);
+      setError("Failed to load students data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchStudents();
   }, []);
 
@@ -204,7 +204,7 @@ export default function StudentsList() {
             <span className="leading-none">Edit</span>
             </div>
           </Button>
-          {row.isDeleted ? (
+          {row.statusName === 'Locked' ? (
             <Button
               variant="secondary"
               size="sm"
@@ -296,14 +296,8 @@ export default function StudentsList() {
           console.log("Unbanned student:", deleteDialog.student.accountId);
         }
         
-        // // Update local state
-        // setStudents(prev => 
-        //   prev.map(student => 
-        //     student.accountId === deleteDialog.student!.accountId 
-        //       ? { ...student, isDeleted: deleteDialog.action === 'ban' }
-        //       : student
-        //   )
-        // );
+        // Refresh data from API to get updated status
+        await fetchStudents();
         
         setDeleteDialog({ open: false, student: null });
       } catch (error) {

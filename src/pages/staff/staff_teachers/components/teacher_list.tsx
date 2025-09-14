@@ -77,21 +77,21 @@ export default function TeacherList() {
   };
 
   // Fetch teachers data
-  useEffect(() => {
-    const fetchTeachers = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await getTeachers();
-        setTeachers(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch teachers');
-        console.error('Error fetching teachers:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchTeachers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getTeachers();
+      setTeachers(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch teachers');
+      console.error('Error fetching teachers:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchTeachers();
   }, []);
 
@@ -150,7 +150,7 @@ export default function TeacherList() {
           ${row.statusName?.toLowerCase() === 'active' ? 'bg-green-100 text-green-700 border-green-200' : ''}
           ${row.statusName?.toLowerCase() === 'inactive' ? 'bg-gray-100 text-gray-700 border-gray-200' : ''}
           ${row.statusName?.toLowerCase() === 'pending' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' : ''}
-          ${row.statusName?.toLowerCase() === 'suspended' ? 'bg-red-100 text-red-700 border-red-200' : ''}
+          ${row.statusName?.toLowerCase() === 'locked' ? 'bg-red-100 text-red-700 border-red-200' : ''}
         `}>
           {row.statusName || 'Unknown'}
         </span>
@@ -186,7 +186,7 @@ export default function TeacherList() {
               <span className="leading-none">Edit</span>
             </div>
           </Button>
-          {row.isDeleted ? (
+          {row.statusName === 'Blocked' ? (
             <Button
               variant="secondary"
               size="sm"
@@ -248,14 +248,8 @@ export default function TeacherList() {
           console.log("Unbanned teacher:", deleteDialog.teacher.accountId);
         }
         
-        // Update local state
-        setTeachers(prev => 
-          prev.map(teacher => 
-            teacher.accountId === deleteDialog.teacher!.accountId 
-              ? { ...teacher, isDeleted: deleteDialog.action === 'ban' }
-              : teacher
-          )
-        );
+        // Refresh data from API to get updated status
+        await fetchTeachers();
         
         setDeleteDialog({ open: false, teacher: null });
       } catch (error) {
