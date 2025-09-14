@@ -2,65 +2,63 @@ import { useEffect, useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from "@/components/ui/Dialog";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import Select from "@/components/ui/Select";
 import { Upload, User, Camera, Trash2 } from "lucide-react";
-
-type Student = {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  age: number;
-  level: string;
-  status: "active" | "inactive" | "graduated";
-  joinDate: string;
-  avatar?: string;
-  accountId?: string;
-  studentCode?: string;
-  guardianName?: string;
-  school?: string;
-};
+import { updateStudent } from "@/api/student.api";
+import type { Student, UpdateStudent } from "@/types/student.type";
+import { useStudentStore } from "@/store/student.store";
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (student: Omit<Student, 'id'>) => void;
-  initial?: Student | null;
+  onSave: (student: UpdateStudent) => void;
+  initial?: UpdateStudent | null;
 };
 
 
 export default function AddEditStudentDialog({ open, onOpenChange, onSave, initial }: Props) {
-  const [name, setName] = useState("");
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [age, setAge] = useState("");
-  const [level, setLevel] = useState("");
-  const [status, setStatus] = useState<"active" | "inactive" | "graduated">("active");
-  const [joinDate, setJoinDate] = useState("");
-  const [avatar, setAvatar] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [cid, setCid] = useState("");
+  const [address, setAddress] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [guardianName, setGuardianName] = useState("");
+  const [guardianPhone, setGuardianPhone] = useState("");
+  const [school, setSchool] = useState("");
+  const [academicNote, setAcademicNote] = useState("");
   const [avatarPreview, setAvatarPreview] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const { updatedStudent } = useStudentStore();
+  
   useEffect(() => {
     if (initial) {
-      setName(initial.name);
-      setEmail(initial.email);
-      setPhone(initial.phone);
-      setAge(initial.age.toString());
-      setLevel(initial.level);
-      setStatus(initial.status);
-      setJoinDate(initial.joinDate);
-      setAvatar(initial.avatar || "");
-      setAvatarPreview(initial.avatar || "");
+      setFullName(initial.fullName || "");
+      setEmail(initial.email || "");
+      setPhoneNumber(initial.phoneNumber || "");
+      setDateOfBirth(initial.dateOfBirth || "");
+      setCid(initial.cid || "");
+      setAddress(initial.address || "");
+      setAvatarUrl(initial.avatarUrl || "");
+      setGuardianName(initial.guardianName || "");
+      setGuardianPhone(initial.guardianPhone || "");
+      setSchool(initial.school || "");
+      setAcademicNote(initial.academicNote || "");
+      setAvatarPreview(initial.avatarUrl || "");
     } else {
-      setName("");
+      setFullName("");
       setEmail("");
-      setPhone("");
-      setAge("");
-      setLevel("");
-      setStatus("active");
-      setJoinDate(new Date().toISOString().slice(0, 10));
-      setAvatar("");
+      setPhoneNumber("");
+      setDateOfBirth("");
+      setCid("");
+      setAddress("");
+      setAvatarUrl("");
+      setGuardianName("");
+      setGuardianPhone("");
+      setSchool("");
+      setAcademicNote("");
       setAvatarPreview("");
     }
   }, [initial, open]);
@@ -84,7 +82,7 @@ export default function AddEditStudentDialog({ open, onOpenChange, onSave, initi
       reader.onload = (e) => {
         const result = e.target?.result as string;
         setAvatarPreview(result);
-        setAvatar(result);
+        setAvatarUrl(result);
       };
       reader.readAsDataURL(file);
     }
@@ -96,34 +94,116 @@ export default function AddEditStudentDialog({ open, onOpenChange, onSave, initi
 
   const removeAvatar = () => {
     setAvatarPreview("");
-    setAvatar("");
+    setAvatarUrl("");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
   const handleClose = () => {
+    setErrors({});
     onOpenChange(false);
   };
 
-  const handleSave = () => {
-    if (!name || !email || !phone || !age || !level || !joinDate) {
-      alert("Please fill in all required fields");
-      return;
-    }
+  const clearErrors = () => {
+    setErrors({});
+  };
 
-    onSave({
-      name,
-      email,
-      phone,
-      age: parseInt(age),
-      level,
-      status,
-      joinDate,
-      avatar,
+  const setFieldError = (field: string, message: string) => {
+    setErrors(prev => ({ ...prev, [field]: message }));
+  };
+
+  const clearFieldError = (field: string) => {
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[field];
+      return newErrors;
     });
   };
 
+  const handleSave = async () => {
+    clearErrors();
+    let hasErrors = false;
+
+    // Only email is required based on UpdateStudent type
+    if (!email) {
+      setFieldError("email", "Email is required");
+      hasErrors = true;
+    } else {
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        setFieldError("email", "Please enter a valid email address");
+        hasErrors = true;
+      }
+    }
+
+    // Validate phone number format if provided
+    if (phoneNumber && phoneNumber.trim()) {
+      const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+      if (!phoneRegex.test(phoneNumber.replace(/\s/g, ''))) {
+        setFieldError("phoneNumber", "Please enter a valid phone number");
+        hasErrors = true;
+      }
+    }
+
+    // Validate guardian phone format if provided
+    if (guardianPhone && guardianPhone.trim()) {
+      const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+      if (!phoneRegex.test(guardianPhone.replace(/\s/g, ''))) {
+        setFieldError("guardianPhone", "Please enter a valid guardian phone number");
+        hasErrors = true;
+      }
+    }
+
+    // if (!initial) {
+    //   setFieldError("general", "Student ID is required for editing");
+    //   hasErrors = true;
+    // }
+
+    if (hasErrors) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      const updateData: UpdateStudent = {
+        accountID: initial!.accountID,
+        fullName,
+        email,
+        phoneNumber,
+        cid,
+        address,
+        dateOfBirth,
+        avatarUrl,
+        guardianName,
+        guardianPhone,
+        school,
+        academicNote,
+      };
+
+      const updatedStd = await updateStudent(initial!.accountID, updateData);
+      onSave(updatedStd);
+      updatedStudent(updatedStd);
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error updating student:", error);
+      setFieldError("general", "Failed to update student. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper component to display error message
+  const ErrorMessage = ({ field }: { field: string }) => {
+    if (!errors[field]) return null;
+    return (
+      <div className="text-red-500 text-sm mt-1">
+        {errors[field]}
+      </div>
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -171,8 +251,10 @@ export default function AddEditStudentDialog({ open, onOpenChange, onSave, initi
                       size="sm"
                       className="flex items-center gap-2"
                     >
+                      <div className="flex items-center gap-2">
                       <Upload className="w-4 h-4" />
                       Choose Photo
+                      </div>
                     </Button>
                     {avatarPreview && (
                       <Button
@@ -181,8 +263,10 @@ export default function AddEditStudentDialog({ open, onOpenChange, onSave, initi
                         size="sm"
                         className="flex items-center gap-2 text-red-600 hover:text-red-700"
                       >
+                        <div className="flex items-center gap-2">
                         <Trash2 className="w-4 h-4" />
                         Remove
+                        </div>
                       </Button>
                     )}
                   </div>
@@ -203,84 +287,149 @@ export default function AddEditStudentDialog({ open, onOpenChange, onSave, initi
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Basic Information</h3>
             <div className="grid grid-cols-3 gap-4">
-              <Input
-                label="Full Name *"
-                placeholder="Enter full name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-              <Input
-                label="Email *"
-                type="email"
-                placeholder="Enter email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <Input
-                label="Phone *"
-                placeholder="Enter phone number"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-              />
+              <div>
+                <Input
+                  label="Full Name"
+                  placeholder="Enter full name"
+                  value={fullName}
+                  onChange={(e) => {
+                    setFullName(e.target.value);
+                    clearFieldError("fullName");
+                  }}              
+                />
+                <ErrorMessage field="fullName" />
+              </div>
+              <div>
+                <Input
+                  label="Email *"
+                  type="email"
+                  placeholder="Enter email address"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    clearFieldError("email");
+                  }}
+                  required
+                />
+                <ErrorMessage field="email" />
+              </div>
+              <div>
+                <Input
+                  label="Phone Number"
+                  placeholder="Enter phone number"
+                  value={phoneNumber}
+                  onChange={(e) => {
+                    setPhoneNumber(e.target.value);
+                    clearFieldError("phoneNumber");
+                  }}
+                />
+                <ErrorMessage field="phoneNumber" />
+              </div>
             </div>
            
             <div className="grid grid-cols-3 gap-4">
-              <Input
-                label="Age *"
-                type="number"
-                placeholder="Enter age"
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-              />
-              <Select
-                label="English Level *"
-                value={level}
-                onChange={(e) => setLevel(e.target.value)}
-                options={[
-                  { label: "Beginner", value: "Beginner" },
-                  { label: "A1", value: "A1" },
-                  { label: "A2", value: "A2" },
-                  { label: "B1", value: "B1" },
-                  { label: "B2", value: "B2" },
-                  { label: "C1", value: "C1" },
-                  { label: "C2", value: "C2" },
-                ]}
-              />
-              <Input
-                label="Join Date *"
-                type="date"
-                value={joinDate}
-                onChange={(e) => setJoinDate(e.target.value)}
-              />
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <Select
-                label="Status"
-                value={status}
-                onChange={(e) => setStatus(e.target.value as "active" | "inactive" | "graduated")}
-                options={[
-                  { label: "Active", value: "active" },
-                  { label: "Inactive", value: "inactive" },
-                  { label: "Graduated", value: "graduated" },
-                ]}
-              />
-              <div></div>
-              <div></div>
+              <div>
+                <Input
+                  label="Date of Birth"
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                />
+                <ErrorMessage field="dateOfBirth" />
+              </div>
+              <div>
+                <Input
+                  label="CID"
+                  placeholder="Enter CID"
+                  value={cid}
+                  onChange={(e) => setCid(e.target.value)}
+                />
+                <ErrorMessage field="cid" />
+              </div>
+              <div>
+                <Input
+                  label="Address"
+                  placeholder="Enter address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
+                <ErrorMessage field="address" />
+              </div>
             </div>
           </div>
+
+          {/* Guardian Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Guardian Information</h3>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Input
+                  label="Guardian Name"
+                  placeholder="Enter guardian name"
+                  value={guardianName}
+                  onChange={(e) => setGuardianName(e.target.value)}
+                />
+                <ErrorMessage field="guardianName" />
+              </div>
+              <div>
+                <Input
+                  label="Guardian Phone"
+                  placeholder="Enter guardian phone"
+                  value={guardianPhone}
+                  onChange={(e) => {
+                    setGuardianPhone(e.target.value);
+                    clearFieldError("guardianPhone");
+                  }}
+                />
+                <ErrorMessage field="guardianPhone" />
+              </div>
+              <div>
+                <Input
+                  label="School"
+                  placeholder="Enter school name"
+                  value={school}
+                  onChange={(e) => setSchool(e.target.value)}
+                />
+                <ErrorMessage field="school" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <Input
+                  label="Academic Note"
+                  placeholder="Enter academic notes"
+                  value={academicNote}
+                  onChange={(e) => setAcademicNote(e.target.value)}
+                />
+                <ErrorMessage field="academicNote" />
+              </div>
+            </div>
+          </div>
+
+          {/* General Error Message */}
+          {errors.general && (
+            <div className="bg-red-50 border border-red-200 rounded-md p-4">
+              <div className="text-red-800 text-sm">
+                {errors.general}
+              </div>
+            </div>
+          )}
 
         </DialogBody>
         <DialogFooter className="sticky bottom-0 bg-gray-50 z-10 border-t pt-6 shadow-sm flex items-center justify-between gap-4">
           <div className="text-sm text-gray-500">
-            All fields marked with * are required
+            Only email field is required
           </div>
           <div className="flex items-center gap-4">
             <Button variant="secondary" onClick={handleClose} className="min-w-[120px]">
               Cancel
             </Button>
-            <Button onClick={handleSave} className="min-w-[140px]">
-              {initial ? "Update Student" : "Add Student"}
+            <Button 
+              onClick={handleSave} 
+              className="min-w-[140px]"
+              disabled={loading}
+            >
+              {loading ? "Updating..." : "Update Student"}
             </Button>
           </div>
         </DialogFooter>

@@ -218,17 +218,21 @@ export default function TeacherDetailPage() {
       header: "Actions",
       accessor: (course) => (
         <div className="flex gap-2">
-          <button
+          {/* <button
             onClick={() => handleViewCourse(course.courseId)}
             className="p-1 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors"
           >
             <Eye className="w-4 h-4" />
-          </button>
+          </button> */}
           <button
             onClick={() => handleManageCourse(course.courseId)}
-            className="p-1 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors"
+            className="p-1 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors relative group"
           >
             <Settings className="w-4 h-4" />
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+              Manage
+              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+            </div>
           </button>
         </div>
       )
@@ -288,8 +292,10 @@ export default function TeacherDetailPage() {
               size="sm"
               className="rounded-full border border-gray-300 bg-white hover:bg-gray-50"
             >
+              <div className="flex items-center ">
               <Edit className="w-4 h-4 mr-2" />
               Edit
+              </div>
             </Button>
             <Button
               onClick={handleDelete}
@@ -297,8 +303,10 @@ export default function TeacherDetailPage() {
               size="sm"
               className="rounded-full border border-gray-300 bg-white hover:bg-gray-50 text-red-600 hover:text-red-700"
             >
+              <div className="flex items-center ">
               <Trash2 className="w-4 h-4 mr-2" />
               Delete
+              </div>
             </Button>
           </div>
         </div>
@@ -458,24 +466,38 @@ export default function TeacherDetailPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-700">Total Students:</span>
-                  <span className="font-bold text-blue-600">88</span>
+                  <span className="font-bold text-blue-600">
+                    {teachingCourses.reduce((total, course) => total + (course.studentCount || 0), 0)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-700">Total Courses:</span>
+                  <span className="font-bold text-purple-600">{teachingCourses.length}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-700">Active Courses:</span>
-                  <span className="font-bold text-green-600">3</span>
+                  <span className="font-bold text-green-600">
+                    {teachingCourses.length}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-700">Teaching Hours:</span>
-                  <span className="font-bold text-purple-600">24/week</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-700">Attendance Rate:</span>
-                  <span className="font-bold text-green-600">95%</span>
+                  <span className="text-gray-700">Average Students/Course:</span>
+                  <span className="font-bold text-orange-600">
+                    {teachingCourses.length > 0 
+                      ? Math.round(teachingCourses.reduce((total, course) => total + (course.studentCount || 0), 0) / teachingCourses.length)
+                      : 0
+                    }
+                  </span>
                 </div>
                 <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm text-blue-800">Consistently punctual and well-prepared</span>
+                    <BookOpen className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm text-blue-800">
+                      {teachingCourses.length > 0 
+                        ? `Teaching ${teachingCourses.length} course${teachingCourses.length > 1 ? 's' : ''} with ${teachingCourses.reduce((total, course) => total + (course.studentCount || 0), 0)} total students`
+                        : 'No courses assigned yet'
+                      }
+                    </span>
                   </div>
                 </div>
               </div>

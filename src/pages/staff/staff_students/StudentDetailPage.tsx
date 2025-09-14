@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Table, { type TableColumn } from "@/components/ui/Table";
@@ -13,8 +13,6 @@ import {
   Calendar, 
   BookOpen, 
   Award,
-  MessageSquare,
-  Plus,
   Mail,
   Phone,
   MapPin,
@@ -24,21 +22,14 @@ import {
 import { formatDate, getStatusColor, getStatusDisplay } from "@/helper/helper.service";
 import Loader from "@/components/ui/Loader";
 import { getStudentById, getListCourseEnrollment, getAssignmentByStudentId } from "@/api/student.api";
-import type { Student, CourseEnrollment, AssignmentSubmited } from "@/types/student.type";
+import type { Student, CourseEnrollment, AssignmentSubmited, UpdateStudent } from "@/types/student.type";
+import AddEditStudentDialog from "./components/AddEditStudentDialog";
+import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
 
-// Remove EnrolledCourse interface as we'll use CourseEnrollment from types
-
-interface Note {
-  id: string;
-  teacherName: string;
-  teacherAvatar: string;
-  date: string;
-  content: string;
-}
 
 export default function StudentDetailPage() {
   const { id } = useParams();
-  const [newNote, setNewNote] = useState("");
+  const navigate = useNavigate();
   const [student, setStudent] = useState<Student | null>(null);
   const [enrolledCourses, setEnrolledCourses] = useState<CourseEnrollment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +38,9 @@ export default function StudentDetailPage() {
   const [selectedCourse, setSelectedCourse] = useState<CourseEnrollment | null>(null);
   const [assignmentData, setAssignmentData] = useState<AssignmentSubmited | null>(null);
   const [performanceLoading, setPerformanceLoading] = useState(false);
-
+  const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<UpdateStudent | null>(null);
   // Fetch student data
   useEffect(() => {
     const fetchStudent = async () => {
@@ -112,28 +105,28 @@ export default function StudentDetailPage() {
     fetchEnrolledCourses();
   }, [id]);
 
-  // Remove hardcoded enrolledCourses data - now using API data
 
-  const notes: Note[] = [
-    {
-      id: "1",
-      teacherName: "Dr. Smith",
-      teacherAvatar: "https://via.placeholder.com/40x40?text=DS",
-      date: "January 15, 2025",
-      content: "Sarah shows excellent progress in grammar exercises. Recommend focusing on advanced writing techniques for next semester."
-    },
-    {
-      id: "2",
-      teacherName: "Ms. Davis",
-      teacherAvatar: "https://via.placeholder.com/40x40?text=MD",
-      date: "January 10, 2025",
-      content: "Great participation in business communication exercises. Shows strong potential for professional English."
-    }
-  ];
 
-  const handleEdit = () => {
-    // Navigate to edit page
-    console.log("Edit student");
+  const handleEdit = async () => {
+    if (!id) return;
+    const getStudentByID= await getStudentById(id);
+
+    const editingStudent = {
+      accountID: getStudentByID.accountId,
+      fullName: getStudentByID.fullName,
+      email: getStudentByID.email,
+      phoneNumber: getStudentByID.phoneNumber || "",     
+      cid:getStudentByID.cid || "",
+      address: getStudentByID.address || "",
+      dateOfBirth: getStudentByID.dateOfBirth || "",
+      avatarUrl: getStudentByID.avatarUrl,
+      guardianName: getStudentByID.studentInfo?.guardianName,
+      guardianPhone: getStudentByID.studentInfo?.guardianPhone,
+      school: getStudentByID.studentInfo?.school,
+      academicNote: getStudentByID.studentInfo?.academicNote,
+    };
+    setEditingStudent(editingStudent as any);
+    setOpenEditDialog(true);
   };
 
   const handleDelete = () => {
@@ -141,14 +134,7 @@ export default function StudentDetailPage() {
     console.log("Delete student");
   };
 
-  const handleAddNote = () => {
-    if (newNote.trim()) {
-      // Add new note logic
-      console.log("Adding note:", newNote);
-      setNewNote("");
-    }
-  };
-
+ 
   const handleViewCourse = async (course: CourseEnrollment) => {
     setSelectedCourse(course);
     setPerformanceLoading(true);
@@ -165,7 +151,7 @@ export default function StudentDetailPage() {
   };
 
   const handleManageCourse = (courseId: string) => {
-    console.log("Manage course:", courseId);
+    navigate(`/staff/courses/${courseId}`);
   };
 
   // Table columns for enrolled courses
@@ -279,6 +265,12 @@ export default function StudentDetailPage() {
     );
   }
 
+  const handleSave = (updatedStudentData: UpdateStudent) => {
+    console.log("Save student:", updatedStudentData);
+    
+    setOpenEditDialog(false);
+    setEditingStudent(null);
+  };
   return (
     <div className="p-6 w-full mt-16 ">
       {/* Header with Breadcrumb */}
@@ -297,16 +289,20 @@ export default function StudentDetailPage() {
               variant="secondary"
               className="flex items-center gap-2"
             >
-              <Edit className="w-4 h-4" />
-              Edit Student
+              <div className="flex items-center gap-2">
+                <Edit className="w-4 h-4" />
+                Edit Student
+              </div>
             </Button>
             <Button
               onClick={handleDelete}
               variant="secondary"
               className="flex items-center gap-2 text-red-600 hover:text-red-700"
             >
-              <Trash2 className="w-4 h-4" />
-              Delete Student
+              <div className="flex items-center gap-2">
+                <Trash2 className="w-4 h-4" />
+                Delete Student
+              </div>
             </Button>
           </div>
         </div>
@@ -619,55 +615,19 @@ export default function StudentDetailPage() {
               </Card>
             </div>
           )}
-
-          {/* Notes & Comments */}
-          <Card title="Notes & Comments">
-            <div className="space-y-6">
-              {/* Existing Notes */}
-              <div className="space-y-4">
-                {notes.map((note) => (
-                  <div key={note.id} className="flex gap-4 p-4 bg-gray-50 rounded-lg">
-                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                      <User className="w-5 h-5 text-gray-600" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="font-medium text-gray-900">{note.teacherName}</span>
-                        <span className="text-sm text-gray-500">•</span>
-                        <span className="text-sm text-gray-500">{note.date}</span>
-                      </div>
-                      <p className="text-gray-700">{note.content}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Add New Note */}
-              <div className="border-t pt-6">
-                <h4 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5" />
-                  Add New Note
-                </h4>
-                <div className="flex gap-3">
-                  <textarea
-                    value={newNote}
-                    onChange={(e) => setNewNote(e.target.value)}
-                    placeholder="Add a new note or comment..."
-                    className="flex-1 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    rows={3}
-                  />
-                  <Button
-                    onClick={handleAddNote}
-                    disabled={!newNote.trim()}
-                    className="flex items-center gap-2 self-end"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </Card>
+          <AddEditStudentDialog
+            open={openEditDialog}
+            onOpenChange={setOpenEditDialog}
+            onSave={handleSave}
+            initial={editingStudent}
+          />
+          <DeleteConfirmDialog
+            open={openDeleteDialog}
+            onOpenChange={setOpenDeleteDialog}
+            onConfirm={handleDelete}
+            title="Delete Student"
+            message={`Are you sure you want to delete this student? This action cannot be undone.`}
+          />
         </div>
       </div>
 

@@ -8,17 +8,19 @@ import Select from "@/components/ui/Select";
 import Pagination from "@/shared/pagination";
 import AddEditStudentDialog from "./AddEditStudentDialog";
 import { Eye, Edit, Trash2, Search, Filter, X, Plus, Loader2 } from "lucide-react";
-import { getStudents, filterStudent } from "@/api/student.api";
+import { getStudents, filterStudent, getStudentById } from "@/api/student.api";
 import type { FilterUserParam } from "@/types/filter.type";
-import type { Student } from "@/types/student.type";
+import type { Student, UpdateStudent} from "@/types/student.type";
 import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
+import { useStudentStore } from "@/store/student.store";
 
 export default function StudentsList() {
   const navigate = useNavigate();
   const [openDialog, setOpenDialog] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; student: Student | null }>({ open: false, student: null });
-  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
-  
+  const [editingStudent, setEditingStudent] = useState<UpdateStudent | null>(null);
+ const { students, setStudents, updatedStudent } = useStudentStore();
+
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState("");
   const [emailFilter, setEmailFilter] = useState("");
@@ -29,7 +31,7 @@ export default function StudentsList() {
   const [sortOrder, setSortOrder] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-  const [students, setStudents] = useState<Student[]>([]);
+  // const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -228,32 +230,34 @@ export default function StudentsList() {
     navigate(`/staff/students/${student.accountId}`);
   };
 
-  const handleEdit = (student: Student) => {
+  const handleEdit = async (student: Student) => {
     // Convert Student to the format expected by the dialog
+    const getStudentByID= await getStudentById(student.accountId);
+
     const editingStudent = {
-      id: 1,
-      name: student.fullName,
-      email: student.email,
-      phone: student.phoneNumber || "",
-      age: student.dateOfBirth ? new Date().getFullYear() - new Date(student.dateOfBirth).getFullYear() : 18,
-      level: "Beginner",
-      status: student.statusName === 'Active' ? 'active' as const : 'inactive' as const,
-      joinDate: student.createdAt.split('T')[0],
-      avatar: student.avatarUrl,
-      accountId: student.accountId,
-      studentCode: student.studentInfo?.studentCode,
-      guardianName: student.studentInfo?.guardianName,
-      school: student.studentInfo?.school,
+      accountID: getStudentByID.accountId,
+      fullName: getStudentByID.fullName,
+      email: getStudentByID.email,
+      phoneNumber: getStudentByID.phoneNumber || "",     
+      cid:getStudentByID.cid || "",
+      address: getStudentByID.address || "",
+      dateOfBirth: getStudentByID.dateOfBirth || "",
+      avatarUrl: getStudentByID.avatarUrl,
+      guardianName: getStudentByID.studentInfo?.guardianName,
+      guardianPhone: getStudentByID.studentInfo?.guardianPhone,
+      school: getStudentByID.studentInfo?.school,
+      academicNote: getStudentByID.studentInfo?.academicNote,
     };
     setEditingStudent(editingStudent as any);
+    
     setOpenDialog(true);
   };
 
   const handleDelete = (student: Student) => {
     // Convert Student to the format expected by the dialog
     const deleteStudent = {
-      id: 1,
-      name: student.fullName,
+
+      fullfullname: student.fullName,
       email: student.email,
       phone: student.phoneNumber || "",
       age: student.dateOfBirth ? new Date().getFullYear() - new Date(student.dateOfBirth).getFullYear() : 18,
@@ -269,10 +273,12 @@ export default function StudentsList() {
     setDeleteDialog({ open: true, student: deleteStudent as any });
   };
 
-  const handleSave = (student: Omit<Student, 'accountId'>) => {
-    // This function is for the dialog component which uses a different interface
-    // We'll need to convert between interfaces or update the dialog component
-    console.log("Save student:", student);
+  const handleSave = (updatedStudentData: UpdateStudent) => {
+    console.log("Save student:", updatedStudentData);
+    
+    // Use store function to update student
+    updatedStudent(updatedStudentData);
+    
     setOpenDialog(false);
     setEditingStudent(null);
   };
@@ -509,8 +515,8 @@ export default function StudentsList() {
       <AddEditStudentDialog 
         open={openDialog} 
         onOpenChange={setOpenDialog} 
-        onSave={handleSave as any} 
-        initial={editingStudent as any} 
+        onSave={handleSave} 
+        initial={editingStudent} 
       />
 
       <DeleteConfirmDialog

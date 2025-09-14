@@ -1,5 +1,5 @@
 import type { FilterUserParam } from "@/types/filter.type";
-import type { AssignmentSubmited, CourseEnrollment, Student } from "@/types/student.type";
+import type { AssignmentSubmited, CourseEnrollment, Student, UpdateStudent } from "@/types/student.type";
 import { api, endpoint } from "./api";
 
 
@@ -98,6 +98,15 @@ export const getAssignmentByStudentId = async (studentId: string, courseId: stri
     throw error;
   }
 }
+// export const getAttendceByStudentId = async (studentId: string, courseId: string): Promise<Attendance[]> => {
+//   try {
+//     const response = await api.get<Attendance[]>(`/api/ACAD_Attendance/students/${studentId}`);
+//     return response.data ;
+//   } catch (error) {
+//     console.error('Error fetching attendance by student id:', error);
+//     throw error;
+//   }
+// }
 
 /**
  * Create a new student
@@ -130,20 +139,9 @@ export const createStudent = async (studentData: {
 /**
  * Update a student
  */
-export const updateStudent = async (id: string, studentData: {
-  email?: string;
-  fullName?: string;
-  phoneNumber?: string;
-  dateOfBirth?: string;
-  cid?: string;
-  address?: string;
-  guardianName?: string;
-  guardianPhone?: string;
-  school?: string;
-  academicNote?: string;
-}): Promise<Student> => {
+export const updateStudent = async (id: string, studentData: UpdateStudent): Promise<UpdateStudent> => {
   try {
-    const response = await api.put<Student>(`/api/IDN_Account/${id}`, studentData);
+    const response = await api.patch<UpdateStudent>(`${endpoint.student}/${id}`, studentData);
     return response.data;
   } catch (error) {
     console.error(`Error updating student ${id}:`, error);

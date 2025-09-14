@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Create axios instance with base configuration
 export const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'https://localhost:8000',
+    baseURL: import.meta.env.VITE_API_URL || 'https://localhost:7096',
     timeout: 10000, // Increased timeout to 10 seconds
     headers: {
       'Content-Type': 'application/json',
@@ -11,6 +11,8 @@ export const api = axios.create({
   
 export const endpoint ={
   account: '/api/IDN_Account',
+  student: '/api/IDN_Student',
+  teacher: '/api/IDN_Teacher',
   enrollment: '/api/ACAD_Enrollment',
   courseTeacherAssignment: '/api/ACAD_CourseTeacherAssignment',
 }
