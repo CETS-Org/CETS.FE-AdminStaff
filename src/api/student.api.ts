@@ -1,5 +1,5 @@
 import type { FilterUserParam } from "@/types/filter.type";
-import type { AssignmentSubmited, CourseEnrollment, Student, UpdateStudent } from "@/types/student.type";
+import type { AssignmentSubmited, CourseEnrollment, Student, TotalStudentAttendanceByCourse, UpdateStudent } from "@/types/student.type";
 import { api, endpoint } from "./api";
 
 
@@ -89,7 +89,7 @@ export const getListCourseEnrollment = async (studentId: string): Promise<Course
   }
 }
 
-export const getAssignmentByStudentId = async (studentId: string, courseId: string): Promise<AssignmentSubmited> => {
+export const getTotalAssignmentByStudentId = async (studentId: string, courseId: string): Promise<AssignmentSubmited> => {
   try {
     const response = await api.get<AssignmentSubmited>(`/api/ACAD_Submissions/courses/assignments-summary/${courseId}/students/${studentId}`);
     return response.data ;
@@ -98,15 +98,15 @@ export const getAssignmentByStudentId = async (studentId: string, courseId: stri
     throw error;
   }
 }
-// export const getAttendceByStudentId = async (studentId: string, courseId: string): Promise<Attendance[]> => {
-//   try {
-//     const response = await api.get<Attendance[]>(`/api/ACAD_Attendance/students/${studentId}`);
-//     return response.data ;
-//   } catch (error) {
-//     console.error('Error fetching attendance by student id:', error);
-//     throw error;
-//   }
-// }
+export const getTotalAttendceByStudentId = async (studentId: string, courseId: string): Promise<TotalStudentAttendanceByCourse> => {
+  try {
+    const response = await api.get<TotalStudentAttendanceByCourse>(`${endpoint.attendance}/courses/${courseId}/students/${studentId}/summary`);
+    return response.data ;
+  } catch (error) {
+    console.error('Error fetching attendance by student id:', error);
+    throw error;
+  }
+}
 
 /**
  * Create a new student

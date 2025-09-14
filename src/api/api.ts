@@ -14,6 +14,7 @@ export const endpoint ={
   student: '/api/IDN_Student',
   teacher: '/api/IDN_Teacher',
   enrollment: '/api/ACAD_Enrollment',
+  attendance: '/api/ACAD_Attendance',
   courseTeacherAssignment: '/api/ACAD_CourseTeacherAssignment',
 }
 

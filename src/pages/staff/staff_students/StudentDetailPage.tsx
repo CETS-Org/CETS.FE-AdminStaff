@@ -21,8 +21,8 @@ import {
 } from "lucide-react";
 import { formatDate, getStatusColor, getStatusDisplay } from "@/helper/helper.service";
 import Loader from "@/components/ui/Loader";
-import { getStudentById, getListCourseEnrollment, getAssignmentByStudentId } from "@/api/student.api";
-import type { Student, CourseEnrollment, AssignmentSubmited, UpdateStudent } from "@/types/student.type";
+import { getStudentById, getListCourseEnrollment, getTotalAssignmentByStudentId, getTotalAttendceByStudentId } from "@/api/student.api";
+import type { Student, CourseEnrollment, AssignmentSubmited, UpdateStudent, TotalStudentAttendanceByCourse } from "@/types/student.type";
 import AddEditStudentDialog from "./components/AddEditStudentDialog";
 import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
 
@@ -37,6 +37,7 @@ export default function StudentDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<CourseEnrollment | null>(null);
   const [assignmentData, setAssignmentData] = useState<AssignmentSubmited | null>(null);
+  const [attendanceData, setAttendanceData] = useState<TotalStudentAttendanceByCourse | null>(null);
   const [performanceLoading, setPerformanceLoading] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -140,11 +141,18 @@ export default function StudentDetailPage() {
     setPerformanceLoading(true);
     
     try {
-      const data = await getAssignmentByStudentId(id || "", course.id);
-      setAssignmentData(data);
+      // Fetch both assignment and attendance data in parallel
+      const [assignmentData, attendanceData] = await Promise.all([
+        getTotalAssignmentByStudentId(id || "", course.id),
+        getTotalAttendceByStudentId(id || "", course.id)
+      ]);
+      
+      setAssignmentData(assignmentData);
+      setAttendanceData(attendanceData);
     } catch (err) {
-      console.error("Error fetching assignment data:", err);
+      console.error("Error fetching performance data:", err);
       setAssignmentData(null);
+      setAttendanceData(null);
     } finally {
       setPerformanceLoading(false);
     }
@@ -440,31 +448,54 @@ export default function StudentDetailPage() {
               }}
             >
               {/* Attendance Overview */}
-              <Card title={`Attendance Overview - ${selectedCourse.courseName}`}>
-                <div className="text-center">
-                  <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Calendar className="w-8 h-8 text-blue-600" />
+              <Card title={`Attendance Overview - ${selectedCourse.courseName}`} className=" from-emerald-50 to-teal-100 border-emerald-200">
+                {performanceLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">92%</h3>
-                  <p className="text-gray-600">Overall Attendance</p>
-                  
-                  {/* Attendance Chart */}
-                  <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Present</span>
-                        <span className="font-medium">23/25</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div className="bg-green-500 h-2 rounded-full transition-all duration-1000" style={{ width: '92%' }}></div>
-                      </div>
-                      <div className="flex justify-between text-sm text-gray-500">
-                        <span>Absent</span>
-                        <span>2 days</span>
+                ) : attendanceData ? (
+                  <div className="text-center">
+                    <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg">
+                      <Calendar className="w-8 h-8 text-white" />
+                    </div>
+                    <h3 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
+                      {attendanceData.totalMeetings > 0 
+                        ? Math.round((attendanceData.totalPresent / attendanceData.totalMeetings) * 100)
+                        : 0
+                      }%
+                    </h3>
+                    <p className="text-emerald-700 font-medium">Overall Attendance</p>
+                    
+                    {/* Attendance Chart */}
+                    <div className="mt-4 p-4 bg-white/60 backdrop-blur-sm rounded-lg border border-emerald-200">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-emerald-700 font-medium">Present</span>
+                          <span className="font-bold text-emerald-800">{attendanceData.totalPresent}/{attendanceData.totalMeetings}</span>
+                        </div>
+                        <div className="w-full bg-emerald-100 rounded-full h-3 shadow-inner">
+                          <div 
+                            className="bg-gradient-to-r from-emerald-400 to-teal-500 h-3 rounded-full transition-all duration-1000 shadow-sm" 
+                            style={{ 
+                              width: attendanceData.totalMeetings > 0 
+                                ? `${(attendanceData.totalPresent / attendanceData.totalMeetings) * 100}%`
+                                : '0%'
+                            }}
+                          ></div>
+                        </div>
+                        <div className="flex justify-between text-sm text-emerald-600">
+                          <span>Absent</span>
+                          <span>{attendanceData.totalAbsent} days</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">No attendance data available</p>
+                  </div>
+                )}
               </Card>
 
               {/* Performance Summary */}
@@ -593,15 +624,15 @@ export default function StudentDetailPage() {
           {!selectedCourse && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Attendance Overview */}
-              <Card title="Attendance Overview">
+              <Card title="Attendance Overview" className=" from-emerald-50 to-teal-100 border-emerald-200">
                 <div className="text-center">
-                  <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Calendar className="w-8 h-8 text-blue-600" />
+                  <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg">
+                    <Calendar className="w-8 h-8 text-white" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">92%</h3>
-                  <p className="text-gray-600">Overall Attendance</p>
-                  <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-500">Select a course to view detailed performance</p>
+                  <h3 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">--</h3>
+                  <p className="text-emerald-700 font-medium">Overall Attendance</p>
+                  <div className="mt-4 p-3 bg-white/60 backdrop-blur-sm rounded-lg border border-emerald-200">
+                    <p className="text-sm text-emerald-600">Select a course to view detailed attendance</p>
                   </div>
                 </div>
               </Card>
