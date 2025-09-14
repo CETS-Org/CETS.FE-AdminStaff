@@ -55,4 +55,14 @@ export interface CourseTeaching {
   assignedAt: string ;
 }
     
-  
+export interface UpdateTeacherProfile{
+  teacherCode: string | null;
+  yearsExperience: number;
+  fullName: string ;
+  dateOfBirth: string;
+  cid: string | null;
+  address: string | null;
+  avatarUrl: string | null;
+  bio: string | null;
+}
+

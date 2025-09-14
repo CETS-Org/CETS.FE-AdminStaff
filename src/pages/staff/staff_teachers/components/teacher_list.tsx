@@ -11,11 +11,13 @@ import { filterTeacher, getTeachers } from "@/api/teacher.api";
 import type { Teacher } from "@/types/teacher.type";
 import type { FilterUserParam } from "@/types/filter.type";
 import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
+import EditTeacherProfileDialog from "./EditTeacherProfileDialog";
 
 
 export default function TeacherList() {
   const navigate = useNavigate();
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; teacher: Teacher | null }>({ open: false, teacher: null });
+  const [editDialog, setEditDialog] = useState<{ open: boolean; teacher: Teacher | null }>({ open: false, teacher: null });
   
   // Data states
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -204,7 +206,7 @@ export default function TeacherList() {
   };
 
   const handleEdit = (teacher: Teacher) => {
-    navigate(`/staff/teachers/edit/${teacher.accountId}`);
+    setEditDialog({ open: true, teacher });
   };
 
   const handleView = (teacher: Teacher) => {
@@ -221,6 +223,15 @@ export default function TeacherList() {
       setTeachers(prev => prev.filter(t => t.accountId !== deleteDialog.teacher!.accountId));
       setDeleteDialog({ open: false, teacher: null });
     }
+  };
+
+  const handleSaveTeacher = (updatedTeacher: Teacher) => {
+    setTeachers(prev => 
+      prev.map(teacher => 
+        teacher.accountId === updatedTeacher.accountId ? updatedTeacher : teacher
+      )
+    );
+    setEditDialog({ open: false, teacher: null });
   };
 
   const clearFilters = async () => {
@@ -452,6 +463,13 @@ export default function TeacherList() {
         onConfirm={confirmDelete}
         title="Delete Teacher"
         message={`Are you sure you want to delete "${deleteDialog.teacher?.fullName}"? This action cannot be undone.`}
+      />
+
+      <EditTeacherProfileDialog
+        open={editDialog.open}
+        onOpenChange={(open: boolean) => setEditDialog({ open, teacher: null })}
+        teacher={editDialog.teacher}
+        onSave={handleSaveTeacher}
       />
       
     </div>

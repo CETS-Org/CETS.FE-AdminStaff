@@ -1,5 +1,5 @@
 import type { FilterUserParam } from "@/types/filter.type";
-import type { CourseTeaching, Teacher, TeacherCredential } from "@/types/teacher.type";
+import type { CourseTeaching, Teacher, TeacherCredential, UpdateTeacherProfile } from "@/types/teacher.type";
 import { api, endpoint } from "./api";
 
 /**
@@ -104,18 +104,9 @@ export const createTeacher = async (teacherData: {
 /**
  * Update a teacher
  */
-export const updateTeacher = async (id: string, teacherData: {
-  email?: string;
-  fullName?: string;
-  phoneNumber?: string;
-  dateOfBirth?: string;
-  cid?: string;
-  address?: string;
-  yearsExperience?: number;
-  bio?: string;
-}): Promise<Teacher> => {
+export const updateTeacher = async (id: string, teacherData: UpdateTeacherProfile): Promise<Teacher> => {
   try {
-    const response = await api.put<Teacher>(`${endpoint.account}/${id}`, teacherData);
+    const response = await api.patch<Teacher>(`${endpoint.teacher}/updateprofile/${id}`, teacherData);
     return response.data;
   } catch (error) {
     console.error(`Error updating teacher ${id}:`, error);
