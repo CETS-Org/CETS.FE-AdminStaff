@@ -1,6 +1,7 @@
 import type { FilterUserParam } from "@/types/filter.type";
 import { api, endpoint } from "./api";
 import type { Account } from "@/types/account.type";
+import type { UpdateStaffProfile } from "@/types/staff.type";
 
 export const getStaffs = async (): Promise<Account[]> => {
     try {
@@ -126,3 +127,13 @@ export const filterStaff  = async (filterParam: FilterUserParam): Promise<Accoun
       throw error;
     }
   }
+
+export const updateStaffProfile = async (id: string, staffData: UpdateStaffProfile): Promise<Account> => {
+  try {
+    const response = await api.patch<Account>(`${endpoint.account}/${id}/profile`, staffData);
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating staff ${id}:`, error);
+    throw error;
+  }
+}

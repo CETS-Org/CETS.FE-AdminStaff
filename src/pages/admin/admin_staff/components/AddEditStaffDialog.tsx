@@ -1,15 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from "@/components/ui/Dialog";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import Select from "@/components/ui/Select";
-import { X, User, Mail, Phone, Calendar, MapPin, IdCard } from "lucide-react";
+import { User, Upload, Camera, Trash2 } from "lucide-react";
 import type { Account } from "@/types/account.type";
+import type { UpdateStaffProfile } from "@/types/staff.type";
+import { updateStaffProfile } from "@/api/staff.api";
 
 interface AddEditStaffDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (staff: any) => void;
+  onUpdateSuccess?: () => void;
   staff?: Account | null;
   mode: "add" | "edit";
 }
@@ -18,6 +20,7 @@ export default function AddEditStaffDialog({
   open,
   onOpenChange,
   onSave,
+  onUpdateSuccess,
   staff,
   mode
 }: AddEditStaffDialogProps) {
@@ -28,11 +31,16 @@ export default function AddEditStaffDialog({
     dateOfBirth: "",
     address: "",
     cid: "",
+    avatarUrl: "",
     roleNames: [] as string[],
     statusName: "Active"
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Initialize form data when dialog opens or staff changes
   useEffect(() => {
@@ -45,9 +53,11 @@ export default function AddEditStaffDialog({
           dateOfBirth: staff.dateOfBirth ? staff.dateOfBirth.split('T')[0] : "",
           address: staff.address || "",
           cid: staff.cid || "",
+          avatarUrl: staff.avatarUrl || "",
           roleNames: staff.roleNames || [],
           statusName: staff.statusName || "Active"
         });
+        setAvatarPreview(staff.avatarUrl || "");
       } else {
         // Reset form for add mode
         setFormData({
@@ -57,11 +67,14 @@ export default function AddEditStaffDialog({
           dateOfBirth: "",
           address: "",
           cid: "",
+          avatarUrl: "",
           roleNames: [],
           statusName: "Active"
         });
+        setAvatarPreview("");
       }
       setErrors({});
+      setUpdateError(null);
     }
   }, [open, mode, staff]);
 
@@ -78,9 +91,9 @@ export default function AddEditStaffDialog({
       newErrors.email = "Please enter a valid email";
     }
 
-    if (!formData.phoneNumber.trim()) {
-      newErrors.phoneNumber = "Phone number is required";
-    }
+    // if (!formData.phoneNumber.trim()) {
+    //   newErrors.phoneNumber = "Phone number is required";
+    // }
 
     if (!formData.dateOfBirth) {
       newErrors.dateOfBirth = "Date of birth is required";
@@ -98,47 +111,90 @@ export default function AddEditStaffDialog({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
-    if (validateForm()) {
-      const staffData = {
-        ...formData,
-        accountId: mode === "edit" ? staff?.accountId : undefined,
-        isVerified: mode === "edit" ? staff?.isVerified : false,
-        createdAt: mode === "edit" ? staff?.createdAt : new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        isDeleted: false
-      };
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert("Please select an image file");
+        return;
+      }
       
-      onSave(staffData);
-      onOpenChange(false);
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert("File size must be less than 5MB");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setAvatarPreview(result);
+        setFormData(prev => ({ ...prev, avatarUrl: result }));
+      };
+      reader.readAsDataURL(file);
     }
   };
 
-  const handleRoleChange = (role: string, checked: boolean) => {
-    if (checked) {
-      setFormData(prev => ({
-        ...prev,
-        roleNames: [...prev.roleNames, role]
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        roleNames: prev.roleNames.filter(r => r !== role)
-      }));
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const removeAvatar = () => {
+    setAvatarPreview("");
+    setFormData(prev => ({ ...prev, avatarUrl: "" }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
-  const roleOptions = [
-    { label: "Academic Staff", value: "AcademicStaff" },
-    { label: "Accountant Staff", value: "AccountantStaff" }
-  ];
+  const handleSave = async () => {
+    if (validateForm()) {
+      setIsLoading(true);
+      setUpdateError(null);
+      
+      try {
+        if (mode === "edit" && staff) {
+          // For edit mode, use the updateStaffProfile API
+          const updateData: UpdateStaffProfile = {
+            fullName: formData.fullName.trim() || null,
+            dateOfBirth: formData.dateOfBirth || null,
+            address: formData.address.trim() || null,
+            cid: formData.cid.trim() || null,
+            avatarUrl: formData.avatarUrl.trim() || null
+          };
+          
+          await updateStaffProfile(staff.accountId, updateData);
+          
+          // Call success callback to refresh the list
+          if (onUpdateSuccess) {
+            onUpdateSuccess();
+          }
+          
+          onOpenChange(false);
+        } else {
+          // For add mode, use the existing onSave callback
+          const staffData = {
+            ...formData,
+            accountId: undefined,
+            isVerified: false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            isDeleted: false
+          };
+          
+          onSave(staffData);
+          onOpenChange(false);
+        }
+      } catch (error) {
+        console.error("Error saving staff:", error);
+        setUpdateError(error instanceof Error ? error.message : "Failed to save staff");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
 
-  const statusOptions = [
-    { label: "Active", value: "Active" },
-    { label: "Inactive", value: "Inactive" },
-    { label: "Pending", value: "Pending" },
-    { label: "Suspended", value: "Suspended" }
-  ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -158,6 +214,11 @@ export default function AddEditStaffDialog({
         </DialogHeader>
 
         <DialogBody>
+          {updateError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm text-red-600">{updateError}</p>
+            </div>
+          )}
           <div className="space-y-6">
             {/* Personal Information */}
             <div className="space-y-4">
@@ -165,7 +226,77 @@ export default function AddEditStaffDialog({
                 <User className="w-5 h-5" />
                 Personal Information
               </h3>
+               {/* Avatar Section */}
+            <div className="space-y-4">
               
+              <div className="flex items-center gap-8">
+                <div className="relative">
+                  <div 
+                    className="w-32 h-32 rounded-full border-4 border-gray-200 overflow-hidden bg-gray-100 cursor-pointer hover:border-primary-300 transition-colors"
+                    onClick={handleAvatarClick}
+                  >
+                    {avatarPreview ? (
+                      <img 
+                        src={avatarPreview} 
+                        alt="Avatar preview" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <User className="w-16 h-16 text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-primary-700 transition-colors">
+                    <Camera className="w-4 h-4 text-white" />
+                  </div>
+                </div>
+                
+                <div className="flex-1 space-y-4">
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Upload Profile Photo</h4>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Upload a professional photo. Supported formats: JPG, PNG, GIF. Max size: 5MB.
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <Button
+                        onClick={handleAvatarClick}
+                        variant="secondary"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        <div className="flex items-center gap-2">
+                        <Upload className="w-4 h-4" />
+                        Choose Photo
+                        </div>
+                      </Button>
+                      {avatarPreview && (
+                        <Button
+                          onClick={removeAvatar}
+                          variant="secondary"
+                          size="sm"
+                          className="flex items-center gap-2 text-red-600 hover:text-red-700"
+                        >
+                          <div className="flex items-center gap-2">
+                          <Trash2 className="w-4 h-4" />
+                          Remove
+                          </div>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                className="hidden"
+              />
+            </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   label="Full Name *"
@@ -176,20 +307,22 @@ export default function AddEditStaffDialog({
                 />
                 
                 <Input
-                  label="Email *"
+                  label="Email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                   error={errors.email}
                   placeholder="Enter email address"
+                  disabled
                 />
                 
                 <Input
-                  label="Phone Number *"
+                  label="Phone Number"
                   value={formData.phoneNumber}
                   onChange={(e) => setFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
                   error={errors.phoneNumber}
-                  placeholder="Enter phone number"
+                  placeholder="Enter phone number"    
+                  disabled
                 />
                 
                 <Input
@@ -214,11 +347,14 @@ export default function AddEditStaffDialog({
                   error={errors.cid}
                   placeholder="Enter CID"
                 />
+                
               </div>
             </div>
 
+           
+
             {/* Role and Status */}
-            <div className="space-y-4">
+            {/* <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
                 <User className="w-5 h-5" />
                 Role & Status
@@ -254,7 +390,7 @@ export default function AddEditStaffDialog({
                   options={statusOptions}
                 />
               </div>
-            </div>
+            </div> */}
           </div>
         </DialogBody>
 
@@ -266,11 +402,19 @@ export default function AddEditStaffDialog({
             Cancel
           </Button>
           <Button
-          variant="secondary"
+            variant="secondary"
             onClick={handleSave}
-            className="bg-primary-600 hover:bg-primary-700 text-white"
+            disabled={isLoading}
+            className="bg-primary-600 hover:bg-primary-700 text-white disabled:opacity-50"
           >
-            {mode === "add" ? "Add Staff" : "Save Changes"}
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                {mode === "add" ? "Adding..." : "Saving..."}
+              </div>
+            ) : (
+              mode === "add" ? "Add Staff" : "Save Changes"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
