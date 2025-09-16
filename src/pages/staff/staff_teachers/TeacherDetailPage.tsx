@@ -9,7 +9,6 @@ import {
   Edit, 
   Trash2, 
   User, 
-  Eye, 
   Settings, 
   Calendar, 
   BookOpen, 
@@ -27,8 +26,8 @@ import {
 } from "lucide-react";
 // import { getTeacherById, type Teacher } from "@/pages/api/teacher.api";
 import { formatDate, getStatusColor, getStatusDisplay } from "@/helper/helper.service";
-import { getListCourseTeaching, getTeacherById } from "@/api/teacher.api";
-import type { CourseTeaching, Teacher, TeacherCredential } from "@/types/teacher.type";
+import { getListCourseTeaching, getTeacherById, getListCredentialType} from "@/api/teacher.api";
+import type { CourseTeaching, Teacher, TeacherCredential, CredentialTypeResponse } from "@/types/teacher.type";
 
 
 
@@ -51,7 +50,25 @@ export default function TeacherDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [teachingCourses, setTeachingCourses] = useState<CourseTeaching[]>([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
+  const [credentialTypes, setCredentialTypes] = useState<CredentialTypeResponse[]>([]);
+  const [teacherCredentials, setTeacherCredentials] = useState<TeacherCredential[]>([]);
+  const [credentialsLoading, setCredentialsLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Fetch credential types when component mounts
+  useEffect(() => {
+    const fetchCredentialTypes = async () => {
+      try {
+        const types = await getListCredentialType();
+        setCredentialTypes(types);
+      } catch (error) {
+        console.error('Error fetching credential types:', error);
+      }
+    };
+
+    fetchCredentialTypes();
+  }, []);
+
   // Fetch teacher data
   useEffect(() => {
     const fetchTeacher = async () => {
@@ -118,6 +135,29 @@ export default function TeacherDetailPage() {
 
     fetchTeachingCourses();
   }, [id]);
+
+  // Fetch teacher credentials when teacher ID is available
+  useEffect(() => {
+    const fetchTeacherCredentials = async () => {
+      if (!id) return;
+
+      try {
+        setCredentialsLoading(true);
+        console.log("Fetching teacher credentials for teacher:", id);
+        const credentialsData = teacher?.teacherInfo?.teacherCredentials || [];
+        console.log("Teacher credentials data received:", credentialsData);
+        setTeacherCredentials(credentialsData);
+      } catch (err) {
+        console.error("Error fetching teacher credentials:", err);
+        // Don't set error state for credentials, just log it
+        setTeacherCredentials([]);
+      } finally {
+        setCredentialsLoading(false);
+      }
+    };
+
+    fetchTeacherCredentials();
+  }, [id]);
    // Remove hardcoded teachingCourses data - now using API data
 
 
@@ -157,12 +197,31 @@ export default function TeacherDetailPage() {
     }
   };
 
-  const handleViewCourse = (courseId: string) => {
-    console.log("View course:", courseId);
-  };
-
   const handleManageCourse = (courseId: string) => {
     navigate(`/staff/courses/${courseId}`);
+  };
+
+  // Function to categorize credentials by type
+  const categorizeCredentials = () => {
+    if (!teacherCredentials.length || !credentialTypes.length) {
+      return { certificates: [], qualifications: [] };
+    }
+
+    const certificates: TeacherCredential[] = [];
+    const qualifications: TeacherCredential[] = [];
+
+    teacherCredentials.forEach(credential => {
+      // Find the credential type name by credentialTypeId
+      const credentialType = credentialTypes.find(type => type.id === credential.credentialTypeId);
+      
+      if (credentialType?.name === 'Certificate') {
+        certificates.push(credential);
+      } else if (credentialType?.name === 'Qualification') {
+        qualifications.push(credential);
+      }
+    });
+
+    return { certificates, qualifications };
   };
 
   // Table columns for teaching courses
@@ -400,27 +459,114 @@ export default function TeacherDetailPage() {
             </div>
           </Card>
 
-          {/* Qualifications */}
-          <Card title="Qualifications" className="mt-6">
-            <div className="space-y-4">
-              {teacher.teacherInfo?.teacherCredentials && teacher.teacherInfo.teacherCredentials.length > 0 ? (
-                teacher.teacherInfo.teacherCredentials.map((credential: TeacherCredential) => (
-                  <div key={credential.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                    <GraduationCap className="w-5 h-5 text-blue-600 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-gray-900">{credential.degree} - {credential.field}</p>
-                      <p className="text-sm text-gray-600">{credential.institution}, {credential.year}</p>
-                    </div>
-                  </div>
-                ))
+          {/* Credentials */}
+          <div className="mt-6 space-y-6">
+            {/* Certificates */}
+            <Card title="Certificates">
+              {credentialsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader />
+                </div>
               ) : (
-                <div className="text-center py-8">
-                  <GraduationCap className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">No qualifications available</p>
+                <div className="space-y-4">
+                  {(() => {
+                    const { certificates } = categorizeCredentials();
+                    return certificates.length > 0 ? (
+                      certificates.map((credential: TeacherCredential) => (
+                        <div key={credential.id} className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200 hover:shadow-md transition-shadow">
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <Award className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <h4 className="font-medium text-gray-900 mb-1">
+                                  {credential.name || `${credential.degree} - ${credential.field}`}
+                                </h4>
+                                <p className="text-sm text-gray-600 mb-2">{credential.institution}, {credential.year}</p>
+                                {credential.level && (
+                                  <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    {credential.level}
+                                  </span>
+                                )}
+                              </div>
+                              {credential.pictureUrl && (
+                                <div className="w-16 h-16 rounded-lg overflow-hidden border border-blue-200">
+                                  <img 
+                                    src={credential.pictureUrl} 
+                                    alt={credential.name || 'Credential'} 
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <Award className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">No certificates available</p>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
-            </div>
-          </Card>
+            </Card>
+
+            {/* Qualifications */}
+            <Card title="Qualifications">
+              {credentialsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {(() => {
+                    const { qualifications } = categorizeCredentials();
+                    return qualifications.length > 0 ? (
+                      qualifications.map((credential: TeacherCredential) => (
+                        <div key={credential.id} className="flex items-start gap-3 p-4 bg-green-50 rounded-lg border border-green-200 hover:shadow-md transition-shadow">
+                          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <GraduationCap className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <h4 className="font-medium text-gray-900 mb-1">
+                                  {credential.name || `${credential.degree} - ${credential.field}`}
+                                </h4>
+                                <p className="text-sm text-gray-600 mb-2">{credential.institution}, {credential.year}</p>
+                                {credential.level && (
+                                  <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    {credential.level}
+                                  </span>
+                                )}
+                              </div>
+                              {credential.pictureUrl && (
+                                <div className="w-16 h-16 rounded-lg overflow-hidden border border-green-200">
+                                  <img 
+                                    src={credential.pictureUrl} 
+                                    alt={credential.name || 'Credential'} 
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <GraduationCap className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">No qualifications available</p>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </Card>
+          </div>
         </div>
 
         {/* Right Column - Main Content */}
