@@ -8,7 +8,7 @@ import { ChevronRight, Plus, Trash2, GraduationCap, ArrowLeft, Upload, User, Cam
 import { createTeacher, getTeacherById,getListCredentialType  } from "@/api/teacher.api";
 import type { AddTeacherProfile, CredentialTypeResponse } from "@/types/teacher.type";
 
-interface Qualification {
+interface CredentialFormData {
   id: string;
   credentialTypeId: string;
   pictureUrl: string | null;
@@ -27,7 +27,7 @@ interface TeacherFormData {
   avatarUrl: string | null;
   yearsExperience: number;
   bio: string | null;
-  credentials: Qualification[];
+  credentials: CredentialFormData[];
 }
 
 
@@ -106,11 +106,11 @@ export default function AddEditTeacherPage() {
         yearsExperience: teacher.teacherInfo?.yearsExperience || 0,
         bio: teacher.teacherInfo?.bio || "",
         credentials: teacher.teacherInfo?.teacherCredentials?.map(cred => ({
-          id: cred.id,
-          credentialTypeId: "", // Will need to be determined based on credential type
-          pictureUrl: null,
-          name: cred.degree,
-          level: cred.field
+          id: cred.credentialId,
+          credentialTypeId: cred.credentialTypeId,
+          pictureUrl: cred.pictureUrl,
+          name: cred.name,
+          level: cred.level
         })) || []
       });
       
@@ -153,6 +153,13 @@ export default function AddEditTeacherPage() {
       newErrors.yearsExperience = "Years of experience must be a positive number";
     }
 
+    // Validate credentials
+    formData.credentials.forEach((cred, index) => {
+      if (!cred.credentialTypeId) {
+        newErrors[`credential_${index}_type`] = "Credential type is required";
+      }
+    });
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -165,7 +172,7 @@ export default function AddEditTeacherPage() {
   };
 
   const addCredential = () => {
-    const newCredential: Qualification = {
+    const newCredential: CredentialFormData = {
       id: Date.now().toString(),
       credentialTypeId: "",
       pictureUrl: null,
@@ -178,7 +185,7 @@ export default function AddEditTeacherPage() {
     }));
   };
 
-  const updateCredential = (id: string, field: keyof Qualification, value: string) => {
+  const updateCredential = (id: string, field: keyof CredentialFormData, value: string) => {
     setFormData(prev => ({
       ...prev,
       credentials: prev.credentials.map(cred =>
@@ -211,7 +218,7 @@ export default function AddEditTeacherPage() {
         avatarUrl: formData.avatarUrl,
         yearsExperience: formData.yearsExperience,
         bio: formData.bio,
-        credentials: formData.credentials.map(cred => ({
+        credentials: formData.credentials.filter(cred => cred.credentialTypeId).map(cred => ({
           credentialTypeId: cred.credentialTypeId,
           pictureUrl: cred.pictureUrl,
           name: cred.name,
@@ -225,6 +232,8 @@ export default function AddEditTeacherPage() {
       navigate("/teachers");
     } catch (error) {
       console.error("Error saving teacher:", error);
+      // You can add more specific error handling here
+      setErrors({ submit: "Failed to save teacher. Please try again." });
     } finally {
       setIsLoading(false);
     }
@@ -483,35 +492,52 @@ export default function AddEditTeacherPage() {
               </div>
               
               <div className="space-y-4">
-                {formData.credentials.map((cred, index) => (
-                  <div key={cred.id} className="p-6 border border-gray-200 rounded-lg space-y-4 bg-white shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                          <GraduationCap className="w-5 h-5 text-blue-600" />
+                {formData.credentials.map((cred, index) => {
+                  const credentialType = credentialTypes.find(type => type.id === cred.credentialTypeId);
+                  const isCertificate = credentialType?.name === 'Certificate';
+                  const bgColor = isCertificate ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200';
+                  const iconBg = isCertificate ? 'bg-blue-100' : 'bg-green-100';
+                  const iconColor = isCertificate ? 'text-blue-600' : 'text-green-600';
+                  const IconComponent = isCertificate ? GraduationCap : GraduationCap; // You can use different icons
+                  
+                  return (
+                    <div key={cred.id} className={`p-6 border rounded-lg space-y-4 ${bgColor} shadow-sm hover:shadow-md transition-shadow`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 ${iconBg} rounded-full flex items-center justify-center`}>
+                            <IconComponent className={`w-5 h-5 ${iconColor}`} />
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-900">
+                              {credentialType?.name || 'Credential'} {index + 1}
+                            </span>
+                            <p className="text-sm text-gray-500">
+                              {credentialType?.name || 'Professional credential'}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <span className="font-medium text-gray-900">Credential {index + 1}</span>
-                          <p className="text-sm text-gray-500">Professional credential</p>
-                        </div>
+                        <Button
+                          onClick={() => removeCredential(cred.id)}
+                          variant="secondary"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
-                      <Button
-                        onClick={() => removeCredential(cred.id)}
-                        variant="secondary"
-                        size="sm"
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Select
-                        label="Credential Type *"
-                        value={cred.credentialTypeId}
-                        onChange={(e) => updateCredential(cred.id, 'credentialTypeId', e.target.value)}
-                        options={credentialTypes.map(type => ({ label: type.name, value: type.id }))}
-                      />
+                      <div>
+                        <Select
+                          label="Credential Type *"
+                          value={cred.credentialTypeId}
+                          onChange={(e) => updateCredential(cred.id, 'credentialTypeId', e.target.value)}
+                          options={credentialTypes.map(type => ({ label: type.name, value: type.id }))}
+                        />
+                        {errors[`credential_${index}_type`] && (
+                          <p className="text-sm text-red-600 mt-1">{errors[`credential_${index}_type`]}</p>
+                        )}
+                      </div>
                       <Input
                         label="Name"
                         placeholder="e.g., IELTS Certificate"
@@ -535,7 +561,8 @@ export default function AddEditTeacherPage() {
                       />
                     </div>
                   </div>
-                ))}
+                  );
+                })}
                 
                 {formData.credentials.length === 0 && (
                   <div className="text-center py-16 text-gray-500 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border-2 border-dashed border-blue-200">
@@ -562,6 +589,9 @@ export default function AddEditTeacherPage() {
             <div className="flex items-center justify-between gap-4 pt-8 border-t bg-gray-50 -mx-6 -mb-6 px-6 py-6">
               <div className="text-sm text-gray-500">
                 {isEdit ? "Last updated: Today" : "All fields marked with * are required"}
+                {errors.submit && (
+                  <div className="text-red-600 mt-2">{errors.submit}</div>
+                )}
               </div>
               <div className="flex items-center gap-3">
                 <Button

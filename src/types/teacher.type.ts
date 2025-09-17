@@ -1,7 +1,7 @@
 import type { Account } from "./account.type";
 
 export interface TeacherCredential {
-    id: string;
+  id: string;
     credentialTypeId: string;
     pictureUrl: string | null;
     name: string | null;
@@ -14,6 +14,17 @@ export interface TeacherCredential {
     updatedAt: string | null;
     isDeleted: boolean;
   }
+
+export interface TeacherCredentialResponse {
+  credentialId: string;
+  credentialTypeId: string;
+  teacherId: string;
+  pictureUrl: string | null;
+  name: string | null;
+  level: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+}
   
   export interface TeacherInfo {
     teacherId: string;
@@ -40,7 +51,7 @@ export interface TeacherCredential {
     accountUpdatedAt: string | null;
     accountUpdatedBy: string | null;
     accountIsDeleted: boolean;
-    teacherCredentials: TeacherCredential[];
+    teacherCredentials: TeacherCredentialResponse[];
   }
   
 export interface Teacher extends Account {

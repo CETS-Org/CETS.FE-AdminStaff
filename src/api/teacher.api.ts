@@ -1,5 +1,5 @@
 import type { FilterUserParam } from "@/types/filter.type";
-import type { AddTeacherProfile, CourseTeaching, CredentialTypeResponse, Teacher, TeacherCredential, UpdateTeacherProfile } from "@/types/teacher.type";
+import type { AddTeacherProfile, CourseTeaching, CredentialTypeResponse, Teacher, TeacherCredentialResponse, UpdateTeacherProfile } from "@/types/teacher.type";
 import { api, endpoint } from "./api";
 
 /**
@@ -84,6 +84,16 @@ export const getListCredentialType = async (): Promise<CredentialTypeResponse[]>
     throw error;
   }
 }
+
+export const getListCredentialByTeacherId = async (teacherId: string): Promise<TeacherCredentialResponse[]> => {
+  try {
+    const response = await api.get<TeacherCredentialResponse[]>(`${endpoint.teacherCredential}/${teacherId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching list credential by teacher id:`, error);
+    throw error;
+  }
+}
 /**
  * Create a new teacher
  */
@@ -156,20 +166,20 @@ export const updateTeacherStatus = async (id: string, status: string): Promise<T
 /**
  * Update teacher credential
  */
-export const updateTeacherCredential = async (teacherId: string, credentialId: string, credential: {
-  degree: string;
-  institution: string;
-  year: string;
-  field: string;
-}): Promise<TeacherCredential> => {
-  try {
-    const response = await api.put<TeacherCredential>(`/api/Teacher/${teacherId}/credentials/${credentialId}`, credential);
-    return response.data;
-  } catch (error) {
-    console.error(`Error updating credential ${credentialId} for teacher ${teacherId}:`, error);
-    throw error;
-  }
-};
+// export const updateTeacherCredential = async (teacherId: string, credentialId: string, credential: {
+//   degree: string;
+//   institution: string;
+//   year: string;
+//   field: string;
+// }): Promise<TeacherCredential> => {
+//   try {
+//     const response = await api.put<TeacherCredential>(`/api/Teacher/${teacherId}/credentials/${credentialId}`, credential);
+//     return response.data;
+//   } catch (error) {
+//     console.error(`Error updating credential ${credentialId} for teacher ${teacherId}:`, error);
+//     throw error;
+//   }
+// };
 
 /**
  * Delete teacher credential
