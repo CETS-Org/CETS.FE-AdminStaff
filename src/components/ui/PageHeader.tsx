@@ -61,7 +61,7 @@ export default function PageHeader({
         </div>
         
         {controls.length > 0 && (
-          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
+          <div className="flex flex-col xs:flex-row md:flex-row items-start md:items-center gap-3">
             {controls.map((control, index) => {
               if (control.type === 'select') {
                 return (
@@ -71,7 +71,7 @@ export default function PageHeader({
                     options={control.options}
                     value={control.value}
                     onChange={control.onChange}
-                    className={control.className || "w-full sm:w-48"}
+                    className={control.className || "w-full md:w-48"}
                   />
                 );
               } else if (control.type === 'button') {
@@ -80,9 +80,9 @@ export default function PageHeader({
                     key={index}
                     variant={control.variant || 'secondary'}
                     onClick={control.onClick}
-                    className={`w-full sm:w-auto whitespace-nowrap ${control.className || ''}`}
+                    className={`w-full md:w-auto whitespace-nowrap flex items-center justify-center gap-2 ${control.className || ''}`}
                   >
-                    {control.icon && <span className="mr-2">{control.icon}</span>}
+                    {control.icon && control.icon}
                     {control.label}
                   </Button>
                 );
