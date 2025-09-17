@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Routes, Route } from "react-router-dom";
 import Navbar from "@/shared/navbar";
-import Sidebar from "@/sidebar";
+import StaffSidebar from "@/shared/StaffSidebar";
 
 import StaffSchedulePage from "./staff_schedule";
 import StaffStudentsPage from "./staff_students";
@@ -32,7 +32,7 @@ export default function StaffHome() {
     <div className="min-h-screen bg-neutral-50">
       <Navbar toggleSidebar={() => setMobileOpen((v) => !v)} />
 
-      <Sidebar
+      <StaffSidebar
         collapsed={collapsed}
         mobileOpen={mobileOpen}
         onToggleCollapse={() => setCollapsed((v: boolean) => !v)}

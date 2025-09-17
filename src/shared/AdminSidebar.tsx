@@ -1,6 +1,6 @@
-// src/shared/StaffSidebar.tsx
-import GenericSidebar from "./GenericSidebar";
-import { staffSidebarConfig } from "./sidebarConfigs";
+// src/components/admin/AdminSidebar.tsx
+import GenericSidebar from "@/shared/GenericSidebar";
+import { adminSidebarConfig } from "@/shared/sidebarConfigs";
 
 type Props = {
   collapsed: boolean;
@@ -10,7 +10,7 @@ type Props = {
   onNavigate?: () => void;
 };
 
-export default function StaffSidebar({
+export default function AdminSidebar({
   collapsed,
   mobileOpen,
   onToggleCollapse,
@@ -24,7 +24,7 @@ export default function StaffSidebar({
       onToggleCollapse={onToggleCollapse}
       onCloseMobile={onCloseMobile}
       onNavigate={onNavigate}
-      config={staffSidebarConfig}
+      config={adminSidebarConfig}
     />
   );
 }

@@ -1,17 +1,10 @@
-import Navbar from "@/shared/navbar";
-import Sidebar from "@/shared/sidebar";
-import { useState } from "react";
 import ScheduleList from "./components/schedule_list";
 import Card from "@/components/ui/Card";
 import { Calendar, Clock, Users, BookOpen } from "lucide-react";
 
 export default function StaffSchedulePage() {
-  const [isToggleMenu, setIsToggleMenu] = useState(false);
-
   return (
     <div>
-    
-      
       <main className="mt-16 p-6 mx-auto lg:pl-0">
         {/* Header Section */}
         <div className="mb-8">
