@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Table from "../../../components/ui/Table";
 import PageHeader from "../../../components/ui/PageHeader";
+import Breadcrumbs from "../../../components/ui/Breadcrumbs";
 import type { PageHeaderControl } from "../../../components/ui/PageHeader";
 
 // Mock data - in real implementation this would come from API
@@ -117,7 +118,7 @@ const PieChart = ({ data, title }: { data: { label: string, value: number, color
   }, []);
   
   return (
-    <div className="space-y-6 h-full">
+    <div className="space-y-2 h-full">
       <div className="text-center">
         <h3 className="text-lg font-semibold text-neutral-800 mb-2">{title}</h3>
         <p className="text-sm text-neutral-500">Total Students: {total.toLocaleString()}</p>
@@ -281,9 +282,16 @@ export default function StaffAnalytics() {
     { header: "Time", accessor: (row: any) => row.time }
   ];
 
+  const breadcrumbItems = [
+    { label: "Analytics" }
+  ];
+
   return (
     <div className="mt-16 p-4 md:p-8 lg:pl-0 bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/40 min-h-screen">
       <div className={`max-w-7xl mx-auto space-y-8 transition-all duration-700 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+        {/* Breadcrumbs */}
+        <Breadcrumbs items={breadcrumbItems} />
+        
         {/* Page Header */}
         <PageHeader
           title="Academic Analytics"
@@ -319,6 +327,8 @@ export default function StaffAnalytics() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               ),
+              className: 'mt-6'
+              ,
               onClick: () => {
                 // Handle export functionality
                 console.log('Export data clicked');

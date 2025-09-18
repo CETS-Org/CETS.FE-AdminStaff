@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Card from "@/components/ui/Card";
 import PageHeader from "@/components/ui/PageHeader";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import CoursesList from "./components/courses_list";
 import Button from "@/components/ui/Button";
 import { BookOpen, Users, Clock, Award, Download, BarChart3, AlertCircle, Loader2 } from "lucide-react";
@@ -26,7 +27,7 @@ export default function StaffCoursesPage() {
   };
 
   const handleViewAnalytics = () => {
-    navigate("/staff/analytics/courses");
+    navigate("/staff/analytics");
   };
 
   // Simulate data loading
@@ -74,8 +75,15 @@ export default function StaffCoursesPage() {
     }, 1000);
   };
 
+  const breadcrumbItems = [
+    { label: "Courses" }
+  ];
+
   return (
-    <div className="pt-20 pb-6 space-y-8">
+    <div className="mt-16 p-4 md:p-8 lg:pl-0 space-y-8">
+      {/* Breadcrumbs */}
+      <Breadcrumbs items={breadcrumbItems} />
+      
       {/* Page Header */}
       <PageHeader
         title="Course Management"

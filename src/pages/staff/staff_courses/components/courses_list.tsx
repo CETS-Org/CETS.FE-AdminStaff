@@ -11,6 +11,8 @@ import {
   CheckSquare, Square, Download, RefreshCw, Loader2
 } from "lucide-react";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
+import DeleteClassDialog from "./DeleteClassDialog";
+import CourseSelectionModal from "./CourseSelectionModal";
 
 type Course = {
   id: string;
@@ -33,6 +35,7 @@ type Class = {
   id: string;
   name: string;
   courseId: string;
+  courseName: string;
   teacher: string;
   schedule: string;
   room: string;
@@ -131,6 +134,7 @@ const mockClasses: Class[] = [
     id: "1",
     name: "React Class A",
     courseId: "1",
+    courseName: "React Fundamentals",
     teacher: "John Doe",
     schedule: "Mon, Wed, Fri 9:00-11:00",
     room: "Room 101",
@@ -144,6 +148,7 @@ const mockClasses: Class[] = [
     id: "2",
     name: "React Class B",
     courseId: "1",
+    courseName: "React Fundamentals",
     teacher: "Jane Smith",
     schedule: "Tue, Thu 14:00-16:00",
     room: "Room 102",
@@ -157,6 +162,7 @@ const mockClasses: Class[] = [
     id: "3",
     name: "JavaScript Advanced",
     courseId: "2",
+    courseName: "Vue.js Advanced",
     teacher: "Mike Johnson",
     schedule: "Mon, Wed 18:00-20:00",
     room: "Room 103",
@@ -179,9 +185,11 @@ export default function CoursesList() {
   const [showClassList, setShowClassList] = useState(false);
   const [viewMode, setViewMode] = useState<"table" | "card">("table");
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; course: Course | null }>({ open: false, course: null });
+  const [deleteClassDialog, setDeleteClassDialog] = useState<{ open: boolean; classData: Class | null }>({ open: false, classData: null });
   const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error] = useState<string | null>(null);
+  const [showCourseSelection, setShowCourseSelection] = useState(false);
 
   const itemsPerPage = 8;
 
@@ -325,7 +333,7 @@ export default function CoursesList() {
     },
     {
       header: "Category & Level",
-      className: "w-36",
+      className: "w-38",
       accessor: (row) => (
         <div className="space-y-1">
           <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
@@ -426,21 +434,21 @@ export default function CoursesList() {
         <div className="flex gap-1">
           <Button 
             size="sm" 
-            onClick={() => console.log("View", row.id)}
+            onClick={() => handleViewClass(row)}
             className="!p-2 !bg-blue-50 !text-blue-600 !border !border-blue-200 hover:!bg-blue-100 hover:!text-blue-700 hover:!border-blue-300 !transition-colors !rounded-md"
           >
             <Eye className="w-4 h-4" />
           </Button>
           <Button 
             size="sm" 
-            onClick={() => console.log("Edit", row.id)}
+            onClick={() => handleEditClass(row)}
             className="!p-2 !bg-green-50 !text-green-600 !border !border-green-200 hover:!bg-green-100 hover:!text-green-700 hover:!border-green-300 !transition-colors !rounded-md"
           >
             <Edit className="w-4 h-4" />
           </Button>
           <Button 
             size="sm" 
-            onClick={() => console.log("Delete", row.id)}
+            onClick={() => handleDeleteClass(row)}
             className="!p-2 !bg-red-50 !text-red-600 !border !border-red-200 hover:!bg-red-100 hover:!text-red-700 hover:!border-red-300 !transition-colors !rounded-md"
           >
             <Trash2 className="w-4 h-4" />
@@ -455,7 +463,7 @@ export default function CoursesList() {
   };
 
   const handleEdit = (course: Course) => {
-    navigate(`/staff/courses/${course.id}/edit`);
+    navigate(`/staff/courses/edit/${course.id}`);
   };
 
   const handleDelete = (course: Course) => {
@@ -467,6 +475,36 @@ export default function CoursesList() {
       console.log("Delete course:", deleteDialog.course);
       setDeleteDialog({ open: false, course: null });
     }
+  };
+
+  // Class action handlers
+  const handleViewClass = (classData: Class) => {
+    navigate(`/staff/courses/${classData.courseId}/classes/${classData.id}`);
+  };
+
+  const handleEditClass = (classData: Class) => {
+    navigate(`/staff/courses/${classData.courseId}/classes/${classData.id}/edit`);
+  };
+
+  const handleDeleteClass = (classData: Class) => {
+    setDeleteClassDialog({ open: true, classData });
+  };
+
+  const handleConfirmDeleteClass = () => {
+    if (deleteClassDialog.classData) {
+      console.log("Delete class:", deleteClassDialog.classData.id);
+      // Add delete logic here
+      setDeleteClassDialog({ open: false, classData: null });
+    }
+  };
+
+  const handleAddClass = () => {
+    setShowCourseSelection(true);
+  };
+
+  const handleSelectCourse = (courseId: string) => {
+    setShowCourseSelection(false);
+    navigate(`/staff/courses/${courseId}/classes/add`);
   };
 
   return (
@@ -531,8 +569,7 @@ export default function CoursesList() {
               </div>
               
               {/* Add Course Button */}
-              <Button onClick={() => navigate("/staff/courses/add")} className="whitespace-nowrap">
-                <Plus className="w-4 h-4 mr-2" />
+              <Button onClick={() => navigate("/staff/courses/add")} className="whitespace-nowrap" iconLeft={<Plus className="w-4 h-4" />}>
                 Add Course
               </Button>
             </div>
@@ -561,8 +598,9 @@ export default function CoursesList() {
                   variant="secondary"
                   onClick={() => setShowFilters(!showFilters)}
                   className={`whitespace-nowrap transition-colors ${showFilters ? 'bg-primary-50 text-primary-700 border-primary-200' : ''}`}
+                  iconLeft={<Filter className="w-4 h-4 mr-2" />}
                 >
-                  <Filter className="w-4 h-4 mr-2" />
+                  
                   Filters
                   {activeFiltersCount > 0 && (
                     <span className="bg-primary-500 text-white text-xs rounded-full px-1.5 py-0.5 ml-2 min-w-[18px] text-center">
@@ -857,8 +895,10 @@ export default function CoursesList() {
                   {mockClasses.length}
                 </span>
               </Button>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
+              <Button 
+                onClick={handleAddClass}
+                iconLeft={<Plus className="w-4 h-4" />}
+              >
                 Add Class
               </Button>
             </div>
@@ -950,6 +990,20 @@ export default function CoursesList() {
         onConfirm={handleConfirmDelete}
         title="Delete Course"
         message={deleteDialog.course ? `Are you sure you want to delete the course "${deleteDialog.course.name}"? This action cannot be undone.` : ""}
+      />
+
+      <DeleteClassDialog
+        open={deleteClassDialog.open}
+        onOpenChange={(open) => setDeleteClassDialog({ open, classData: deleteClassDialog.classData })}
+        onConfirm={handleConfirmDeleteClass}
+        classData={deleteClassDialog.classData}
+      />
+
+      <CourseSelectionModal
+        isOpen={showCourseSelection}
+        onClose={() => setShowCourseSelection(false)}
+        onSelectCourse={handleSelectCourse}
+        courses={mockCourses}
       />
     </div>
   );

@@ -1,19 +1,26 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft,  CalendarCheck2,  Pencil, TableIcon, Trash2, Plus, Eye, Search, Filter, X } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, CalendarCheck2, Pencil, TableIcon, Trash2, Plus, Eye, Search, Filter, X, BookOpen, User, Users, Award, Clock } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
-import PageHeader from "@/components/ui/PageHeader";
 import type { TableColumn } from "@/components/ui/Table";
 import Table from "@/components/ui/Table";
-import type { Student as BaseStudent } from "../staff_students/components/students_list";
-
-type Student = BaseStudent & {
+// Student interface for course detail page
+interface Student {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  accountId: string;
+  age: number;
+  level: string;
+  status: string;
+  joinDate: string;
   currentClass?: string;
-};
+  enrolledCourses: string[];
+}
 import { Calendar,dateFnsLocalizer } from "react-big-calendar";
 import AddEditClassDialog from "./components/AddEditClassDialog";
-import ClassDetailDialog from "./components/ClassDetailDialog";
 import DeleteClassDialog from "./components/DeleteClassDialog";
 import DeleteConfirmDialog from "./components/DeleteConfirmDialog";
 import { format, parse, startOfWeek, getDay } from "date-fns";
@@ -97,11 +104,11 @@ const CourseDetail: React.FC = () => {
   const navigate = useNavigate();
   const course = coursesData[id || "ENGO01"] || coursesData["ENGO01"];
   const [students] = useState<Student[]>([
-    { id: 1, name: "Nguyen Van A", email: "nguyenvana@email.com", phone: "0123456789", age: 18, level: "B1", enrolledCourses: ["IELTS Foundation"], status: "active", joinDate: "2024-09-01", currentClass: "Basic English Class A" },
-    { id: 2, name: "Tran Thi B", email: "tranthib@email.com", phone: "0987654321", age: 22, level: "C1", enrolledCourses: ["TOEIC Advanced", "Business English"], status: "active", joinDate: "2024-08-15", currentClass: "Basic English Class B" },
-    { id: 3, name: "Le Van C", email: "levanc@email.com", phone: "0555666777", age: 16, level: "Beginner", enrolledCourses: ["Kids English"], status: "active", joinDate: "2024-10-01", currentClass: "Basic English Class A" },
-    { id: 4, name: "Pham Thi D", email: "phamthid@email.com", phone: "0111222333", age: 25, level: "B2", enrolledCourses: ["IELTS Foundation"], status: "graduated", joinDate: "2024-06-01", currentClass: "Basic English Class B" },
-    { id: 5, name: "Hoang Van E", email: "hoangvane@email.com", phone: "0444555666", age: 20, level: "A2", enrolledCourses: ["Conversation Club"], status: "inactive", joinDate: "2024-07-01", currentClass: "Basic English Class A" },
+    { id: "1", accountId: "ACC001", name: "Nguyen Van A", email: "nguyenvana@email.com", phone: "0123456789", age: 18, level: "B1", enrolledCourses: ["IELTS Foundation"], status: "active", joinDate: "2024-09-01", currentClass: "Basic English Class A" },
+    { id: "2", accountId: "ACC002", name: "Tran Thi B", email: "tranthib@email.com", phone: "0987654321", age: 22, level: "C1", enrolledCourses: ["TOEIC Advanced", "Business English"], status: "active", joinDate: "2024-08-15", currentClass: "Basic English Class B" },
+    { id: "3", accountId: "ACC003", name: "Le Van C", email: "levanc@email.com", phone: "0555666777", age: 16, level: "Beginner", enrolledCourses: ["Kids English"], status: "active", joinDate: "2024-10-01", currentClass: "Basic English Class A" },
+    { id: "4", accountId: "ACC004", name: "Pham Thi D", email: "phamthid@email.com", phone: "0111222333", age: 25, level: "B2", enrolledCourses: ["IELTS Foundation"], status: "graduated", joinDate: "2024-06-01", currentClass: "Basic English Class B" },
+    { id: "5", accountId: "ACC005", name: "Hoang Van E", email: "hoangvane@email.com", phone: "0444555666", age: 20, level: "A2", enrolledCourses: ["Conversation Club"], status: "inactive", joinDate: "2024-07-01", currentClass: "Basic English Class A" },
   ]);
 
   const [classSessions] = useState<ClassSession[]>([
@@ -146,12 +153,11 @@ const CourseDetail: React.FC = () => {
 
   // Dialog states
   const [addEditDialog, setAddEditDialog] = useState<{ open: boolean; classData: Class | null }>({ open: false, classData: null });
-  const [detailDialog, setDetailDialog] = useState<{ open: boolean; classData: Class | null }>({ open: false, classData: null });
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; classData: Class | null }>({ open: false, classData: null });
   const [deleteCourseDialog, setDeleteCourseDialog] = useState(false);
 
   const [subTab, setSubTab] = useState<"schedule" | "table">("schedule");
-  const [activeTab, setActiveTab] = useState<"description" | "students" | "class">("description");
+  const [activeTab, setActiveTab] = useState<"students" | "class">("students");
   
   // Student list filter states
   const [studentSearch, setStudentSearch] = useState("");
@@ -170,7 +176,7 @@ const CourseDetail: React.FC = () => {
   const [showClassFilters, setShowClassFilters] = useState(false);
 
   const handleEdit = () => {
-    navigate(`/courses/edit/${id}`);
+    navigate(`/staff/courses/edit/${id}`);
   };
 
   const handleDelete = () => {
@@ -178,26 +184,21 @@ const CourseDetail: React.FC = () => {
   };
 
   const handleConfirmDeleteCourse = () => {
-    navigate('/courses');
+    navigate('/staff/courses');
   };
 
-  const handleEnroll = () => {
-    // Logic đăng ký
-    console.log("Enroll in course:", course.name);
-  };
 
   // Class handlers
   const handleAddClass = () => {
-    setAddEditDialog({ open: true, classData: null });
+    navigate(`/staff/courses/${id}/classes/add`);
   };
 
   const handleEditClass = (classData: Class) => {
-    setAddEditDialog({ open: true, classData });
-   
+    navigate(`/staff/courses/${id}/classes/${classData.id}/edit`);
   };
 
   const handleViewClass = (classData: Class) => {
-    setDetailDialog({ open: true, classData });
+    navigate(`/staff/courses/${id}/classes/${classData.id}`);
   };
 
   const handleDeleteClass = (classData: Class) => {
@@ -286,8 +287,8 @@ const CourseDetail: React.FC = () => {
   };
 
   const breadcrumbItems = [
-    { label: 'Dashboard', to: '/dashboard' },
-    { label: 'Courses', to: '/courses' },
+
+    { label: 'Courses', to: '/staff/courses' },
     { label: 'Course Detail', to: '/courses/detail' }, // 'to' có thể là đường dẫn đầy đủ
   ];
 // Cột cho bảng List Students
@@ -314,7 +315,7 @@ const studentColumns:  TableColumn<Student>[] = [
       header: "Courses", 
       accessor: (row) => (
         <div className="flex flex-wrap gap-1">
-          {row.enrolledCourses.map((course, idx) => (
+          {row.enrolledCourses.map((course: string, idx: number) => (
             <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-md">
               {course}
             </span>
@@ -421,153 +422,205 @@ const studentColumns:  TableColumn<Student>[] = [
   
 
   return (
-    <div className=" mt-18 bg-gray-50 min-h-screen lg:pl-70 ">
-      {/* Header */}
-      <div className="mb-6 mt-4 ">
-       
-       <Breadcrumbs items={breadcrumbItems}/>
-
-      <div className="flex justify-between items-center "> 
-      <PageHeader
-        title="Course Detail"
-        subtitle={course.name}
-      />
-
-        <div className= "flex gap-1 h-10 pr-6">
-        <button className="flex bg-gray-200 text-gray-700 items-center gap-2 px-2 rounded hover:bg-gray-300" onClick={()=>navigate('/courses')}><ArrowLeft className="w-3 h-3"/> Back to courses list </button>
-        <button className="flex bg-accent-200 text-gray-700 items-center gap-2 px-2 rounded  hover:bg-accent-300"  onClick={()=>handleEdit()}><Pencil className="w-3 h-3"/> Edit course </button>
-        <button className="flex bg-red-200 text-gray-700 items-center gap-2 px-2 rounded  hover:bg-red-300"  onClick={()=>handleDelete()}><Trash2 className="w-3 h-3"/> Delete course </button>
-      </div>
-      </div>
-      
-      </div>
-
-
-      
-
-      {/* Nội dung chi tiết */}
-    
-        {/* Hình ảnh và thông tin cơ bản */}
-        <div className="lg:col-span-2">
-          <Card className="p-4">
-            <img
-              src={course.image}
-              alt={course.name}
-              className="w-full h-64 object-cover rounded-lg mb-4"
-            />
-            <div className="grid grid-cols-3 gap-4">
-            <div  >
-                <p className="text-gray-600 ">Course ID:</p>
-                <p className="mt-2 bg-gray-100 rounded p-1 border ">{course.id}</p>
-              </div>
-              <div >
-                <p className="text-gray-600 ">Course name:</p>
-                <p className="mt-2 bg-gray-100 rounded p-1 border">{course.name}</p>
-              </div>
-              <div >
-                <p className="text-gray-600 ">Level:</p>
-                <p className="mt-2 bg-gray-100 rounded p-1 border">{course.level}</p>
-              </div>
+    <div className="min-h-screen bg-gray-50/50 pt-16">
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div className="mb-6">
+          <Breadcrumbs items={breadcrumbItems}/>
+          
+          <div className="flex items-center justify-between mt-4">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="secondary"
+                onClick={() => navigate('/staff/courses')}
+                iconLeft={<ArrowLeft className="w-4 h-4" />}
+              >
+                Back to Courses
+              </Button>
               <div>
-                <p className="text-gray-600">Duration:</p>
-                <p className="mt-2 bg-gray-100 rounded p-1 border">{course.duration}</p>
+                <h1 className="text-2xl font-bold text-gray-900">{course.name}</h1>
+                <p className="text-gray-600">Course ID: {course.id}</p>
               </div>
-              <div>
-                <p className="text-gray-600">Teacher:</p>
-                <p className="fmt-2 bg-gray-100 rounded p-1 border">{course.teacher}</p>
-              </div>
-              <div>
-                <p className="text-gray-600">Status:</p>
-                <span
-                  className={`inline-flex px-2 py-1 rounded-full text-sm ${
-                    course.status === "active"
-                      ? "bg-green-100 text-green-800"
-                      : "bg-gray-100 text-gray-800"
-                  }`}
-                >
-                  {course.status}
-                </span>
-              </div>
-              {course.price && (
-                <div>
-                  <p className="text-gray-600">Price:</p>
-                  <p className="mt-2 bg-gray-100 rounded p-1 border">
-                    {course.price.toLocaleString()} VND
-                  </p>
-                </div>
-              )}
-              {course.maxStudents && course.currentStudents && (
-                <div>
-                  <p className="text-gray-600">Students:</p>
-                  <p className="mt-2 bg-gray-100 rounded p-1 border">
-                    {course.currentStudents}/{course.maxStudents}
-                  </p>
-                </div>
-              )}
             </div>
-          </Card>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                onClick={handleEdit}
+                iconLeft={<Pencil className="w-4 h-4" />}
+              >
+                Edit Course
+              </Button>
+              <Button
+                variant="danger"
+                onClick={handleDelete}
+                iconLeft={<Trash2 className="w-4 h-4" />}
+              >
+                Delete Course
+              </Button>
+            </div>
+          </div>
         </div>
 
-        {/* Mô tả */}
-        
-        {/* Tab Headers */}
-      <div className="mb-6">
-        <div className="flex space-x-4 border-b border-gray-200">
-          <button
-            className={`py-2 px-4 text-gray-600 hover:text-gray-800 focus:outline-none ${
-              activeTab === "description"
-                ? "border-b-2 border-blue-600 text-blue-600 font-semibold"
-                : ""
-            }`}
-            onClick={() => setActiveTab("description")}
-          >
-            Course Description
-          </button>
-          <button
-            className={`py-2 px-4 text-gray-600 hover:text-gray-800 focus:outline-none ${
-              activeTab === "students"
-                ? "border-b-2 border-blue-600 text-blue-600 font-semibold"
-                : ""
-            }`}
-            onClick={() => setActiveTab("students")}
-          >
-            List Students
-          </button>
-          <button
-            className={`py-2 px-4 text-gray-600 hover:text-gray-800 focus:outline-none ${
-              activeTab === "class"
-                ? "border-b-2 border-blue-600 text-blue-600 font-semibold"
-                : ""
-            }`}
-            onClick={() => setActiveTab("class")}
-          >
-            List Class
-          </button>
-        </div>
-      </div>
-        {/* Tab Content */}
-      <div>
-       
-        {activeTab === "description" && (
-          <div>
-          <Card className="p-4 h-full" title="Description">
-            <p className="text-gray-700">{course.description}</p>
-          </Card>
-        </div>
-        )}
 
-        {activeTab === "students" && (
-          <Card 
-            title="Student List" 
-            description="Manage students enrolled in this course"
-            actions={
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">
-                  {filteredStudents.length} students
+      
+
+        {/* Course Overview */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <Card className="p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <BookOpen className="w-6 h-6 text-blue-600" />
+                <h2 className="text-xl font-semibold">Course Information</h2>
+                <span className={`ml-auto px-2 py-1 rounded-full text-xs font-medium border ${
+                  course.status === 'active' 
+                    ? 'bg-green-100 text-green-700 border-green-200' 
+                    : 'bg-gray-100 text-gray-700 border-gray-200'
+                }`}>
+                  {course.status.charAt(0).toUpperCase() + course.status.slice(1)}
                 </span>
               </div>
-            }
-          >
+
+              {/* Course Image */}
+              <div className="mb-6">
+                <img
+                  src={course.image}
+                  alt={course.name}
+                  className="w-full h-64 object-cover rounded-lg"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <BookOpen className="w-5 h-5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Course Name</p>
+                      <p className="font-medium">{course.name}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <User className="w-5 h-5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Instructor</p>
+                      <p className="font-medium">{course.teacher}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-5 h-5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Duration</p>
+                      <p className="font-medium">{course.duration}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Award className="w-5 h-5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Level</p>
+                      <p className="font-medium">{course.level}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Users className="w-5 h-5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Students</p>
+                      <p className="font-medium">
+                        {course.currentStudents || 0}/{course.maxStudents || 0}
+                      </p>
+                    </div>
+                  </div>
+
+                  {course.price && (
+                    <div className="flex items-center gap-3">
+                      <Award className="w-5 h-5 text-gray-500" />
+                      <div>
+                        <p className="text-sm text-gray-500">Price</p>
+                        <p className="font-medium">{course.price.toLocaleString()} VND</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-6 pt-6 border-t">
+                <h3 className="font-medium mb-2">Description</h3>
+                <p className="text-gray-600">{course.description}</p>
+              </div>
+            </Card>
+          </div>
+
+          {/* Statistics */}
+          <div className="space-y-4">
+            <Card className="p-4">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-blue-600">
+                  {course.currentStudents || 0}
+                </div>
+                <div className="text-sm text-gray-500">Enrolled Students</div>
+              </div>
+            </Card>
+
+            <Card className="p-4">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-green-600">
+                  {classes.length}
+                </div>
+                <div className="text-sm text-gray-500">Active Classes</div>
+              </div>
+            </Card>
+
+            <Card className="p-4">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-purple-600">
+                  {course.price ? `${(course.price / 1000000).toFixed(1)}M` : 'N/A'}
+                </div>
+                <div className="text-sm text-gray-500">Price (VND)</div>
+              </div>
+            </Card>
+          </div>
+        </div>
+
+        {/* Tab Headers */}
+        <div className="mb-6">
+          <div className="flex space-x-4 border-b border-gray-200">
+           
+            <button
+              className={`py-3 px-4 text-gray-600 hover:text-gray-800 focus:outline-none transition-colors ${
+                activeTab === "students"
+                  ? "border-b-2 border-blue-600 text-blue-600 font-semibold"
+                  : ""
+              }`}
+              onClick={() => setActiveTab("students")}
+            >
+              Students ({filteredStudents.length})
+            </button>
+            <button
+              className={`py-3 px-4 text-gray-600 hover:text-gray-800 focus:outline-none transition-colors ${
+                activeTab === "class"
+                  ? "border-b-2 border-blue-600 text-blue-600 font-semibold"
+                  : ""
+              }`}
+              onClick={() => setActiveTab("class")}
+            >
+              Classes ({filteredClasses.length})
+            </button>
+          </div>
+        </div>
+        {/* Tab Content */}
+        <div>
+        {activeTab === "students" && (
+          <Card className="p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <Users className="w-6 h-6 text-blue-600" />
+              <h2 className="text-xl font-semibold">Students</h2>
+              <span className="ml-auto text-sm text-gray-500">{filteredStudents.length} students</span>
+            </div>
             {/* Search and Filter Section */}
             <div className="space-y-4 mb-6">
               {/* Search Bar */}
@@ -705,65 +758,67 @@ const studentColumns:  TableColumn<Student>[] = [
         )}
 
         {activeTab === "class" && (
-          <div>
-            <div className="mb-4">
+          <Card className="p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <BookOpen className="w-6 h-6 text-blue-600" />
+              <h2 className="text-xl font-semibold">Classes</h2>
+              <span className="ml-auto text-sm text-gray-500">{filteredClasses.length} classes</span>
+            </div>
+
+            <div className="mb-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <p className="mr-2">View: </p>
-                  <div className="flex bg-gray-200 rounded-md w-fit h-[30px] border">
-                    <button className={`flex items-center gap-2 px-1 rounded-md ${subTab === "table" ? "" : "bg-primary-800 text-white"}`} onClick={() => setSubTab("schedule")}>      
-                      <CalendarCheck2 className="w-3 h-3" />
+                  <span className="text-sm font-medium text-gray-700">View:</span>
+                  <div className="flex bg-gray-100 rounded-lg p-1">
+                    <button 
+                      className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                        subTab === "schedule" 
+                          ? "bg-white text-blue-600 shadow-sm" 
+                          : "text-gray-600 hover:text-gray-900"
+                      }`} 
+                      onClick={() => setSubTab("schedule")}
+                    >      
+                      <CalendarCheck2 className="w-4 h-4" />
                       Schedule
                     </button>
-                    <button className={`flex items-center gap-2 px-1 rounded-md ${subTab === "table" ? "bg-primary-800 text-white" : ""}`} onClick={() => setSubTab("table")}>
-                      <TableIcon className="w-3 h-3" />
+                    <button 
+                      className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                        subTab === "table" 
+                          ? "bg-white text-blue-600 shadow-sm" 
+                          : "text-gray-600 hover:text-gray-900"
+                      }`} 
+                      onClick={() => setSubTab("table")}
+                    >
+                      <TableIcon className="w-4 h-4" />
                       Table
                     </button>
                   </div>
                 </div>
                 <Button
                   onClick={handleAddClass}
-
+                  iconLeft={<Plus className="w-4 h-4" />}
                 >
-                  <Plus className="w-4 h-4" />
                   Add Class
                 </Button>
               </div>
             </div>
             {subTab === "schedule" ? (
-              <Card className="p-6" title="Schedule">
-                {/* <ul className="space-y-4">
-                  {classSessions.map((session) => (
-                    <li key={session.id} className="border-b pb-2">
-                      <p className="font-semibold">{session.date}</p>
-                      <p>{session.time} - {session.room}</p>
-                    </li>
-                  ))}
-                </ul> */}
-                 <Calendar
-    localizer={localizer}
-    events={events}
-    startAccessor="start"
-    endAccessor="end"
-    style={{ height: 500 }}
-    date={currentDate}             // truyền state ngày hiện tại
-    onNavigate={(newDate) => setCurrentDate(newDate)} // cập nhật khi bấm nút
-    views={["month", "week", "day"]}
-    defaultView="week"
-  />
-              </Card>
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <Calendar
+                  localizer={localizer}
+                  events={events}
+                  startAccessor="start"
+                  endAccessor="end"
+                  style={{ height: 500 }}
+                  date={currentDate}
+                  onNavigate={(newDate: Date) => setCurrentDate(newDate)}
+                  views={["month", "week", "day"]}
+                  defaultView="week"
+                  className="rounded-lg"
+                />
+              </div>
             ) : (
-              <Card 
-                title="Class List" 
-                description="Manage classes for this course"
-                actions={
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500">
-                      {filteredClasses.length} classes
-                    </span>
-                  </div>
-                }
-              >
+              <div>
                 {/* Search and Filter Section */}
                 <div className="space-y-4 mb-6">
                   {/* Search Bar */}
@@ -862,64 +917,36 @@ const studentColumns:  TableColumn<Student>[] = [
                     </div>
                   }
                 />
-              </Card>
+              </div>
             )}
-          </div>
+          </Card>
         )}
+        </div>
+
+        {/* Dialogs */}
+        <AddEditClassDialog
+          open={addEditDialog.open}
+          onOpenChange={(open) => setAddEditDialog({ open, classData: addEditDialog.classData })}
+          onSave={handleSaveClass}
+          classData={addEditDialog.classData}
+          courseName={course.name}
+        />
+
+        <DeleteClassDialog
+          open={deleteDialog.open}
+          onOpenChange={(open) => setDeleteDialog({ open, classData: deleteDialog.classData })}
+          onConfirm={handleConfirmDeleteClass}
+          classData={deleteDialog.classData}
+        />
+
+        <DeleteConfirmDialog
+          open={deleteCourseDialog}
+          onOpenChange={setDeleteCourseDialog}
+          onConfirm={handleConfirmDeleteCourse}
+          title="Delete Course"
+          message={`Are you sure you want to delete the course "${course.name}"? This action cannot be undone.`}
+        />
       </div>
-      
-
-      {/* Thanh điều khiển */}
-      {/* <div className="mt-6">
-        <Card className="p-4 flex justify-end gap-4">
-          <Button variant="primary" onClick={handleEnroll}>
-            Enroll Now
-          </Button>
-          <button
-            className="flex items-center justify-center w-8 h-8 rounded-full border border-blue-300 text-blue-600 hover:border-blue-400 hover:text-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
-            onClick={handleEdit}
-          >
-            <Pencil className="w-5 h-5" />
-          </button>
-          <button
-            className="flex items-center justify-center w-8 h-8 rounded-full border border-red-300 text-red-600 hover:border-red-400 hover:text-red-700 focus:outline-none focus:ring-1 focus:ring-red-500 transition-colors"
-            onClick={handleDelete}
-          >
-            <Trash2 className="w-5 h-5" />
-          </button>
-        </Card>
-      </div> */}
-
-      {/* Dialogs */}
-      <AddEditClassDialog
-        open={addEditDialog.open}
-        onOpenChange={(open) => setAddEditDialog({ open, classData: addEditDialog.classData })}
-        onSave={handleSaveClass}
-        classData={addEditDialog.classData}
-        courseName={course.name}
-      />
-
-      <ClassDetailDialog
-        open={detailDialog.open}
-        onOpenChange={(open) => setDetailDialog({ open, classData: detailDialog.classData })}
-        classData={detailDialog.classData}
-        onEdit={handleEditClass}
-      />
-
-      <DeleteClassDialog
-        open={deleteDialog.open}
-        onOpenChange={(open) => setDeleteDialog({ open, classData: deleteDialog.classData })}
-        onConfirm={handleConfirmDeleteClass}
-        classData={deleteDialog.classData}
-      />
-
-      <DeleteConfirmDialog
-        open={deleteCourseDialog}
-        onOpenChange={setDeleteCourseDialog}
-        onConfirm={handleConfirmDeleteCourse}
-        title="Delete Course"
-        message={`Are you sure you want to delete the course "${course.name}"? This action cannot be undone.`}
-      />
     </div>
   );
 };

@@ -44,7 +44,7 @@ export default function PageHeader({
   );
 
   return (
-    <div className={`bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50 ${className}`}>
+    <div className={`bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50 mt-4 ${className}`}>
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
@@ -80,9 +80,9 @@ export default function PageHeader({
                     key={index}
                     variant={control.variant || 'secondary'}
                     onClick={control.onClick}
-                    className={`w-full md:w-auto whitespace-nowrap flex items-center justify-center gap-2 ${control.className || ''}`}
+                    iconLeft={control.icon}
+                    className={`w-full md:w-auto whitespace-nowrap ${control.className || ''}`}
                   >
-                    {control.icon && control.icon}
                     {control.label}
                   </Button>
                 );

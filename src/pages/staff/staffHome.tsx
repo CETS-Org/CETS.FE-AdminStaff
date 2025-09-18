@@ -10,7 +10,9 @@ import StaffCoursesPage from "./staff_courses";
 import TeacherManagement from "./staff_teachers";
 import StaffAnalytics from "./staff_analys";
 import CourseDetailPage from "./staff_courses/CourseDetailPage";
+import ClassDetailPage from "./staff_courses/ClassDetailPage";
 import AddEditCoursePage from "./staff_courses/AddEditCoursePage";
+import AddEditClassPage from "./staff_courses/AddEditClassPage";
 import AssignTeacherPage from "./staff_assign_teacher";
 import StaffRequestPage from "./staff_request";
 import StaffEventsPage from "./staff_events";
@@ -62,6 +64,9 @@ export default function StaffHome() {
             <Route path="courses/add" element={<AddEditCoursePage />} />
             <Route path="courses/edit/:id" element={<AddEditCoursePage />} />
             <Route path="courses/:id" element={<CourseDetailPage />} />
+            <Route path="courses/:courseId/classes/add" element={<AddEditClassPage />} />
+            <Route path="courses/:courseId/classes/:classId" element={<ClassDetailPage />} />
+            <Route path="courses/:courseId/classes/:classId/edit" element={<AddEditClassPage />} />
             <Route path="assign-teacher" element={<AssignTeacherPage />} />
             <Route path="events" element={<StaffEventsPage />} />
             <Route path="events/:id" element={<EventDetailPage />} />

@@ -4,7 +4,8 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
-import { ChevronRight, Plus, Trash2, BookOpen, ArrowLeft, Upload, Camera, Save, FileText, Link as LinkIcon } from "lucide-react";
+import PageHeader from "@/components/ui/PageHeader";
+import { ChevronRight, Plus, Trash2, BookOpen, ArrowLeft, Upload, Camera, Save, FileText, Link as LinkIcon, CheckCircle, AlertCircle, Users, Clock, DollarSign, Calendar } from "lucide-react";
 
 interface Course {
   id?: string;
@@ -362,11 +363,37 @@ export default function AddEditCoursePage() {
     }
   };
 
-  const breadcrumbItems = [
-    { label: 'Dashboard', to: '/dashboard' },
-    { label: 'Courses', to: '/courses' },
-    { label: isEdit ? 'Edit Course' : 'Add Course', to: '#' }
-  ];
+  const getFormCompletionPercentage = () => {
+    const requiredFields = [
+      formData.name,
+      formData.description,
+      formData.level,
+      formData.duration,
+      formData.teachers.length > 0,
+      formData.startDate,
+      formData.endDate
+    ];
+    
+    const optionalFields = [
+      formData.image || imagePreview,
+      formData.price,
+      formData.maxStudents,
+      formData.syllabus || syllabusFile || syllabusUrl,
+      formData.materials || materialsFile || materialsUrl,
+      formData.assignments || assignmentsFile || assignmentsUrl
+    ];
+    
+    const completedRequired = requiredFields.filter(Boolean).length;
+    const completedOptional = optionalFields.filter(Boolean).length;
+    
+    const requiredWeight = 70; // 70% for required fields
+    const optionalWeight = 30; // 30% for optional fields
+    
+    const requiredPercentage = (completedRequired / requiredFields.length) * requiredWeight;
+    const optionalPercentage = (completedOptional / optionalFields.length) * optionalWeight;
+    
+    return Math.round(requiredPercentage + optionalPercentage);
+  };
 
   if (isLoading) {
     return (
@@ -380,77 +407,106 @@ export default function AddEditCoursePage() {
   }
 
   return (
-    <div className="p-6 w-full mt-16 lg:pl-70">
-      {/* Header with Breadcrumb */}
-      <div className="mb-8">
-      <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-            <Link to="/" className="hover:text-gray-900">Dashboard</Link>
-            <ChevronRight className="w-4 h-4" />
-            <Link to="/courses" className="hover:text-gray-900">Courses</Link>
-            <ChevronRight className="w-4 h-4" />
-            <span className="text-gray-900 font-medium">
-              {isEdit ? "Edit Course" : "Add New Course"}
-            </span>
+    <div className="pt-20 pb-6 space-y-8">
+      {/* Enhanced Page Header */}
+      <PageHeader
+        title={isEdit ? "Edit Course" : "Create New Course"}
+        description={isEdit ? "Update course information and content" : "Create a comprehensive course with detailed information"}
+        icon={<BookOpen className="w-5 h-5 text-white" />}
+        controls={[
+          {
+            type: 'button',
+            label: 'Back to Courses',
+            variant: 'secondary',
+            icon: <ArrowLeft className="w-4 h-4" />,
+            onClick: () => navigate('/staff/courses')
+          },
+          {
+            type: 'button',
+            label: isLoading ? 'Saving...' : 'Save Course',
+            variant: 'primary',
+            icon: <Save className="w-4 h-4" />,
+            onClick: handleSave,
+            className: isLoading ? 'opacity-75 cursor-not-allowed' : ''
+          }
+        ]}
+      />
+
+      {/* Form Progress Indicator */}
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium text-blue-900">Course Creation Progress</h3>
+            <span className="text-xs text-blue-600">{getFormCompletionPercentage()}% Complete</span>
           </div>
-        <div className="flex items-center justify-between mb-6">
-          
-          <div className="flex items-center justify-between mb-6">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900"> {isEdit ? "Edit Course" : "Add New Course"}</h1>
-                <p className="text-gray-600 mt-2">Update course information with the form below</p>
-              </div>
+          <div className="w-full bg-blue-200 rounded-full h-2">
+            <div 
+              className="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${getFormCompletionPercentage()}%` }}
+            ></div>
+          </div>
+          <div className="flex items-center gap-4 mt-2 text-xs text-blue-700">
+            <div className="flex items-center gap-1">
+              {formData.name && formData.description ? 
+                <CheckCircle className="w-3 h-3 text-green-500" /> : 
+                <AlertCircle className="w-3 h-3 text-amber-500" />
+              }
+              Basic Info
             </div>
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={() => navigate('/courses')}
-              variant="secondary"
-              className="flex items-center gap-2"
-            >
-              <div className="flex items-center gap-2">
-                <ArrowLeft className="w-4 h-4" />
-                Back to Courses
-              </div>          
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={isLoading}
-              className="flex items-center gap-2"
-            >
-              <Save className="w-4 h-4" />
-              {isLoading ? 'Saving...' : 'Save Course'}
-            </Button>
+            <div className="flex items-center gap-1">
+              {formData.teachers.length > 0 && formData.startDate && formData.endDate ? 
+                <CheckCircle className="w-3 h-3 text-green-500" /> : 
+                <AlertCircle className="w-3 h-3 text-amber-500" />
+              }
+              Schedule & Staff
+            </div>
+            <div className="flex items-center gap-1">
+              {(formData.syllabus || syllabusFile || syllabusUrl) ? 
+                <CheckCircle className="w-3 h-3 text-green-500" /> : 
+                <AlertCircle className="w-3 h-3 text-amber-500" />
+              }
+              Content
+            </div>
           </div>
         </div>
-      </div>
+      </Card>
 
       <div className="mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-8">
             {/* Course Image */}
-            <Card>
+            <Card className="overflow-hidden">
+     
               <div className="p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-primary-600" />
-                  Course Image
-                </h3>
-                
-                <div className="flex items-center gap-6">
-                  <div className="relative">
+                <div className="flex items-center gap-3 mb-6">
+                  <Camera className="w-6 h-6 text-purple-600" />
+                  <h2 className="text-xl font-semibold">Course Visual Identity</h2>
+                </div>
+                <div className="flex flex-col lg:flex-row items-start gap-6">
+                  <div className="relative group">
                     <div 
-                      className="w-32 h-32 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-primary-400 transition-colors"
+                      className="w-48 h-32 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-primary-400 hover:bg-gradient-to-br hover:from-blue-100 hover:to-indigo-200 transition-all duration-300 group-hover:scale-105"
                       onClick={handleImageClick}
                     >
                       {imagePreview ? (
-                        <img 
-                          src={imagePreview} 
-                          alt="Course preview" 
-                          className="w-full h-full object-cover rounded-lg"
-                        />
+                        <div className="relative w-full h-full">
+                          <img 
+                            src={imagePreview} 
+                            alt="Course preview" 
+                            className="w-full h-full object-cover rounded-xl"
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-xl transition-all duration-300 flex items-center justify-center">
+                            <Camera className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                          </div>
+                        </div>
                       ) : (
                         <div className="text-center">
-                          <Camera className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                          <p className="text-sm text-gray-500">Click to upload</p>
+                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <Camera className="w-6 h-6 text-white" />
+                          </div>
+                          <p className="text-sm font-medium text-gray-600">Click to upload image</p>
+                          <p className="text-xs text-gray-400 mt-1">or drag and drop</p>
                         </div>
                       )}
                     </div>
@@ -464,32 +520,47 @@ export default function AddEditCoursePage() {
                   </div>
                   
                   <div className="flex-1">
-                    <h4 className="font-medium mb-2">Upload Course Image</h4>
-                    <p className="text-sm text-gray-600 mb-4">
-                      Upload a high-quality image that represents your course. 
-                      Recommended size: 400x200 pixels. Max file size: 5MB.
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={handleImageClick}
-                        className="flex items-center gap-2"
-                      >
-                        <Upload className="w-4 h-4" />
-                        Choose Image
-                      </Button>
-                      {imagePreview && (
+                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200">
+                      <h4 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                        <Upload className="w-4 h-4 text-blue-500" />
+                        Image Guidelines
+                      </h4>
+                      <div className="space-y-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-3 h-3 text-green-500" />
+                          <span>Recommended: 400×200 pixels (2:1 ratio)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-3 h-3 text-green-500" />
+                          <span>Formats: JPG, PNG, WebP</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-3 h-3 text-green-500" />
+                          <span>Maximum size: 5MB</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2 mt-4">
                         <Button
                           variant="secondary"
                           size="sm"
-                          onClick={removeImage}
-                          className="flex items-center gap-2 text-red-600 hover:text-red-700"
+                          onClick={handleImageClick}
+                          iconLeft={<Upload className="w-4 h-4" />}
                         >
-                          <Trash2 className="w-4 h-4" />
-                          Remove
+                          {imagePreview ? 'Change Image' : 'Choose Image'}
                         </Button>
-                      )}
+                        {imagePreview && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={removeImage}
+                            iconLeft={<Trash2 className="w-4 h-4" />}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -497,10 +568,12 @@ export default function AddEditCoursePage() {
             </Card>
 
             {/* Basic Information */}
-            <Card>
+            <Card className="overflow-hidden">
               <div className="p-6">
-                <h3 className="text-lg font-semibold mb-6">Basic Information</h3>
-                
+                <div className="flex items-center gap-3 mb-6">
+                  <BookOpen className="w-6 h-6 text-blue-600" />
+                  <h2 className="text-xl font-semibold">Basic Information</h2>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -640,13 +713,15 @@ export default function AddEditCoursePage() {
                  </div>
                </div>
              </Card>
-
+             FileText
              {/* Course Content */}
-             <Card>
+             <Card className="overflow-hidden">
                <div className="p-6">
-                 <h3 className="text-lg font-semibold mb-6">Course Content</h3>
-                 
-                                   <div className="space-y-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <FileText className="w-6 h-6 text-green-600" />
+                  <h2 className="text-xl font-semibold"> Course Content & Materials</h2>
+                </div>
+                  <div className="space-y-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Syllabus
@@ -671,9 +746,8 @@ export default function AddEditCoursePage() {
                             variant="secondary"
                             size="sm"
                             onClick={() => document.getElementById('syllabus-file')?.click()}
-                            className="flex items-center gap-2"
+                            iconLeft={<FileText className="w-4 h-4" />}
                           >
-                            <FileText className="w-4 h-4" />
                             Upload File
                           </Button>
                           <div className="flex items-center gap-2">
@@ -691,9 +765,9 @@ export default function AddEditCoursePage() {
                               variant="secondary"
                               size="sm"
                               onClick={() => removeFile('syllabus')}
-                              className="flex items-center gap-2 text-red-600 hover:text-red-700"
+                              iconLeft={<Trash2 className="w-4 h-4" />}
+                              className="text-red-600 hover:text-red-700"
                             >
-                              <Trash2 className="w-4 h-4" />
                               Clear
                             </Button>
                           )}
@@ -732,9 +806,8 @@ export default function AddEditCoursePage() {
                             variant="secondary"
                             size="sm"
                             onClick={() => document.getElementById('materials-file')?.click()}
-                            className="flex items-center gap-2"
+                            iconLeft={<FileText className="w-4 h-4" />}
                           >
-                            <FileText className="w-4 h-4" />
                             Upload File
                           </Button>
                           <div className="flex items-center gap-2">
@@ -752,9 +825,9 @@ export default function AddEditCoursePage() {
                               variant="secondary"
                               size="sm"
                               onClick={() => removeFile('materials')}
-                              className="flex items-center gap-2 text-red-600 hover:text-red-700"
+                              iconLeft={<Trash2 className="w-4 h-4" />}
+                              className="text-red-600 hover:text-red-700"
                             >
-                              <Trash2 className="w-4 h-4" />
                               Clear
                             </Button>
                           )}
@@ -793,9 +866,8 @@ export default function AddEditCoursePage() {
                             variant="secondary"
                             size="sm"
                             onClick={() => document.getElementById('assignments-file')?.click()}
-                            className="flex items-center gap-2"
+                            iconLeft={<FileText className="w-4 h-4" />}
                           >
-                            <FileText className="w-4 h-4" />
                             Upload File
                           </Button>
                           <div className="flex items-center gap-2">
@@ -813,9 +885,9 @@ export default function AddEditCoursePage() {
                               variant="secondary"
                               size="sm"
                               onClick={() => removeFile('assignments')}
-                              className="flex items-center gap-2 text-red-600 hover:text-red-700"
+                              iconLeft={<Trash2 className="w-4 h-4" />}
+                              className="text-red-600 hover:text-red-700"
                             >
-                              <Trash2 className="w-4 h-4" />
                               Clear
                             </Button>
                           )}
@@ -834,12 +906,15 @@ export default function AddEditCoursePage() {
             </Card>
           </div>
 
-          {/* Sidebar */}
+          {/* Enhanced Sidebar */}
           <div className="space-y-6">
             {/* Status */}
-            <Card>
+            <Card className="overflow-hidden">
               <div className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Course Status</h3>
+                <div className="flex items-center gap-3 mb-6">
+                  <AlertCircle className="w-6 h-6 text-amber-600" />
+                  <h2 className="text-xl font-semibold">Set course availability</h2>
+                </div>
                 <div className="space-y-3">
                   <label className="flex items-center">
                     <input
@@ -867,69 +942,129 @@ export default function AddEditCoursePage() {
               </div>
             </Card>
 
-            {/* Course Preview */}
-            <Card>
+            {/* Enhanced Course Preview */}
+            <Card className="overflow-hidden">
               <div className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Course Preview</h3>
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <span className="text-gray-500">Name:</span>
-                    <p className="font-medium">{formData.name || 'Not set'}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Level:</span>
-                    <p className="font-medium">{formData.level || 'Not set'}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Duration:</span>
-                    <p className="font-medium">{formData.duration || 'Not set'}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Teachers:</span>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {formData.teachers.length > 0 ? (
-                        formData.teachers.map((teacher, index) => (
-                          <span key={index} className="inline-flex px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-md">
-                            {teacher}
-                          </span>
-                        ))
-                      ) : (
-                        <p className="font-medium text-gray-400">Not set</p>
-                      )}
-                    </div>
-                  </div>
-                                     <div>
-                     <span className="text-gray-500">Status:</span>
-                     <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ml-2 ${
-                       formData.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                     }`}>
-                       {formData.status}
-                     </span>
-                   </div>
-                                       <div>
-                      <span className="text-gray-500">Syllabus:</span>
-                      <p className="font-medium text-xs mt-1">
-                        {syllabusFile ? `📎 ${syllabusFile.name}` : 
-                         syllabusUrl ? `🔗 URL provided` :
-                         formData.syllabus ? `${formData.syllabus.split('\n').length} weeks` : 'Not set'}
-                      </p>
-                    </div>
+                <div className="flex items-center gap-3 mb-6">
+                  <BookOpen className="w-6 h-6 text-purple-500" />
+                  <h2 className="text-xl font-semibold">Live Preview</h2>
+                </div>
+                <div className="space-y-4 text-sm">
+                  <div className="flex items-start gap-3">
+                    <BookOpen className="w-4 h-4 text-indigo-500 mt-0.5" />
                     <div>
-                      <span className="text-gray-500">Materials:</span>
-                      <p className="font-medium text-xs mt-1">
-                        {materialsFile ? `📎 ${materialsFile.name}` : 
-                         materialsUrl ? `🔗 URL provided` :
-                         formData.materials ? `${formData.materials.split('\n').length} items` : 'Not set'}
-                      </p>
+                      <span className="text-gray-500 text-xs uppercase tracking-wide">Course Name</span>
+                      <p className="font-semibold text-gray-800">{formData.name || 'Not set'}</p>
                     </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-4 h-4 text-green-500 mt-0.5" />
                     <div>
-                      <span className="text-gray-500">Assignments:</span>
-                      <p className="font-medium text-xs mt-1">
-                        {assignmentsFile ? `📎 ${assignmentsFile.name}` : 
-                         assignmentsUrl ? `🔗 URL provided` :
-                         formData.assignments ? `${formData.assignments.split('\n').length} tasks` : 'Not set'}
-                      </p>
+                      <span className="text-gray-500 text-xs uppercase tracking-wide">Level</span>
+                      <p className="font-semibold text-gray-800 capitalize">{formData.level || 'Not set'}</p>
                     </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <Clock className="w-4 h-4 text-blue-500 mt-0.5" />
+                    <div>
+                      <span className="text-gray-500 text-xs uppercase tracking-wide">Duration</span>
+                      <p className="font-semibold text-gray-800">{formData.duration || 'Not set'}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <Users className="w-4 h-4 text-purple-500 mt-0.5" />
+                    <div>
+                      <span className="text-gray-500 text-xs uppercase tracking-wide">Teachers</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {formData.teachers.length > 0 ? (
+                          formData.teachers.map((teacher, index) => (
+                            <span key={index} className="inline-flex px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
+                              {teacher}
+                            </span>
+                          ))
+                        ) : (
+                          <p className="font-medium text-gray-400">Not assigned</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {formData.price && (
+                    <div className="flex items-start gap-3">
+                      <DollarSign className="w-4 h-4 text-green-500 mt-0.5" />
+                      <div>
+                        <span className="text-gray-500 text-xs uppercase tracking-wide">Price</span>
+                        <p className="font-semibold text-gray-800">{formData.price.toLocaleString()} VND</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {(formData.startDate || formData.endDate) && (
+                    <div className="flex items-start gap-3">
+                      <Calendar className="w-4 h-4 text-orange-500 mt-0.5" />
+                      <div>
+                        <span className="text-gray-500 text-xs uppercase tracking-wide">Schedule</span>
+                        <p className="font-semibold text-gray-800">
+                          {formData.startDate && formData.endDate 
+                            ? `${new Date(formData.startDate).toLocaleDateString()} - ${new Date(formData.endDate).toLocaleDateString()}`
+                            : formData.startDate 
+                            ? `Starts: ${new Date(formData.startDate).toLocaleDateString()}`
+                            : formData.endDate 
+                            ? `Ends: ${new Date(formData.endDate).toLocaleDateString()}`
+                            : 'Not scheduled'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5" />
+                    <div>
+                      <span className="text-gray-500 text-xs uppercase tracking-wide">Status</span>
+                      <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium mt-1 ${
+                        formData.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        {formData.status}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="border-t border-gray-200 pt-4">
+                    <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-3">Content Status</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-3 h-3 text-blue-500" />
+                        <span className="text-xs text-gray-600">Syllabus:</span>
+                        <span className="text-xs font-medium">
+                          {syllabusFile ? `📎 ${syllabusFile.name}` : 
+                           syllabusUrl ? `🔗 URL provided` :
+                           formData.syllabus ? `${formData.syllabus.split('\n').length} weeks` : 'Not set'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="w-3 h-3 text-green-500" />
+                        <span className="text-xs text-gray-600">Materials:</span>
+                        <span className="text-xs font-medium">
+                          {materialsFile ? `📎 ${materialsFile.name}` : 
+                           materialsUrl ? `🔗 URL provided` :
+                           formData.materials ? `${formData.materials.split('\n').length} items` : 'Not set'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-3 h-3 text-purple-500" />
+                        <span className="text-xs text-gray-600">Assignments:</span>
+                        <span className="text-xs font-medium">
+                          {assignmentsFile ? `📎 ${assignmentsFile.name}` : 
+                           assignmentsUrl ? `🔗 URL provided` :
+                           formData.assignments ? `${formData.assignments.split('\n').length} tasks` : 'Not set'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </Card>
