@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import Table, { type TableColumn } from "@/components/ui/Table";
 import { 
-  ChevronRight, 
   Edit, 
   Trash2, 
   User, 
@@ -279,18 +279,18 @@ export default function StudentDetailPage() {
     setOpenEditDialog(false);
     setEditingStudent(null);
   };
+  const breadcrumbItems = [
+    { label: "Students", to: "/staff/students" },
+    { label: studentData?.fullName || "Student Detail" }
+  ];
+
   return (
     <div className="p-6 w-full mt-16 ">
       {/* Header with Breadcrumb */}
       <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Link to="/" className="hover:text-gray-900">Dashboard</Link>
-            <ChevronRight className="w-4 h-4" />
-            <Link to="/students" className="hover:text-gray-900">Students</Link>
-            <ChevronRight className="w-4 h-4" />
-            <span className="text-gray-900 font-medium">Student Detail</span>
-          </div>
+        <Breadcrumbs items={breadcrumbItems} />
+        <div className="flex items-center justify-between mb-6 mt-4">
+          <div></div>
           <div className="flex items-center gap-3">
             <Button
               onClick={handleEdit}

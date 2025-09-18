@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import { ChevronRight, Plus, Trash2, GraduationCap, ArrowLeft, Upload, User, Camera, Save } from "lucide-react";
@@ -310,20 +311,18 @@ export default function AddEditTeacherPage() {
     );
   }
 
+  const breadcrumbItems = [
+    { label: "Teachers", to: "/staff/teachers" },
+    { label: isEdit ? "Edit Teacher" : "Add New Teacher" }
+  ];
+
   return (
     <div className="p-6 w-full mt-16 lg:pl-0">
       {/* Header with Breadcrumb */}
       <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Link to="/" className="hover:text-gray-900">Dashboard</Link>
-            <ChevronRight className="w-4 h-4" />
-            <Link to="/teachers" className="hover:text-gray-900">Teachers</Link>
-            <ChevronRight className="w-4 h-4" />
-            <span className="text-gray-900 font-medium">
-              {isEdit ? "Edit Teacher" : "Add New Teacher"}
-            </span>
-          </div>
+        <Breadcrumbs items={breadcrumbItems} />
+        <div className="flex items-center justify-between mb-6 mt-4">
+          <div></div>
           <Button
             onClick={handleCancel}
             variant="secondary"

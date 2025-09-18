@@ -1,11 +1,19 @@
 import ScheduleList from "./components/schedule_list";
 import Card from "@/components/ui/Card";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { Calendar, Clock, Users, BookOpen } from "lucide-react";
 
 export default function StaffSchedulePage() {
+  const breadcrumbItems = [
+    { label: "Schedule" }
+  ];
+
   return (
     <div>
       <main className="mt-16 p-6 mx-auto lg:pl-0">
+        {/* Breadcrumbs */}
+        <Breadcrumbs items={breadcrumbItems} />
+        
         {/* Header Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">

@@ -1,11 +1,18 @@
 import Card from "@/components/ui/Card";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import StudentsList from "./components/students_list";
 import { Users, GraduationCap, Clock, Award } from "lucide-react";
 
 export default function StaffStudentsPage() {
+  const breadcrumbItems = [
+    { label: "Students" }
+  ];
 
   return (   
         <main className="mt-16 p-6 mx-auto lg:pl-0 lg:w-full bg-gray-50 md:w-[90%] w-[90%]">
+          {/* Breadcrumbs */}
+          <Breadcrumbs items={breadcrumbItems} />
+          
           {/* Header Section */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-6">

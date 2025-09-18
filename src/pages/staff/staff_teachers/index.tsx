@@ -1,13 +1,19 @@
 import TeacherList from "./components/teacher_list";
 import Card from "@/components/ui/Card";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { Users, GraduationCap, Clock, Award } from "lucide-react";
 
 export default function TeacherManagement() {
-    const a : string ="";
+    const breadcrumbItems = [
+        { label: "Teachers" }
+    ];
 
     return (
   
                 <main className=" mt-16 p-6 mx-auto lg:pl-0 lg:w-full  bg-gray-50 w-[90%]">
+                    {/* Breadcrumbs */}
+                    <Breadcrumbs items={breadcrumbItems} />
+                    
                     {/* Header Section */}
                     <div className="mb-8">
                         <div className="flex items-center justify-between mb-6">
