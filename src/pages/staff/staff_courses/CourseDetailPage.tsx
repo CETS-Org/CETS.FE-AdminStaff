@@ -20,7 +20,6 @@ interface Student {
   enrolledCourses: string[];
 }
 import { Calendar,dateFnsLocalizer } from "react-big-calendar";
-import AddEditClassDialog from "./components/AddEditClassDialog";
 import DeleteClassDialog from "./components/DeleteClassDialog";
 import DeleteConfirmDialog from "./components/DeleteConfirmDialog";
 import { format, parse, startOfWeek, getDay } from "date-fns";
@@ -924,13 +923,7 @@ const studentColumns:  TableColumn<Student>[] = [
         </div>
 
         {/* Dialogs */}
-        <AddEditClassDialog
-          open={addEditDialog.open}
-          onOpenChange={(open) => setAddEditDialog({ open, classData: addEditDialog.classData })}
-          onSave={handleSaveClass}
-          classData={addEditDialog.classData}
-          courseName={course.name}
-        />
+        
 
         <DeleteClassDialog
           open={deleteDialog.open}
