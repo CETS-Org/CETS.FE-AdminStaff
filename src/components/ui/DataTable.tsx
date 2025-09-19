@@ -403,8 +403,7 @@ export default function DataTable<T>({
                 }
               </p>
               {emptyStateAction && (
-                <Button onClick={emptyStateAction.onClick}>
-                  <Plus className="w-4 h-4 mr-2" />
+                <Button onClick={emptyStateAction.onClick} iconLeft={<Plus className="w-4 h-4" />}>
                   {emptyStateAction.label}
                 </Button>
               )}
