@@ -35,7 +35,7 @@ export default function ConfirmRequestDialog({
 
   const isApprove = action === "approve";
   const actionText = isApprove ? "Approve" : "Reject";
-  const buttonColor = isApprove ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700";
+  const buttonColor = isApprove ? "!bg-green-600 hover:!bg-green-700 !text-white" : "!bg-red-600 hover:!bg-red-700 !text-white";
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
@@ -92,7 +92,7 @@ export default function ConfirmRequestDialog({
           </Button>
           <Button
             onClick={handleConfirm}
-            className={`${buttonColor} text-white`}
+            className={buttonColor}
             disabled={!isApprove && !reply.trim()}
           >
             {actionText} Request
