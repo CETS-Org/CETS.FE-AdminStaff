@@ -16,6 +16,7 @@ import ForgotPassword from './pages/common/ForgotPassword'
 import Gateway from './pages/common/Gateway'
 import OtpVerification from './pages/common/OtpVerification'
 import ResetPassword from './pages/common/ResetPassword'
+import ChangePassword from './pages/common/ChangePassword'
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
         <Route path="/forgotPassword" element={<ForgotPassword />} />
         <Route path="/otpVerification" element={<OtpVerification />} />
         <Route path="/resetPassword" element={<ResetPassword />} />
+        <Route path="/change-password" element={<ChangePassword />} />
         <Route path="/gateway" element={<Gateway />} />
         <Route path="/homepage" element={<HomePage />} />
         

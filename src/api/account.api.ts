@@ -93,3 +93,25 @@ export const getRole = async (): Promise<Role[]> => {
         throw error;
     }
 }
+
+// Change password types and API
+export interface ChangePasswordRequest {
+  email: string;
+  oldPassword: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  message: string;
+  account: boolean;
+}
+
+export const changePassword = async (data: ChangePasswordRequest): Promise<ChangePasswordResponse> => {
+  try {
+    const response = await api.post(`${endpoint.account}/change-password`, data);
+    return response.data;
+  } catch (error) {
+    console.error('Error changing password:', error);
+    throw error;
+  }
+};
