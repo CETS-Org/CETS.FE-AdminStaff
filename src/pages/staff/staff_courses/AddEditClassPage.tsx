@@ -7,7 +7,7 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import PageHeader from "@/components/ui/PageHeader";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
-import { ArrowLeft, Save, Calendar, Users, BookOpen } from "lucide-react";
+import { ArrowLeft, Save, Calendar, Users, BookOpen, Loader2 } from "lucide-react";
 
 interface Class {
   id?: string;
@@ -250,14 +250,6 @@ export default function AddEditClassPage() {
                   variant: 'secondary',
                   icon: <ArrowLeft className="w-4 h-4" />,
                   onClick: handleCancel
-                },
-                {
-                  type: 'button',
-                  label: isLoading ? 'Saving...' : 'Save Course',
-                  variant: 'primary',
-                  icon: <Save className="w-4 h-4" />,
-                  onClick: handleSave,
-                  className: isLoading ? 'opacity-75 cursor-not-allowed' : ''
                 }
               ]}
             />      
@@ -464,6 +456,42 @@ export default function AddEditClassPage() {
             )}
 
             
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-500">
+              {isEdit ? "Last updated: Today" : "All fields marked with * are required"}
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={handleCancel}
+                variant="secondary"
+                disabled={isLoading}
+                className="min-w-[120px]"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={isLoading}
+                className="min-w-[160px] bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800"
+              >
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {isEdit ? "Updating..." : "Creating..."}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Save className="w-4 h-4" />
+                    {isEdit ? "Update Class" : "Create Class"}
+                  </div>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

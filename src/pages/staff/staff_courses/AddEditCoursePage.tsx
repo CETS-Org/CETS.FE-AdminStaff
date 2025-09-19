@@ -1,11 +1,11 @@
 import { useEffect, useState, useRef } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import PageHeader from "@/components/ui/PageHeader";
-import { ChevronRight, Plus, Trash2, BookOpen, ArrowLeft, Upload, Camera, Save, FileText, Link as LinkIcon, CheckCircle, AlertCircle, Users, Clock, DollarSign, Calendar } from "lucide-react";
+import { Trash2, BookOpen, ArrowLeft, Upload, Camera, Save, FileText, Link as LinkIcon, CheckCircle, AlertCircle, Users, Clock, DollarSign, Calendar, Loader2 } from "lucide-react";
 
 interface Course {
   id?: string;
@@ -111,7 +111,7 @@ export default function AddEditCoursePage() {
     }
   }, [isEdit, id]);
 
-  const loadCourseData = async (courseId: string) => {
+  const loadCourseData = async (_courseId: string) => {
     try {
       setIsLoading(true);
              // Mock data - replace with actual API call
@@ -355,12 +355,16 @@ export default function AddEditCoursePage() {
       console.log("Saving course:", formData);
       
       // Navigate back to courses list
-      navigate('/courses');
+      navigate('/staff/courses');
     } catch (error) {
       console.error("Error saving course:", error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCancel = () => {
+    navigate('/staff/courses');
   };
 
   const getFormCompletionPercentage = () => {
@@ -419,15 +423,7 @@ export default function AddEditCoursePage() {
             label: 'Back to Courses',
             variant: 'secondary',
             icon: <ArrowLeft className="w-4 h-4" />,
-            onClick: () => navigate('/staff/courses')
-          },
-          {
-            type: 'button',
-            label: isLoading ? 'Saving...' : 'Save Course',
-            variant: 'primary',
-            icon: <Save className="w-4 h-4" />,
-            onClick: handleSave,
-            className: isLoading ? 'opacity-75 cursor-not-allowed' : ''
+            onClick: handleCancel
           }
         ]}
       />
@@ -713,7 +709,6 @@ export default function AddEditCoursePage() {
                  </div>
                </div>
              </Card>
-             FileText
              {/* Course Content */}
              <Card className="overflow-hidden">
                <div className="p-6">
@@ -1068,6 +1063,42 @@ export default function AddEditCoursePage() {
                 </div>
               </div>
             </Card>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl mt-4 p-6 shadow-lg border border-white/50">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-500">
+              {isEdit ? "Last updated: Today" : "All fields marked with * are required"}
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={handleCancel}
+                variant="secondary"
+                disabled={isLoading}
+                className="min-w-[120px]"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={isLoading}
+                className="min-w-[160px] bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800"
+              >
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {isEdit ? "Updating..." : "Creating..."}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Save className="w-4 h-4" />
+                    {isEdit ? "Update Course" : "Create Course"}
+                  </div>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
