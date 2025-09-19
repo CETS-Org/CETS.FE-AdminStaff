@@ -7,6 +7,7 @@ import { Form } from "@/components/ui/Form";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
 import { ArrowLeft, Shield, RotateCcw, Check } from "lucide-react";
+import { verifyOtp, forgotPassword } from "@/api/account.api";
 
 // Validation schema
 const otpSchema = z.object({
@@ -28,6 +29,7 @@ export default function OtpVerification() {
   const navigate = useNavigate();
   const location = useLocation();
   const email = location.state?.email || "";
+  const token = location.state?.token || "";
   
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -94,14 +96,37 @@ export default function OtpVerification() {
     setIsLoading(true);
     try {
       console.log("OTP verification data:", data);
-      // TODO: Implement actual OTP verification API call
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
       
-      // Navigate to reset password
-      navigate("/reset-password", { state: { email, otp: data.otp } });
-    } catch (error) {
+      // Call the verify OTP API
+      const response = await verifyOtp({
+        email: email,
+        otp: data.otp,
+        token: token
+      });
+      console.log("OTP verification response:", response);
+      
+      // Navigate to reset password with email, OTP, and new token
+      navigate("/reset-password", { 
+        state: { 
+          email: email, 
+          otp: data.otp,
+          token: response.token 
+        } 
+      });
+    } catch (error: any) {
       console.error("OTP verification error:", error);
-      alert("Invalid OTP code!");
+      
+      // Handle different error types
+      if (error.response?.status === 400) {
+        alert("Invalid OTP code. Please check and try again.");
+      } else if (error.response?.status === 401) {
+        alert("OTP has expired. Please request a new code.");
+      } else if (error.response?.status === 404) {
+        alert("Invalid verification request. Please start over.");
+      } else {
+        alert("Failed to verify OTP. Please try again.");
+      }
+      
       // Reset OTP inputs
       setOtp(["", "", "", "", "", ""]);
       methods.setValue("otp", "");
@@ -115,16 +140,26 @@ export default function OtpVerification() {
     setIsResending(true);
     try {
       console.log("Resending OTP to:", email);
-      // TODO: Implement actual resend OTP API call
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      
+      // Call the forgot password API again to resend OTP
+      const response = await forgotPassword(email);
+      console.log("Resend OTP response:", response);
       
       // Reset countdown
       setCountdown(60);
       setCanResend(false);
       alert("Verification code sent!");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Resend OTP error:", error);
-      alert("Failed to resend verification code!");
+      
+      // Handle different error types
+      if (error.response?.status === 404) {
+        alert("Email not found. Please check your email address.");
+      } else if (error.response?.status === 400) {
+        alert("Invalid email format. Please enter a valid email address.");
+      } else {
+        alert("Failed to resend verification code. Please try again later.");
+      }
     } finally {
       setIsResending(false);
     }
@@ -133,8 +168,8 @@ export default function OtpVerification() {
   const maskedEmail = email.replace(/(.{2})(.*)(@.*)/, "$1***$3");
 
   return (
-    <div className="w-full px-70">
-      <Card className="shadow-xl border-0">
+    <div className="w-full px-70 pt-40">
+      <Card className="shadow-xl border-0 w-1/2 mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="mx-auto w-12 h-12 bg-primary-600 rounded-full flex items-center justify-center mb-4">

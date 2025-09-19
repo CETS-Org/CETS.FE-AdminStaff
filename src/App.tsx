@@ -24,9 +24,9 @@ export default function App() {
         {/* Authentication & Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/otp-verification" element={<OtpVerification />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/forgotPassword" element={<ForgotPassword />} />
+        <Route path="/otpVerification" element={<OtpVerification />} />
+        <Route path="/resetPassword" element={<ResetPassword />} />
         <Route path="/gateway" element={<Gateway />} />
         <Route path="/homepage" element={<HomePage />} />
         

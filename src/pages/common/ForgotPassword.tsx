@@ -7,6 +7,7 @@ import { Form, FormInput } from "@/components/ui/Form";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
 import { ArrowLeft, Mail, Send } from "lucide-react";
+import { forgotPassword } from "@/api/account.api";
 
 // Validation schema
 const forgotPasswordSchema = z.object({
@@ -33,22 +34,37 @@ export default function ForgotPassword() {
     setIsLoading(true);
     try {
       console.log("Forgot password data:", data);
-      // TODO: Implement actual forgot password API call
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
       
-      // Navigate to OTP verification with email
-      navigate("/otp-verification", { state: { email: data.email } });
-    } catch (error) {
+      // Call the forgot password API
+      const response = await forgotPassword(data.email);
+      console.log("Forgot password response:", response);
+      
+      // Navigate to OTP verification with email and token
+      navigate("/otp-verification", { 
+        state: { 
+          email: data.email,
+          token: response.token 
+        } 
+      });
+    } catch (error: any) {
       console.error("Forgot password error:", error);
-      alert("Failed to send reset email!");
+      
+      // Handle different error types
+      if (error.response?.status === 404) {
+        alert("Email not found. Please check your email address.");
+      } else if (error.response?.status === 400) {
+        alert("Invalid email format. Please enter a valid email address.");
+      } else {
+        alert("Failed to send reset email. Please try again later.");
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="w-full px-70">
-      <Card className="shadow-xl border-0">
+    <div className="w-full px-70 pt-40">
+      <Card className="shadow-xl border-0 w-1/2 mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="mx-auto w-12 h-12 bg-primary-600 rounded-full flex items-center justify-center mb-4">

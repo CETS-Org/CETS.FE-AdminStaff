@@ -7,6 +7,7 @@ import { Form, FormInput } from "@/components/ui/Form";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
 import { ArrowLeft, Lock, Eye, EyeOff, CheckCircle } from "lucide-react";
+import { resetPassword } from "@/api/account.api";
 
 // Validation schema
 const resetPasswordSchema = z.object({
@@ -34,6 +35,7 @@ export default function ResetPassword() {
   
   const email = location.state?.email || "";
   const otp = location.state?.otp || "";
+  const token = location.state?.token || "";
 
   const methods = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
@@ -43,9 +45,9 @@ export default function ResetPassword() {
     },
   });
 
-  // Redirect if no email or OTP
+  // Redirect if no email, OTP, or token
   useState(() => {
-    if (!email || !otp) {
+    if (!email || !otp || !token) {
       navigate("/forgot-password");
     }
   });
@@ -54,15 +56,32 @@ export default function ResetPassword() {
     setIsLoading(true);
     try {
       console.log("Reset password data:", { email, otp, password: data.password });
-      // TODO: Implement actual reset password API call
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
+      
+      // Call the reset password API
+      const response = await resetPassword({
+        email: email,
+        newPassword: data.password,
+        token: token
+      });
+      console.log("Reset password response:", response);
       
       // Show success message and redirect to login
       alert("Password reset successful! Please login with your new password.");
       navigate("/login");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Reset password error:", error);
-      alert("Failed to reset password!");
+      
+      // Handle different error types
+      if (error.response?.status === 400) {
+        alert("Invalid request. Please check your information and try again.");
+      } else if (error.response?.status === 401) {
+        alert("Reset token has expired. Please start the password reset process again.");
+        navigate("/forgot-password");
+      } else if (error.response?.status === 404) {
+        alert("Account not found. Please check your email address.");
+      } else {
+        alert("Failed to reset password. Please try again later.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -98,8 +117,8 @@ export default function ResetPassword() {
   const passwordStrength = getPasswordStrength(watchedPassword);
 
   return (
-    <div className="w-full px-70">
-      <Card className="shadow-xl border-0">
+    <div className="w-full px-70 pt-40">
+      <Card className="shadow-xl border-0 w-1/2 mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="mx-auto w-12 h-12 bg-primary-600 rounded-full flex items-center justify-center mb-4">
