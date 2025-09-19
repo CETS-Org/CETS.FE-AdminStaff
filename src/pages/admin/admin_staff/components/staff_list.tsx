@@ -318,10 +318,8 @@ export default function StaffList() {
     }
   };
 
-  const handleSaveStaff = (staffData: any) => {
-    console.log("Save staff:", staffData);
-    // Implement save logic here
-    // After saving, refresh the staff list
+  const handleUpdateSuccess = () => {
+    // Refresh the staff list after successful update
     fetchStaffs();
   };
 
@@ -563,7 +561,7 @@ export default function StaffList() {
       <AddEditStaffDialog
         open={addEditDialog.open}
         onOpenChange={(open: boolean) => setAddEditDialog({ open, staff: null, mode: "add" })}
-        onSave={handleSaveStaff}
+        onUpdateSuccess={handleUpdateSuccess}
         staff={addEditDialog.staff}
         mode={addEditDialog.mode}
       />
