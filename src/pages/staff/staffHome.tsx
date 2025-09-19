@@ -20,7 +20,8 @@ import EventDetailPage from "./staff_events/EventDetailPage";
 import StaffComplaintManagement from "./staff_complaints";
 import StudentDetailPage from "./staff_students/StudentDetailPage";
 import TeacherDetailPage from "./staff_teachers/TeacherDetailPage";
-import AddEditTeacherPage from "./staff_teachers/AddEditTeacherPage";
+import AddEditTeacherPage from "./staff_teachers/AddTeacherPage";
+import EditTeacherPage from "./staff_teachers/EditTeacherPage";
 import ComplaintDetailPage from "@/shared/ComplaintDetailPage";
 import ComplaintResponsePage from "@/shared/ComplaintResponsePage";
 
@@ -56,7 +57,7 @@ export default function StaffHome() {
             <Route path="teachers" element={<TeacherManagement />} />
             <Route path="teachers/add" element={<AddEditTeacherPage />} />
             <Route path="teachers/:id" element={<TeacherDetailPage />} />
-            <Route path="teachers/edit/:id" element={<AddEditTeacherPage />} />
+            <Route path="teachers/edit/:id" element={<EditTeacherPage />} />
             <Route path="schedule" element={<StaffSchedulePage />} />
             <Route path="students" element={<StaffStudentsPage />} />
             <Route path="students/:id" element={<StudentDetailPage />} />
