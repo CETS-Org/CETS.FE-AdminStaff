@@ -1,7 +1,7 @@
 import type { FilterUserParam } from "@/types/filter.type";
 import { api, endpoint } from "./api";
-import type { Account } from "@/types/account.type";
-import type { UpdateStaffProfile } from "@/types/staff.type";
+import type { Account, Role } from "@/types/account.type";
+import type { AddStaffProfile, UpdateStaffProfile } from "@/types/staff.type";
 
 export const getStaffs = async (): Promise<Account[]> => {
     try {
@@ -134,6 +134,26 @@ export const updateStaffProfile = async (id: string, staffData: UpdateStaffProfi
     return response.data;
   } catch (error) {
     console.error(`Error updating staff ${id}:`, error);
+    throw error;
+  }
+}
+
+export const addStaff = async (staffData: AddStaffProfile): Promise<Account> => {
+  try {
+    const response = await api.post<Account>(`${endpoint.account}`, staffData);
+    return response.data;
+  } catch (error) {
+    console.error(`Error add staff :`, error);
+    throw error;
+  }
+}
+
+export const getRoles = async (): Promise<Role[]> => {
+  try {
+    const response = await api.get<Role[]>(`${endpoint.role}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching roles:', error);
     throw error;
   }
 }

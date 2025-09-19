@@ -6,87 +6,69 @@ import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import { ChevronRight, Plus, Trash2, GraduationCap, ArrowLeft, Upload, User, Camera, Save } from "lucide-react";
+import { createTeacher, getTeacherById,getListCredentialType  } from "@/api/teacher.api";
+import type { AddTeacherProfile, CredentialTypeResponse } from "@/types/teacher.type";
 
-interface Qualification {
+interface CredentialFormData {
   id: string;
-  degree: string;
-  institution: string;
-  year: string;
-  field: string;
+  credentialTypeId: string;
+  pictureUrl: string | null;
+  name: string | null;
+  level: string | null;
 }
 
-interface Teacher {
-  id?: string;
-  name: string;
+
+interface TeacherFormData {
   email: string;
-  phone: string;
+  phoneNumber: string;
+  fullName: string;
   dateOfBirth: string;
-  hireDate: string;
-  specialization: string;
-  experience: string;
-  status: "active" | "inactive";
-  avatar?: string;
-  qualifications: Qualification[];
+  cid: string;
+  address: string | null;
+  avatarUrl: string | null;
+  yearsExperience: number;
+  bio: string | null;
+  credentials: CredentialFormData[];
 }
 
-const specializations = [
-  "English Literature & Linguistics",
-  "IELTS",
-  "TOEIC", 
-  "Kids English",
-  "Business English",
-  "Conversation",
-  "Grammar",
-  "Pronunciation",
-  "Academic Writing",
-  "Creative Writing"
-];
-
-const experienceOptions = [
-  "1 year",
-  "2 years", 
-  "3 years",
-  "4 years",
-  "5 years",
-  "6 years",
-  "7 years",
-  "8 years",
-  "9 years",
-  "10+ years"
-];
-
-const degreeOptions = [
-  "Ph.D.",
-  "M.A.",
-  "M.S.",
-  "B.A.",
-  "B.S.",
-  "Certificate",
-  "Diploma"
-];
 
 export default function AddEditTeacherPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = Boolean(id);
 
-  const [formData, setFormData] = useState<Omit<Teacher, 'id'>>({
-    name: "",
+  const [formData, setFormData] = useState<TeacherFormData>({
     email: "",
-    phone: "",
+    phoneNumber: "",
+    fullName: "",
     dateOfBirth: "",
-    hireDate: "",
-    specialization: "",
-    experience: "",
-    status: "active",
-    avatar: "",
-    qualifications: []
+    cid: "",
+    address: "",
+    avatarUrl: "",
+    yearsExperience: 0,
+    bio: "",
+    credentials: []
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string>("");
+  const [credentialTypes, setCredentialTypes] = useState<CredentialTypeResponse[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch credential types when component mounts
+  useEffect(() => {
+    const fetchCredentialTypes = async () => {
+      try {
+        const types = await getListCredentialType();
+        setCredentialTypes(types);
+      } catch (error) {
+        console.error('Error fetching credential types:', error);
+      }
+    };
+
+    fetchCredentialTypes();
+  }, []);
 
   useEffect(() => {
     if (isEdit && id) {
@@ -95,16 +77,16 @@ export default function AddEditTeacherPage() {
     } else {
       // Set default values for new teacher
       setFormData({
-        name: "",
         email: "",
-        phone: "",
+        phoneNumber: "",
+        fullName: "",
         dateOfBirth: "",
-        hireDate: new Date().toISOString().slice(0, 10),
-        specialization: "",
-        experience: "",
-        status: "active",
-        avatar: "",
-        qualifications: []
+        cid: "",
+        address: "",
+        avatarUrl: "",
+        yearsExperience: 0,
+        bio: "",
+        credentials: []
       });
     }
   }, [id, isEdit]);
@@ -112,47 +94,30 @@ export default function AddEditTeacherPage() {
   const loadTeacherData = async (teacherId: string) => {
     setIsLoading(true);
     try {
-      // Mock API call - replace with actual API
-      const mockTeacher: Teacher = {
-        id: teacherId,
-        name: "Dr. Michael Smith",
-        email: "michael.smith@email.com",
-        phone: "+1 (555) 987-6543",
-        dateOfBirth: "1980-06-20",
-        hireDate: "2020-08-15",
-        specialization: "English Literature & Linguistics",
-        experience: "15 years",
-        status: "active",
-        qualifications: [
-          {
-            id: "1",
-            degree: "Ph.D.",
-            institution: "University of Oxford",
-            year: "2015",
-            field: "English Literature"
-          },
-          {
-            id: "2",
-            degree: "M.A.",
-            institution: "Cambridge University",
-            year: "2010",
-            field: "Linguistics"
-          }
-        ]
-      };
-
+      const teacher = await getTeacherById(teacherId);
+      
       setFormData({
-        name: mockTeacher.name,
-        email: mockTeacher.email,
-        phone: mockTeacher.phone,
-        dateOfBirth: mockTeacher.dateOfBirth,
-        hireDate: mockTeacher.hireDate,
-        specialization: mockTeacher.specialization,
-        experience: mockTeacher.experience,
-        status: mockTeacher.status,
-        avatar: mockTeacher.avatar || "",
-        qualifications: mockTeacher.qualifications
+        email: teacher.email || "",
+        phoneNumber: teacher.phoneNumber || "",
+        fullName: teacher.fullName || "",
+        dateOfBirth: teacher.dateOfBirth ? teacher.dateOfBirth.split('T')[0] : "",
+        cid: teacher.cid || "",
+        address: teacher.address || "",
+        avatarUrl: teacher.avatarUrl || "",
+        yearsExperience: teacher.teacherInfo?.yearsExperience || 0,
+        bio: teacher.teacherInfo?.bio || "",
+        credentials: teacher.teacherInfo?.teacherCredentials?.map(cred => ({
+          id: cred.credentialId,
+          credentialTypeId: cred.credentialTypeId,
+          pictureUrl: cred.pictureUrl,
+          name: cred.name,
+          level: cred.level
+        })) || []
       });
+      
+      if (teacher.avatarUrl) {
+        setAvatarPreview(teacher.avatarUrl);
+      }
     } catch (error) {
       console.error("Error loading teacher data:", error);
     } finally {
@@ -163,8 +128,8 @@ export default function AddEditTeacherPage() {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = "Name is required";
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = "Full name is required";
     }
 
     if (!formData.email.trim()) {
@@ -173,64 +138,67 @@ export default function AddEditTeacherPage() {
       newErrors.email = "Please enter a valid email";
     }
 
-    if (!formData.phone.trim()) {
-      newErrors.phone = "Phone is required";
+    if (!formData.phoneNumber.trim()) {
+      newErrors.phoneNumber = "Phone number is required";
     }
 
     if (!formData.dateOfBirth) {
       newErrors.dateOfBirth = "Date of birth is required";
     }
 
-    if (!formData.hireDate) {
-      newErrors.hireDate = "Hire date is required";
+    if (!formData.cid.trim()) {
+      newErrors.cid = "CID is required";
     }
 
-    if (!formData.specialization) {
-      newErrors.specialization = "Specialization is required";
+    if (formData.yearsExperience < 0) {
+      newErrors.yearsExperience = "Years of experience must be a positive number";
     }
 
-    if (!formData.experience) {
-      newErrors.experience = "Experience is required";
-    }
+    // Validate credentials
+    formData.credentials.forEach((cred, index) => {
+      if (!cred.credentialTypeId) {
+        newErrors[`credential_${index}_type`] = "Credential type is required";
+      }
+    });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleInputChange = (field: keyof Omit<Teacher, 'id'>, value: string) => {
+  const handleInputChange = (field: keyof TeacherFormData, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: "" }));
     }
   };
 
-  const addQualification = () => {
-    const newQualification: Qualification = {
+  const addCredential = () => {
+    const newCredential: CredentialFormData = {
       id: Date.now().toString(),
-      degree: "",
-      institution: "",
-      year: "",
-      field: ""
+      credentialTypeId: "",
+      pictureUrl: null,
+      name: "",
+      level: ""
     };
     setFormData(prev => ({
       ...prev,
-      qualifications: [...prev.qualifications, newQualification]
+      credentials: [...prev.credentials, newCredential]
     }));
   };
 
-  const updateQualification = (id: string, field: keyof Qualification, value: string) => {
+  const updateCredential = (id: string, field: keyof CredentialFormData, value: string) => {
     setFormData(prev => ({
       ...prev,
-      qualifications: prev.qualifications.map(qual =>
-        qual.id === id ? { ...qual, [field]: value } : qual
+      credentials: prev.credentials.map(cred =>
+        cred.id === id ? { ...cred, [field]: value } : cred
       )
     }));
   };
 
-  const removeQualification = (id: string) => {
+  const removeCredential = (id: string) => {
     setFormData(prev => ({
       ...prev,
-      qualifications: prev.qualifications.filter(qual => qual.id !== id)
+      credentials: prev.credentials.filter(cred => cred.id !== id)
     }));
   };
 
@@ -241,16 +209,32 @@ export default function AddEditTeacherPage() {
 
     setIsLoading(true);
     try {
-      // Mock API call - replace with actual API
-      console.log("Saving teacher:", formData);
+      const teacherData: AddTeacherProfile = {
+        email: formData.email,
+        phoneNumber: formData.phoneNumber,
+        fullName: formData.fullName,
+        dateOfBirth: formData.dateOfBirth,
+        cid: formData.cid,
+        address: formData.address,
+        avatarUrl: formData.avatarUrl,
+        yearsExperience: formData.yearsExperience,
+        bio: formData.bio,
+        credentials: formData.credentials.filter(cred => cred.credentialTypeId).map(cred => ({
+          credentialTypeId: cred.credentialTypeId,
+          pictureUrl: cred.pictureUrl,
+          name: cred.name,
+          level: cred.level
+        }))
+      };
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await createTeacher(teacherData);
       
       // Navigate back to teachers list
       navigate("/teachers");
     } catch (error) {
       console.error("Error saving teacher:", error);
+      // You can add more specific error handling here
+      setErrors({ submit: "Failed to save teacher. Please try again." });
     } finally {
       setIsLoading(false);
     }
@@ -275,7 +259,7 @@ export default function AddEditTeacherPage() {
       reader.onload = (e) => {
         const result = e.target?.result as string;
         setAvatarPreview(result);
-        setFormData(prev => ({ ...prev, avatar: result }));
+        setFormData(prev => ({ ...prev, avatarUrl: result }));
         setErrors(prev => ({ ...prev, avatar: "" }));
       };
       reader.readAsDataURL(file);
@@ -288,7 +272,7 @@ export default function AddEditTeacherPage() {
 
   const removeAvatar = () => {
     setAvatarPreview("");
-    setFormData(prev => ({ ...prev, avatar: "" }));
+    setFormData(prev => ({ ...prev, avatarUrl: "" }));
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -354,9 +338,9 @@ export default function AddEditTeacherPage() {
                         alt="Avatar preview" 
                         className="w-full h-full object-cover"
                       />
-                    ) : formData.avatar ? (
+                    ) : formData.avatarUrl ? (
                       <img 
-                        src={formData.avatar} 
+                        src={formData.avatarUrl} 
                         alt="Current avatar" 
                         className="w-full h-full object-cover"
                       />
@@ -422,9 +406,9 @@ export default function AddEditTeacherPage() {
                 <Input
                   label="Full Name *"
                   placeholder="Enter full name"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  error={errors.name}
+                  value={formData.fullName}
+                  onChange={(e) => handleInputChange('fullName', e.target.value)}
+                  error={errors.fullName}
                 />
                 <Input
                   label="Email *"
@@ -438,11 +422,11 @@ export default function AddEditTeacherPage() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Input
-                  label="Phone *"
+                  label="Phone Number *"
                   placeholder="Enter phone number"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  error={errors.phone}
+                  value={formData.phoneNumber}
+                  onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                  error={errors.phoneNumber}
                 />
                 <Input
                   label="Date of Birth *"
@@ -455,20 +439,17 @@ export default function AddEditTeacherPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Input
-                  label="Hire Date *"
-                  type="date"
-                  value={formData.hireDate}
-                  onChange={(e) => handleInputChange('hireDate', e.target.value)}
-                  error={errors.hireDate}
+                  label="CID *"
+                  placeholder="Enter CID"
+                  value={formData.cid}
+                  onChange={(e) => handleInputChange('cid', e.target.value)}
+                  error={errors.cid}
                 />
-                <Select
-                  label="Status"
-                  value={formData.status}
-                  onChange={(e) => handleInputChange('status', e.target.value)}
-                  options={[
-                    { label: "Active", value: "active" },
-                    { label: "Inactive", value: "inactive" },
-                  ]}
+                <Input
+                  label="Address"
+                  placeholder="Enter address"
+                  value={formData.address || ""}
+                  onChange={(e) => handleInputChange('address', e.target.value)}
                 />
               </div>
             </div>
@@ -477,108 +458,126 @@ export default function AddEditTeacherPage() {
             <div className="space-y-6">
               <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Professional Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Select
-                  label="Specialization *"
-                  value={formData.specialization}
-                  onChange={(e) => handleInputChange('specialization', e.target.value)}
-                  options={specializations.map(s => ({ label: s, value: s }))}
-                  error={errors.specialization}
+                <Input
+                  label="Years of Experience *"
+                  type="number"
+                  placeholder="Enter years of experience"
+                  value={formData.yearsExperience}
+                  onChange={(e) => handleInputChange('yearsExperience', parseInt(e.target.value) || 0)}
+                  error={errors.yearsExperience}
                 />
-                <Select
-                  label="Experience *"
-                  value={formData.experience}
-                  onChange={(e) => handleInputChange('experience', e.target.value)}
-                  options={experienceOptions.map(e => ({ label: e, value: e }))}
-                  error={errors.experience}
+                <Input
+                  label="Bio"
+                  placeholder="Enter bio"
+                  value={formData.bio || ""}
+                  onChange={(e) => handleInputChange('bio', e.target.value)}
                 />
               </div>
             </div>
 
-            {/* Qualifications */}
+            {/* Credentials */}
             <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Qualifications</h3>
+                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Credentials</h3>
                 <Button
-                  onClick={addQualification}
+                  onClick={addCredential}
                   variant="secondary"
                   size="sm"
                   className="flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
-                  Add Qualification
+                  Add Credential
                 </Button>
               </div>
               
               <div className="space-y-4">
-                {formData.qualifications.map((qual, index) => (
-                  <div key={qual.id} className="p-6 border border-gray-200 rounded-lg space-y-4 bg-white shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                          <GraduationCap className="w-5 h-5 text-blue-600" />
+                {formData.credentials.map((cred, index) => {
+                  const credentialType = credentialTypes.find(type => type.id === cred.credentialTypeId);
+                  const isCertificate = credentialType?.name === 'Certificate';
+                  const bgColor = isCertificate ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200';
+                  const iconBg = isCertificate ? 'bg-blue-100' : 'bg-green-100';
+                  const iconColor = isCertificate ? 'text-blue-600' : 'text-green-600';
+                  const IconComponent = isCertificate ? GraduationCap : GraduationCap; // You can use different icons
+                  
+                  return (
+                    <div key={cred.id} className={`p-6 border rounded-lg space-y-4 ${bgColor} shadow-sm hover:shadow-md transition-shadow`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 ${iconBg} rounded-full flex items-center justify-center`}>
+                            <IconComponent className={`w-5 h-5 ${iconColor}`} />
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-900">
+                              {credentialType?.name || 'Credential'} {index + 1}
+                            </span>
+                            <p className="text-sm text-gray-500">
+                              {credentialType?.name || 'Professional credential'}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <span className="font-medium text-gray-900">Qualification {index + 1}</span>
-                          <p className="text-sm text-gray-500">Academic background</p>
-                        </div>
+                        <Button
+                          onClick={() => removeCredential(cred.id)}
+                          variant="secondary"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
-                      <Button
-                        onClick={() => removeQualification(qual.id)}
-                        variant="secondary"
-                        size="sm"
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Select
-                        label="Degree"
-                        value={qual.degree}
-                        onChange={(e) => updateQualification(qual.id, 'degree', e.target.value)}
-                        options={degreeOptions.map(d => ({ label: d, value: d }))}
-                      />
+                      <div>
+                        <Select
+                          label="Credential Type *"
+                          value={cred.credentialTypeId}
+                          onChange={(e) => updateCredential(cred.id, 'credentialTypeId', e.target.value)}
+                          options={credentialTypes.map(type => ({ label: type.name, value: type.id }))}
+                        />
+                        {errors[`credential_${index}_type`] && (
+                          <p className="text-sm text-red-600 mt-1">{errors[`credential_${index}_type`]}</p>
+                        )}
+                      </div>
                       <Input
-                        label="Field of Study"
-                        placeholder="e.g., English Literature"
-                        value={qual.field}
-                        onChange={(e) => updateQualification(qual.id, 'field', e.target.value)}
+                        label="Name"
+                        placeholder="e.g., IELTS Certificate"
+                        value={cred.name || ""}
+                        onChange={(e) => updateCredential(cred.id, 'name', e.target.value)}
                       />
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Input
-                        label="Institution"
-                        placeholder="e.g., University of Oxford"
-                        value={qual.institution}
-                        onChange={(e) => updateQualification(qual.id, 'institution', e.target.value)}
+                        label="Level"
+                        placeholder="e.g., Advanced"
+                        value={cred.level || ""}
+                        onChange={(e) => updateCredential(cred.id, 'level', e.target.value)}
                       />
                       <Input
-                        label="Year"
-                        placeholder="e.g., 2015"
-                        value={qual.year}
-                        onChange={(e) => updateQualification(qual.id, 'year', e.target.value)}
+                        label="Picture URL"
+                        placeholder="e.g., https://example.com/certificate.jpg"
+                        value={cred.pictureUrl || ""}
+                        onChange={(e) => updateCredential(cred.id, 'pictureUrl', e.target.value)}
                       />
                     </div>
                   </div>
-                ))}
+                  );
+                })}
                 
-                {formData.qualifications.length === 0 && (
+                {formData.credentials.length === 0 && (
                   <div className="text-center py-16 text-gray-500 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border-2 border-dashed border-blue-200">
                     <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <GraduationCap className="w-10 h-10 text-blue-400" />
                     </div>
-                    <h3 className="text-lg font-medium text-gray-700 mb-2">No qualifications added yet</h3>
-                    <p className="text-sm text-gray-500 mb-4">Add your academic background and certifications</p>
+                    <h3 className="text-lg font-medium text-gray-700 mb-2">No credentials added yet</h3>
+                    <p className="text-sm text-gray-500 mb-4">Add your professional certificates and qualifications</p>
                     <Button
-                      onClick={addQualification}
+                      onClick={addCredential}
                       variant="secondary"
                       size="sm"
                       className="flex items-center gap-2 mx-auto"
                     >
                       <Plus className="w-4 h-4" />
-                      Add First Qualification
+                      Add First Credential
                     </Button>
                   </div>
                 )}
@@ -589,6 +588,9 @@ export default function AddEditTeacherPage() {
             <div className="flex items-center justify-between gap-4 pt-8 border-t bg-gray-50 -mx-6 -mb-6 px-6 py-6">
               <div className="text-sm text-gray-500">
                 {isEdit ? "Last updated: Today" : "All fields marked with * are required"}
+                {errors.submit && (
+                  <div className="text-red-600 mt-2">{errors.submit}</div>
+                )}
               </div>
               <div className="flex items-center gap-3">
                 <Button

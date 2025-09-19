@@ -2,15 +2,15 @@ import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from "@/components/ui/Dialog";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
 import { User, Upload, Camera, Trash2 } from "lucide-react";
-import type { Account } from "@/types/account.type";
-import type { UpdateStaffProfile } from "@/types/staff.type";
-import { updateStaffProfile } from "@/api/staff.api";
+import type { Account, Role } from "@/types/account.type";
+import type { UpdateStaffProfile, AddStaffProfile } from "@/types/staff.type";
+import { updateStaffProfile, addStaff, getRoles } from "@/api/staff.api";
 
 interface AddEditStaffDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (staff: any) => void;
   onUpdateSuccess?: () => void;
   staff?: Account | null;
   mode: "add" | "edit";
@@ -19,7 +19,6 @@ interface AddEditStaffDialogProps {
 export default function AddEditStaffDialog({
   open,
   onOpenChange,
-  onSave,
   onUpdateSuccess,
   staff,
   mode
@@ -32,7 +31,7 @@ export default function AddEditStaffDialog({
     address: "",
     cid: "",
     avatarUrl: "",
-    roleNames: [] as string[],
+    roleID: "",
     statusName: "Active"
   });
 
@@ -40,7 +39,29 @@ export default function AddEditStaffDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string>("");
+  const [staffRoles, setStaffRoles] = useState<Role[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch roles when dialog opens
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const allRoles = await getRoles();
+        // Filter roles that contain "staff" in roleName
+        const filteredRoles = allRoles.filter(role => 
+          role.roleName.toLowerCase().includes('staff')
+        );
+        setStaffRoles(filteredRoles);
+      } catch (error) {
+        console.error('Error fetching roles:', error);
+        setUpdateError('Failed to load roles');
+      }
+    };
+
+    if (open) {
+      fetchRoles();
+    }
+  }, [open]);
 
   // Initialize form data when dialog opens or staff changes
   useEffect(() => {
@@ -54,7 +75,7 @@ export default function AddEditStaffDialog({
           address: staff.address || "",
           cid: staff.cid || "",
           avatarUrl: staff.avatarUrl || "",
-          roleNames: staff.roleNames || [],
+          roleID: "", // For edit mode, we don't change role
           statusName: staff.statusName || "Active"
         });
         setAvatarPreview(staff.avatarUrl || "");
@@ -68,7 +89,7 @@ export default function AddEditStaffDialog({
           address: "",
           cid: "",
           avatarUrl: "",
-          roleNames: [],
+          roleID: "",
           statusName: "Active"
         });
         setAvatarPreview("");
@@ -103,8 +124,8 @@ export default function AddEditStaffDialog({
       newErrors.cid = "CID is required";
     }
 
-    if (formData.roleNames.length === 0) {
-      newErrors.roleNames = "At least one role is required";
+    if (mode === "add" && !formData.roleID) {
+      newErrors.roleID = "Role is required";
     }
 
     setErrors(newErrors);
@@ -173,17 +194,25 @@ export default function AddEditStaffDialog({
           
           onOpenChange(false);
         } else {
-          // For add mode, use the existing onSave callback
-          const staffData = {
-            ...formData,
-            accountId: undefined,
-            isVerified: false,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            isDeleted: false
+          // For add mode, use the addStaff API
+          const staffData: AddStaffProfile = {
+            email: formData.email.trim() || null,
+            phoneNumber: formData.phoneNumber.trim() || null,
+            fullName: formData.fullName.trim() || null,
+            dateOfBirth: formData.dateOfBirth || null,
+            address: formData.address.trim() || null,
+            cid: formData.cid.trim() || null,
+            avatarUrl: formData.avatarUrl.trim() || null,
+            roleID: formData.roleID || null
           };
           
-          onSave(staffData);
+          await addStaff(staffData);
+          
+          // Call success callback to refresh the list
+          if (onUpdateSuccess) {
+            onUpdateSuccess();
+          }
+          
           onOpenChange(false);
         }
       } catch (error) {
@@ -313,7 +342,7 @@ export default function AddEditStaffDialog({
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                   error={errors.email}
                   placeholder="Enter email address"
-                  disabled
+                  disabled={mode === "edit"}
                 />
                 
                 <Input
@@ -322,7 +351,7 @@ export default function AddEditStaffDialog({
                   onChange={(e) => setFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
                   error={errors.phoneNumber}
                   placeholder="Enter phone number"    
-                  disabled
+                  disabled={mode === "edit"}
                 />
                 
                 <Input
@@ -354,43 +383,37 @@ export default function AddEditStaffDialog({
            
 
             {/* Role and Status */}
-            {/* <div className="space-y-4">
+            <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
                 <User className="w-5 h-5" />
-                Role & Status
+                Role 
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Roles *
-                  </label>
-                  <div className="space-y-2">
-                    {roleOptions.map((role) => (
-                      <label key={role.value} className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={formData.roleNames.includes(role.value)}
-                          onChange={(e) => handleRoleChange(role.value, e.target.checked)}
-                          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                        />
-                        <span className="text-sm text-gray-700">{role.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                  {errors.roleNames && (
-                    <p className="mt-1 text-sm text-red-600">{errors.roleNames}</p>
-                  )}
-                </div>
-                
+                {mode === "add" && (
+                  <Select
+                    label="Role *"
+                    value={formData.roleID}
+                    onChange={(e) => setFormData(prev => ({ ...prev, roleID: e.target.value }))}
+                    options={staffRoles.map(role => ({
+                      label: role.roleName,
+                      value: role.id
+                    }))}
+                    error={errors.roleID}
+                  />
+                )}
+{/*                 
                 <Select
                   label="Status"
                   value={formData.statusName}
                   onChange={(e) => setFormData(prev => ({ ...prev, statusName: e.target.value }))}
-                  options={statusOptions}
-                />
+                  options={[
+                    { label: "Active", value: "Active" },
+                    { label: "Inactive", value: "Inactive" }
+                  ]}
+                /> */}
               </div>
-            </div> */}
+            </div>
           </div>
         </DialogBody>
 
