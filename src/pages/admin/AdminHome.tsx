@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Routes, Route } from "react-router-dom";
 import Navbar from "@/shared/navbar";
-import AdminSidebar from "@/components/admin/AdminSidebar";
-import ComplaintManagement from "./ComplaintManagement";
+import AdminSidebar from "@/shared/AdminSidebar";
+import ComplaintManagement from "./admin_complaint/ComplaintManagement";
 import ComplaintDetailPage from "../../shared/ComplaintDetailPage";
 import ComplaintResponsePage from "../../shared/ComplaintResponsePage";
 import AdminStaffPage from "./admin_staff";

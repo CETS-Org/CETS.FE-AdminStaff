@@ -33,7 +33,13 @@ export interface Student extends Account {
       total: number,
       summary: string
   }
-
+  
+  export interface TotalStudentAttendanceByCourse {
+    studentId: string;
+    totalMeetings: number;
+    totalPresent: number;
+    totalAbsent: number;
+}
   export interface UpdateStudent {
     accountID: string;
     fullName: string | null;
@@ -47,4 +53,18 @@ export interface Student extends Account {
     guardianPhone: string | null;
     school: string | null;
     academicNote: string | null;  
+  }
+
+  export interface AddStudent {
+    fullName: string;
+    email: string;
+    phoneNumber: string | null;
+    dateOfBirth: string | null;
+    cid: string | null;
+    address: string | null;
+    avatarUrl: string | null;
+    guardianName: string | null;
+    guardianPhone: string | null;
+    school: string | null;
+    academicNote: string | null;
   }

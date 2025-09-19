@@ -1,29 +1,11 @@
 import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import Table, { type TableColumn } from "@/components/ui/Table";
 import Loader from "@/components/ui/Loader";
-import { 
-  ChevronRight, 
-  Edit, 
-  Trash2, 
-  User, 
-  Settings, 
-  Calendar, 
-  BookOpen, 
-  Award,
-  MessageSquare,
-  Plus,
-  GraduationCap,
-  Users,
-  Star,
-  Clock,
-  Mail,
-  Phone,
-  MapPin,
-  IdCard
-} from "lucide-react";
+import { Edit, UserX, User, Settings, Calendar, BookOpen, Award,MessageSquare,Plus,GraduationCap,Users,Clock,Mail,Phone,MapPin,IdCard,TrendingUp,Activity,Shield,CheckCircle,ExternalLink,Copy} from "lucide-react";
 // import { getTeacherById, type Teacher } from "@/pages/api/teacher.api";
 import { formatDate, getStatusColor, getStatusDisplay } from "@/helper/helper.service";
 import { getListCourseTeaching, getTeacherById, getListCredentialType, getListCredentialByTeacherId} from "@/api/teacher.api";
@@ -196,7 +178,9 @@ export default function TeacherDetailPage() {
 
   const handleEdit = () => {
     // Navigate to edit page
-    console.log("Edit teacher");
+    if (teacher?.accountId) {
+      navigate(`/staff/teachers/edit/${teacher.accountId}`);
+    }
   };
 
   const handleDelete = () => {
@@ -243,69 +227,89 @@ export default function TeacherDetailPage() {
   const courseColumns: TableColumn<CourseTeaching>[] = [
     {
       header: "Course Name",
+      className: "min-w-[200px]",
       accessor: (course) => (
-        <div className="flex items-center gap-3">
-          <BookOpen className="w-4 h-4 text-blue-600" />
-          <div>
-            <span className="font-medium">{course.courseName || "N/A"}</span>
-            <div className="text-sm text-gray-500">{course.courseCode || "N/A"}</div>
+        <div className="flex items-center gap-3 py-2">
+          <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+            <BookOpen className="w-4 h-4 text-blue-600" />
+          </div>
+          <div className="min-w-0">
+            <div className="font-semibold text-gray-900 truncate">{course.courseName || "N/A"}</div>
+            <div className="text-sm text-gray-500 font-mono">{course.courseCode || "N/A"}</div>
           </div>
         </div>
       )
     },
     {
       header: "Category & Level",
+      className: "min-w-[140px]",
       accessor: (course) => (
-        <div className="space-y-1">
-          <div className="text-sm font-medium">{course.categoryName || "N/A"}</div>
-          <div className="text-xs text-gray-500">{course.courseLevelName || "N/A"}</div>
+        <div className="space-y-2 py-2">
+          <div className="inline-flex px-2 py-1 rounded-md text-sm font-medium bg-purple-100 text-purple-800">
+            {course.categoryName || "N/A"}
+          </div>
+          <div className="text-xs text-gray-600 font-medium">{course.courseLevelName || "N/A"}</div>
         </div>
       )
     },
     {
       header: "Students",
+      className: "text-center min-w-[100px]",
       accessor: (course) => (
-        <div className="flex items-center gap-2">
-          <Users className="w-4 h-4 text-gray-500" />
-          <span className="font-medium">{course.studentCount || 0}</span>
+        <div className="flex items-center justify-center gap-2 py-2">
+          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+            <Users className="w-4 h-4 text-green-600" />
+          </div>
+          <span className="font-bold text-lg text-green-700">{course.studentCount || 0}</span>
         </div>
       )
     },
     {
       header: "Format",
+      className: "min-w-[100px]",
       accessor: (course) => (
-        <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-          {course.courseFormatName || "N/A"}
-        </span>
+        <div className="py-2">
+          <span className="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800 shadow-sm">
+            {course.courseFormatName || "N/A"}
+          </span>
+        </div>
       )
     },
     {
       header: "Assigned Date",
+      className: "min-w-[140px]",
       accessor: (course) => (
-        <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-gray-500" />
-          <span className="text-sm">{formatDate(course.assignedAt)}</span>
+        <div className="flex items-center gap-3 py-2">
+          <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0">
+            <Calendar className="w-4 h-4 text-orange-600" />
+          </div>
+          <span className="text-sm font-medium text-gray-700">{formatDate(course.assignedAt)}</span>
         </div>
       )
     },
     {
       header: "Actions",
+      className: "min-w-[120px]",
       accessor: (course) => (
-        <div className="flex gap-2">
-          {/* <button
-            onClick={() => handleViewCourse(course.courseId)}
-            className="p-1 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors"
-          >
-            <Eye className="w-4 h-4" />
-          </button> */}
+        <div className="flex gap-2 py-2 justify-center">
           <button
             onClick={() => handleManageCourse(course.courseId)}
-            className="p-1 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors relative group"
+            className="p-2.5 rounded-xl border border-gray-300 text-gray-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-all duration-200 relative group shadow-sm hover:shadow-md"
           >
             <Settings className="w-4 h-4" />
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-              Manage
-              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap shadow-lg">
+              Manage Course
+              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+            </div>
+          </button>
+          <button
+            onClick={() => window.open(`/staff/courses/${course.courseId}`, '_blank')}
+            className="p-2.5 rounded-xl border border-gray-300 text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-all duration-200 relative group shadow-sm hover:shadow-md"
+          >
+            <ExternalLink className="w-4 h-4" />
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap shadow-lg">
+              View Details
+              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
             </div>
           </button>
         </div>
@@ -347,382 +351,478 @@ export default function TeacherDetailPage() {
   }
 
 
+  const breadcrumbItems = [
+    { label: "Teachers", to: "/staff/teachers" },
+    { label: teacher?.fullName || "Teacher Detail" }
+  ];
+
   return (
     <div className="p-6 mx-auto mt-16 ">
       {/* Header with Breadcrumb */}
       <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Link to="/" className="hover:text-gray-900">Dashboard</Link>
-            <ChevronRight className="w-4 h-4" />
-            <Link to="/teachers" className="hover:text-gray-900">Teachers</Link>
-            <ChevronRight className="w-4 h-4" />
-            <span className="text-gray-900 font-medium">Teacher Detail</span>
-          </div>
+        <Breadcrumbs items={breadcrumbItems} />
+        <div className="flex items-center justify-between mb-6 mt-4">
+          <div></div>
           <div className="flex gap-3">
             <Button
               onClick={handleEdit}
               variant="secondary"
-              size="sm"
-              className="rounded-full border border-gray-300 bg-white hover:bg-gray-50"
             >
-              <div className="flex items-center ">
-              <Edit className="w-4 h-4 mr-2" />
-              Edit
+              <div className="flex items-center">
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Profile
               </div>
             </Button>
             <Button
               onClick={handleDelete}
-              variant="secondary"
-              size="sm"
-              className="rounded-full border border-gray-300 bg-white hover:bg-gray-50 text-red-600 hover:text-red-700"
+              className="border-red-200 bg-red-500 hover:bg-red-100 hover:border-red-300 text-red-600 hover:text-red-700 shadow-sm hover:shadow-md transition-all duration-200"
             >
-              <div className="flex items-center ">
-              <Trash2 className="w-4 h-4 mr-2" />
-              Delete
+              <div className="flex items-center">
+                <UserX className="w-4 h-4 mr-2" />
+                Ban Teacher
               </div>
             </Button>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* First Row - Teacher Info and Credentials */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
         {/* Left Column - Teacher Information */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-2">
           <Card title="Teacher Information">
             <div className="text-center mb-6">
-              <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                {teacher.avatarUrl ? (
-                  <img 
-                    src={teacher.avatarUrl} 
-                    alt={teacher.fullName}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <User className="w-12 h-12 text-gray-600" />
+              <div className="relative w-24 h-24 mx-auto mb-4">
+                <div className="w-full h-full rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center overflow-hidden border-4 border-white shadow-lg hover:shadow-xl transition-all duration-300 group">
+                  {teacher.avatarUrl ? (
+                    <img 
+                      src={teacher.avatarUrl} 
+                      alt={teacher.fullName}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <User className="w-12 h-12 text-indigo-600 group-hover:text-indigo-700 transition-colors" />
+                  )}
+                </div>
+                {teacher.isVerified && (
+                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                    <CheckCircle className="w-3 h-3 text-white" />
+                  </div>
                 )}
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">{teacher.fullName}</h2>
-              <div className="flex items-center justify-center gap-2 mb-3">
-                <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(teacher.accountStatusID || "")}`}>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2 hover:text-indigo-600 transition-colors duration-200">{teacher.fullName}</h2>
+              <div className="flex items-center justify-center gap-2 mb-3 flex-wrap">
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium shadow-sm transition-all duration-200 hover:shadow-md ${getStatusColor(teacher.accountStatusID || "")}`}>
+                  <Activity className="w-3 h-3 mr-1" />
                   {getStatusDisplay(teacher.accountStatusID || "")}
                 </span>
                 {teacher.isVerified && (
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                    <span className="text-sm font-medium">Verified</span>
+                  <div className="flex items-center gap-1 px-2 py-1 bg-green-50 rounded-full border border-green-200">
+                    <Shield className="w-3 h-3 text-green-600" />
+                    <span className="text-xs font-medium text-green-700">Verified</span>
                   </div>
                 )}
               </div>
+              {teacher.teacherInfo?.teacherCode && (
+                <div className="flex items-center justify-center gap-2 text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-2 mx-auto max-w-fit hover:bg-gray-100 transition-colors cursor-pointer group" 
+                     onClick={() => navigator.clipboard.writeText(teacher.teacherInfo?.teacherCode || '')}>
+                  <IdCard className="w-4 h-4" />
+                  <span className="font-mono">{teacher.teacherInfo.teacherCode}</span>
+                  <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              )}
             </div>
             
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <Mail className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
-                <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 group">
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-200 transition-colors">
+                  <Mail className="w-4 h-4 text-blue-600" />
+                </div>
+                <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-900 mb-1">Email</label>
-                  <p className="text-gray-600">{teacher.email}</p>
+                  <p className="text-gray-600 font-medium hover:text-blue-600 transition-colors cursor-pointer" 
+                     onClick={() => window.open(`mailto:${teacher.email}`)}>
+                    {teacher.email}
+                  </p>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <Phone className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
-                <div>
+              
+              <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 group">
+                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 group-hover:bg-green-200 transition-colors">
+                  <Phone className="w-4 h-4 text-green-600" />
+                </div>
+                <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-900 mb-1">Phone</label>
-                  <p className="text-gray-600">{teacher.phoneNumber || "N/A"}</p>
+                  <p className="text-gray-600 font-medium hover:text-green-600 transition-colors cursor-pointer" 
+                     onClick={() => teacher.phoneNumber && window.open(`tel:${teacher.phoneNumber}`)}>
+                    {teacher.phoneNumber || "N/A"}
+                  </p>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <Calendar className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
-                <div>
+              
+              <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 group">
+                <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 group-hover:bg-purple-200 transition-colors">
+                  <Calendar className="w-4 h-4 text-purple-600" />
+                </div>
+                <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-900 mb-1">Date of Birth</label>
-                  <p className="text-gray-600">{formatDate(teacher.dateOfBirth) || "N/A"}</p>
+                  <p className="text-gray-600 font-medium">{formatDate(teacher.dateOfBirth) || "N/A"}</p>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <Clock className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
-                <div>
+              
+              <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 group">
+                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0 group-hover:bg-orange-200 transition-colors">
+                  <Clock className="w-4 h-4 text-orange-600" />
+                </div>
+                <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-900 mb-1">Account Created</label>
-                  <p className="text-gray-600">{formatDate(teacher.createdAt) || "N/A"}</p>
+                  <p className="text-gray-600 font-medium">{formatDate(teacher.createdAt) || "N/A"}</p>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
-                <div>
+              
+              <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 group">
+                <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 group-hover:bg-red-200 transition-colors">
+                  <MapPin className="w-4 h-4 text-red-600" />
+                </div>
+                <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-900 mb-1">Address</label>
-                  <p className="text-gray-600">{teacher.address || "N/A"}</p>
+                  <p className="text-gray-600 font-medium">{teacher.address || "N/A"}</p>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <IdCard className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
-                <div>
+              
+              <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 group">
+                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-200 transition-colors">
+                  <IdCard className="w-4 h-4 text-indigo-600" />
+                </div>
+                <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-900 mb-1">CID</label>
-                  <p className="text-gray-600">{teacher.cid || "N/A"}</p>
+                  <p className="text-gray-600 font-medium font-mono">{teacher.cid || "N/A"}</p>
                 </div>
               </div>
+              
               {teacher.teacherInfo && (
                 <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">Experience</label>
-                    <p className="text-gray-600">{teacher.teacherInfo.yearsExperience || "N/A"} years</p>
+                  <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 group">
+                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-200 transition-colors">
+                      <TrendingUp className="w-4 h-4 text-emerald-600" />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-900 mb-1">Experience</label>
+                      <div className="flex items-center gap-2">
+                        <p className="text-gray-600 font-medium">{teacher.teacherInfo.yearsExperience || "N/A"} years</p>
+                        {(teacher.teacherInfo.yearsExperience || 0) >= 5 && (
+                          <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs rounded-full font-medium">
+                            Experienced
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">Bio</label>
-                    <p className="text-gray-600">{teacher.teacherInfo.bio || "No bio available"}</p>
+                  
+                  <div className="md:col-span-2 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200">
+                    <label className="block text-sm font-medium text-gray-900 mb-2 flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4" />
+                      Bio
+                    </label>
+                    <p className="text-gray-700 leading-relaxed ">
+                      "{teacher.teacherInfo.bio || "No bio available"}"
+                    </p>
                   </div>
                 </>
               )}
             </div>
           </Card>
-
-          {/* Credentials */}
-          <div className="mt-6 space-y-6">
-            {/* Certificates */}
-            <Card title="Certificates">
-              {credentialsLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader />
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {certificates.length > 0 ? (
-                    certificates.map((credential: TeacherCredentialResponse) => (
-                      <div key={credential.credentialId} className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200 hover:shadow-md transition-shadow">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          <Award className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <h4 className="font-medium text-gray-900 mb-1">
-                                {credential.name || `Certificate - ${formatDate(credential.createdAt)}`}
-                              </h4>
-                              <div className="flex gap-2 mb-2">
-                                {credential.level && (
-                                  <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                    {credential.level}
-                                  </span>
-                                )}
-                                <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                                  Certificate
-                                </span>
-                              </div>
-                              <p className="text-sm text-gray-500">
-                                Created: {formatDate(credential.createdAt)}
-                              </p>
-                            </div>
-                            {credential.pictureUrl && (
-                              <div className="w-16 h-16 rounded-lg overflow-hidden border border-blue-200">
-                                <img 
-                                  src={credential.pictureUrl} 
-                                  alt={credential.name || 'Certificate'} 
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8">
-                      <Award className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500">No certificates available</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </Card>
-
-            {/* Qualifications */}
-            <Card title="Qualifications">
-              {credentialsLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader />
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {qualifications.length > 0 ? (
-                    qualifications.map((credential: TeacherCredentialResponse) => (
-                      <div key={credential.credentialId} className="flex items-start gap-3 p-4 bg-green-50 rounded-lg border border-green-200 hover:shadow-md transition-shadow">
-                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          <GraduationCap className="w-5 h-5 text-green-600" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <h4 className="font-medium text-gray-900 mb-1">
-                                {credential.name || `Qualification - ${formatDate(credential.createdAt)}`}
-                              </h4>
-                              <div className="flex gap-2 mb-2">
-                                {credential.level && (
-                                  <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    {credential.level}
-                                  </span>
-                                )}
-                                <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                                  Qualification
-                                </span>
-                              </div>
-                              <p className="text-sm text-gray-500">
-                                Created: {formatDate(credential.createdAt)}
-                              </p>
-                            </div>
-                            {credential.pictureUrl && (
-                              <div className="w-16 h-16 rounded-lg overflow-hidden border border-green-200">
-                                <img 
-                                  src={credential.pictureUrl} 
-                                  alt={credential.name || 'Qualification'} 
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8">
-                      <GraduationCap className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500">No qualifications available</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </Card>
-          </div>
         </div>
 
-        {/* Right Column - Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Teaching Courses */}
-          <Card title="Teaching Courses">
-            {coursesLoading ? (
+        {/* Right Column - Credentials */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Certificates */}
+          <Card title="Certificates">
+            {credentialsLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader />
               </div>
             ) : (
+              <div className="space-y-4">
+                {certificates.length > 0 ? (
+                  certificates.map((credential: TeacherCredentialResponse) => (
+                    <div key={credential.credentialId} className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200 hover:shadow-md transition-shadow">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <Award className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-gray-900 mb-1 truncate">
+                              {credential.name || `Certificate - ${formatDate(credential.createdAt)}`}
+                            </h4>
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              {credential.level && (
+                                <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  {credential.level}
+                                </span>
+                              )}
+                              <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                Certificate
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-500 truncate">
+                              Created: {formatDate(credential.createdAt)}
+                            </p>
+                          </div>
+                          {credential.pictureUrl && (
+                            <div className="w-12 h-12 rounded-lg overflow-hidden border border-blue-200 flex-shrink-0 ml-2">
+                              <img 
+                                src={credential.pictureUrl} 
+                                alt={credential.name || 'Certificate'} 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <Award className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">No certificates available</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </Card>
+
+          {/* Qualifications */}
+          <Card title="Qualifications">
+            {credentialsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {qualifications.length > 0 ? (
+                  qualifications.map((credential: TeacherCredentialResponse) => (
+                    <div key={credential.credentialId} className="flex items-start gap-3 p-4 bg-green-50 rounded-lg border border-green-200 hover:shadow-md transition-shadow">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <GraduationCap className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-gray-900 mb-1 truncate">
+                              {credential.name || `Qualification - ${formatDate(credential.createdAt)}`}
+                            </h4>
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              {credential.level && (
+                                <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                  {credential.level}
+                                </span>
+                              )}
+                              <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                Qualification
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-500 truncate">
+                              Created: {formatDate(credential.createdAt)}
+                            </p>
+                          </div>
+                          {credential.pictureUrl && (
+                            <div className="w-12 h-12 rounded-lg overflow-hidden border border-green-200 flex-shrink-0 ml-2">
+                              <img 
+                                src={credential.pictureUrl} 
+                                alt={credential.name || 'Qualification'} 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <GraduationCap className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">No qualifications available</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </Card>
+        </div>
+      </div>
+
+      {/* Second Row - Teaching Courses (Full Width) */}
+      <div className="mb-8">
+        <Card title="Teaching Courses">
+          {coursesLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader />
+            </div>
+          ) : (
+            <div className="overflow-hidden">
               <Table
                 columns={courseColumns}
                 data={teachingCourses}
                 emptyState={
-                  <div className="text-center py-8">
+                  <div className="text-center py-12">
                     <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-500">No courses assigned</p>
                   </div>
                 }
               />
-            )}
-          </Card>
+            </div>
+          )}
+        </Card>
+      </div>
 
-          {/* Performance Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Teaching Performance */}
-            <Card title="Teaching Performance">
-              <div className="text-center">
-                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
-                  <Award className="w-8 h-8 text-green-600" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">4.8/5.0</h3>
-                <p className="text-gray-600">Student Rating</p>
-                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-500">Rating Chart Placeholder</p>
-                </div>
-              </div>
-            </Card>
-
-            {/* Teaching Summary */}
-            <Card title="Teaching Summary">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-700">Total Students:</span>
-                  <span className="font-bold text-blue-600">
-                    {teachingCourses.reduce((total, course) => total + (course.studentCount || 0), 0)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-700">Total Courses:</span>
-                  <span className="font-bold text-purple-600">{teachingCourses.length}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-700">Active Courses:</span>
-                  <span className="font-bold text-green-600">
-                    {teachingCourses.length}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-700">Average Students/Course:</span>
-                  <span className="font-bold text-orange-600">
-                    {teachingCourses.length > 0 
-                      ? Math.round(teachingCourses.reduce((total, course) => total + (course.studentCount || 0), 0) / teachingCourses.length)
-                      : 0
-                    }
-                  </span>
-                </div>
-                <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm text-blue-800">
-                      {teachingCourses.length > 0 
-                        ? `Teaching ${teachingCourses.length} course${teachingCourses.length > 1 ? 's' : ''} with ${teachingCourses.reduce((total, course) => total + (course.studentCount || 0), 0)} total students`
-                        : 'No courses assigned yet'
-                      }
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </Card>
+      {/* Third Row - Teaching Performance and Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        {/* Teaching Performance */}
+        <Card title="Teaching Performance" className="h-fit">
+          <div className="text-center py-8">
+            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-green-100 flex items-center justify-center shadow-sm">
+              <Award className="w-10 h-10 text-green-600" />
+            </div>
+            <h3 className="text-3xl font-bold text-gray-900 mb-3">4.8/5.0</h3>
+            <p className="text-gray-600 text-lg mb-6">Student Rating</p>
+            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+              <p className="text-sm text-gray-500">Rating Chart Placeholder</p>
+            </div>
           </div>
+        </Card>
 
-          {/* Notes & Comments */}
-          <Card title="Notes & Comments">
-            <div className="space-y-6">
-              {/* Existing Notes */}
-              <div className="space-y-4">
-                {notes.map((note) => (
-                  <div key={note.id} className="flex gap-4 p-4 bg-gray-50 rounded-lg">
-                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                      <User className="w-5 h-5 text-gray-600" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="font-medium text-gray-900">{note.adminName}</span>
-                        <span className="text-sm text-gray-500">•</span>
-                        <span className="text-sm text-gray-500">{note.date}</span>
-                      </div>
-                      <p className="text-gray-700">{note.content}</p>
-                    </div>
+        {/* Teaching Summary */}
+        <Card title="Teaching Summary" className="h-fit">
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 hover:shadow-lg transition-all duration-300 group">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+                    <Users className="w-6 h-6 text-white" />
                   </div>
-                ))}
+                  <div>
+                    <p className="text-sm text-blue-600 font-medium mb-1">Total Students</p>
+                    <p className="text-2xl font-bold text-blue-700">
+                      {teachingCourses.reduce((total, course) => total + (course.studentCount || 0), 0)}
+                    </p>
+                  </div>
+                </div>
               </div>
-
-              {/* Add New Note */}
-              <div className="border-t pt-6">
-                <h4 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5" />
-                  Add New Note
-                </h4>
-                <div className="flex gap-3">
-                  <textarea
-                    value={newNote}
-                    onChange={(e) => setNewNote(e.target.value)}
-                    placeholder="Add a new note or comment..."
-                    className="flex-1 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    rows={3}
-                  />
-                  <Button
-                    onClick={handleAddNote}
-                    disabled={!newNote.trim()}
-                    className="flex items-center gap-2 self-end"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add
-                  </Button>
+              
+              <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200 hover:shadow-lg transition-all duration-300 group">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+                    <BookOpen className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-purple-600 font-medium mb-1">Total Courses</p>
+                    <p className="text-2xl font-bold text-purple-700">{teachingCourses.length}</p>
+                  </div>
                 </div>
               </div>
             </div>
-          </Card>
-        </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200 hover:shadow-lg transition-all duration-300 group">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+                    <Activity className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-green-600 font-medium mb-1">Active Courses</p>
+                    <p className="text-2xl font-bold text-green-700">{teachingCourses.length}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border border-orange-200 hover:shadow-lg transition-all duration-300 group">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+                    <TrendingUp className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-orange-600 font-medium mb-1">Avg Students</p>
+                    <p className="text-2xl font-bold text-orange-700">
+                      {teachingCourses.length > 0 
+                        ? Math.round(teachingCourses.reduce((total, course) => total + (course.studentCount || 0), 0) / teachingCourses.length)
+                        : 0
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-5 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 hover:border-indigo-300 transition-colors">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <BookOpen className="w-5 h-5 text-indigo-600" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-indigo-900 mb-2">Teaching Overview</h4>
+                  <p className="text-sm text-indigo-700 leading-relaxed">
+                    {teachingCourses.length > 0 
+                      ? `Currently teaching ${teachingCourses.length} course${teachingCourses.length > 1 ? 's' : ''} with a total of ${teachingCourses.reduce((total, course) => total + (course.studentCount || 0), 0)} students across different levels and categories.`
+                      : 'No courses assigned yet. Ready to take on new teaching assignments.'
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
       </div>
+
+      {/* Fourth Row - Notes & Comments (Full Width) */}
+      <Card title="Notes & Comments">
+        <div className="space-y-6">
+          {/* Existing Notes */}
+          <div className="space-y-4">
+            {notes.map((note) => (
+              <div key={note.id} className="flex gap-4 p-4 bg-gray-50 rounded-lg">
+                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                  <User className="w-5 h-5 text-gray-600" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="font-medium text-gray-900">{note.adminName}</span>
+                    <span className="text-sm text-gray-500">•</span>
+                    <span className="text-sm text-gray-500">{note.date}</span>
+                  </div>
+                  <p className="text-gray-700">{note.content}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Add New Note */}
+          <div className="border-t pt-6">
+            <h4 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
+              <MessageSquare className="w-5 h-5" />
+              Add New Note
+            </h4>
+            <div className="flex gap-3">
+              <textarea
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+                placeholder="Add a new note or comment..."
+                className="flex-1 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                rows={3}
+              />
+              <Button
+                onClick={handleAddNote}
+                disabled={!newNote.trim()}
+                className="flex items-center gap-2 self-end"
+              >
+                <Plus className="w-4 h-4" />
+                Add
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Card>
     </div>
   );
 }
+

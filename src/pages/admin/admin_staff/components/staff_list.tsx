@@ -1,15 +1,14 @@
-import { useMemo, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
-import Table, { type TableColumn } from "@/components/ui/Table";
-import Input from "@/components/ui/Input";
-import Select from "@/components/ui/Select";
-import Pagination from "@/shared/pagination";
-import { Search, X, Eye, Edit, Trash2, Plus, Loader2, User } from "lucide-react";
-import { filterStaff, getStaffs } from "@/api/staff.api";
+import DataTable, { type FilterConfig, type BulkAction } from "@/components/ui/DataTable";
+import { type TableColumn } from "@/components/ui/Table";
+import PageHeader from "@/components/ui/PageHeader";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
+import { Eye, Edit, Trash2, Plus, Loader2, User, Users, UserCheck, UserX, Shield, TrendingUp, Download, X } from "lucide-react";
+import { getStaffs } from "@/api/staff.api";
 import type { Account } from "@/types/account.type";
-import type { FilterUserParam } from "@/types/filter.type";
 import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
 import AddEditStaffDialog from "./AddEditStaffDialog";
 import { setIsDelete, setIsActive } from "@/api/account.api";
@@ -23,105 +22,7 @@ export default function StaffList() {
   const [staffs, setStaffs] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // Search and filter states
-  const [searchTerm, setSearchTerm] = useState("");
-  const [emailFilter, setEmailFilter] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [sortOrderDisplay, setSortOrderDisplay] = useState<string>("");
-  const [sortBy, setSortBy] = useState<string>("");
-  const [sortOrder, setSortOrder] = useState<string>("");
-  const [isSearching, setIsSearching] = useState(false);
 
-  // Parse sortOrder to get sortBy and sortOrder
-  const parseSortOrder = (sortValue: string) => {
-    if (!sortValue) {
-      setSortBy("");
-      setSortOrder("");
-      return;
-    }
-
-    switch (sortValue) {
-      case "name_asc":
-        setSortBy("name");
-        setSortOrder("asc");
-        break;
-      case "name_desc":
-        setSortBy("name");
-        setSortOrder("desc");
-        break;
-      case "email_asc":
-        setSortBy("email");
-        setSortOrder("asc");
-        break;
-      case "email_desc":
-        setSortBy("email");
-        setSortOrder("desc");
-        break;
-      case "created_desc":
-        setSortBy("createdat");
-        setSortOrder("desc");
-        break;
-      case "created_asc":
-        setSortBy("createdat");
-        setSortOrder("asc");
-        break;
-      default:
-        setSortBy("");
-        setSortOrder("");
-        break;
-    }
-  };
-
-  // Manual filter function
-  const filterStaffsAPI = async () => {
-    try {
-      setIsSearching(true);
-      setError(null);
-      
-      // Always call API with current parameters (including sorting)
-      
-      if(roleFilter === "all") {
-        const filterParams: FilterUserParam = {
-          name: searchTerm.trim() || null,
-          email: emailFilter.trim() || null,
-          phoneNumber: phoneNumber.trim() || null,
-          statusName: statusFilter === "all" ? null : statusFilter,
-          roleName: null,
-          sortOrder: sortOrder || null,
-          currentRole: null,
-          sortBy: sortBy || null
-        };
-
-        const filteredResults = await filterStaff(filterParams);
-        setStaffs(filteredResults);
-      } else {
-        // Prepare filter parameters
-        const filterParams: FilterUserParam = {
-          name: searchTerm.trim() || null,
-          email: emailFilter.trim() || null,
-          phoneNumber: phoneNumber.trim() || null,
-          statusName: statusFilter === "all" ? null : statusFilter,
-          roleName: roleFilter,
-          sortOrder: sortOrder || null,
-          currentRole: null,
-          sortBy: sortBy || null
-        };
-
-        console.log("Filtering staffs with params:", filterParams);
-        const filteredResults = await filterStaff(filterParams);
-        console.log("Filter results:", filteredResults);
-        setStaffs(filteredResults);
-      }
-    } catch (err) {
-      console.error("Error filtering staffs:", err);
-      setError("Failed to filter staffs");
-    } finally {
-      setIsSearching(false);
-    }
-  };
 
   const fetchStaffs = async () => {
     try {
@@ -141,21 +42,6 @@ export default function StaffList() {
   useEffect(() => {
     fetchStaffs();
   }, []);
-  // No need for client-side filtering anymore
-  const filteredStaffs = staffs;
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
-  const totalPages = Math.ceil(filteredStaffs.length / itemsPerPage);
-  const currentData = useMemo(
-    () => filteredStaffs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
-    [filteredStaffs, currentPage]
-  );
-
-  // Reset page when data changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [staffs]);
 
   const columns: TableColumn<Account>[] = [
     { 
@@ -323,51 +209,103 @@ export default function StaffList() {
     fetchStaffs();
   };
 
-  const clearFilters = async () => {
-    setSearchTerm("");
-    setEmailFilter("");
-    setPhoneNumber("");
-    setStatusFilter("all");
-    setRoleFilter("all");
-    setSortOrderDisplay("");
-    setSortBy("");
-    setSortOrder("");
-    // Reset to original data
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getStaffs();
-      setStaffs(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch staffs');
-    } finally {
-      setLoading(false);
-    }
+  // Breadcrumb items
+  const breadcrumbItems = [
+    { label: "Admin Dashboard", href: "/admin" },
+    { label: "Staff Management", href: "/admin/staffs" }
+  ];
+
+  // Statistics calculations
+  const stats = {
+    total: staffs.length,
+    active: staffs.filter(s => s.statusName?.toLowerCase() === 'active').length,
+    inactive: staffs.filter(s => s.statusName?.toLowerCase() === 'inactive').length,
+    suspended: staffs.filter(s => s.statusName?.toLowerCase() === 'suspended').length,
+    academic: staffs.filter(s => s.roleNames.some(role => role.toLowerCase().includes('academic'))).length,
+    accountant: staffs.filter(s => s.roleNames.some(role => role.toLowerCase().includes('accountant'))).length
   };
 
-  const hasActiveFilters = searchTerm !== "" || emailFilter !== "" || phoneNumber !== "" || statusFilter !== "all" || roleFilter !== "all" || sortOrderDisplay !== "";
+  const handleExport = () => {
+    const dataToExport = staffs.map(staff => ({
+      'Full Name': staff.fullName,
+      'Email': staff.email,
+      'Phone': staff.phoneNumber || 'N/A',
+      'Roles': staff.roleNames.join(', '),
+      'Status': staff.statusName || 'Unknown',
+      'Date of Birth': staff.dateOfBirth ? new Date(staff.dateOfBirth).toLocaleDateString() : 'N/A',
+      'Created Date': new Date(staff.createdAt).toLocaleDateString()
+    }));
+    
+    const csv = [
+      Object.keys(dataToExport[0]).join(','),
+      ...dataToExport.map(row => Object.values(row).map(val => `"${val}"`).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'staff-list.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
 
-  // Get unique statuses for filter options
-  const statuses = useMemo(() => {
-    const uniqueStatuses = [...new Set(staffs.map(s => s.statusName).filter(Boolean))];
-    return uniqueStatuses.sort();
-  }, [staffs]);
+  // Filter configurations for DataTable
+  const filterConfigs: FilterConfig[] = [
+    {
+      key: "statusName",
+      label: "Status",
+      options: [
+        { label: "All Status", value: "all" },
+        { label: "Active", value: "Active" },
+        { label: "Inactive", value: "Inactive" },
+        { label: "Pending", value: "Pending" },
+        { label: "Suspended", value: "Suspended" }
+      ]
+    },
+    {
+      key: "roleNames",
+      label: "Role",
+      options: [
+        { label: "All Roles", value: "all" },
+        { label: "Academic", value: "Academic" },
+        { label: "Accountant", value: "Accountant" }
+      ]
+    }
+  ];
 
-  // Get unique roles for filter options
-  const roles = useMemo(() => {
-    const uniqueRoles = [...new Set(staffs.flatMap(s => s.roleNames))];
-    return uniqueRoles.sort();
-  }, [staffs]);
-
-  // Sort order options
-  const sortOptions = [
-    { label: "Default", value: "" },
-    { label: "Name A-Z", value: "name_asc" },
-    { label: "Name Z-A", value: "name_desc" },
-    { label: "Email A-Z", value: "email_asc" },
-    { label: "Email Z-A", value: "email_desc" },
-    { label: "Created Date (Newest)", value: "created_desc" },
-    { label: "Created Date (Oldest)", value: "created_asc" }
+  // Bulk actions for DataTable
+  const bulkActions: BulkAction<Account>[] = [
+    {
+      id: "bulk-ban",
+      label: "Ban Selected",
+      icon: <Trash2 className="w-4 h-4" />,
+      variant: "danger",
+      onClick: (selectedStaffs) => {
+        // Handle bulk ban action
+        selectedStaffs.forEach(staff => {
+          if (!staff.isDeleted) {
+            setIsDelete(staff.accountId);
+          }
+        });
+        fetchStaffs(); // Refresh data
+      }
+    },
+    {
+      id: "bulk-unban",
+      label: "Unban Selected", 
+      icon: <User className="w-4 h-4" />,
+      variant: "secondary",
+      onClick: (selectedStaffs) => {
+        // Handle bulk unban action
+        selectedStaffs.forEach(staff => {
+          if (staff.isDeleted) {
+            setIsActive(staff.accountId);
+          }
+        });
+        fetchStaffs(); // Refresh data
+      }
+    }
   ];
 
   if (loading) {
@@ -397,153 +335,138 @@ export default function StaffList() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Staff Management</h1>
-          <p className="text-gray-600">Manage academic and accountant staff members</p>
-        </div>
-        <Button onClick={handleAdd} className="flex items-center gap-2">
-          <div className="flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Add Staff
+    <div className="space-y-8">
+      {/* Breadcrumbs */}
+      <Breadcrumbs items={breadcrumbItems} />
+      
+      {/* Page Header */}
+      <PageHeader
+        title="Staff Management"
+        description="Manage and oversee all staff members with comprehensive tools"
+        icon={<Users className="w-5 h-5 text-white" />}
+        controls={[
+          {
+            type: 'button',
+            label: 'Export',
+            variant: 'secondary',
+            icon: <Download className="w-4 h-4" />,
+            onClick: handleExport
+          }
+        ]}
+      />
+
+      {/* Enhanced Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+        <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <UserCheck className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-green-700">Active</p>
+              <p className="text-3xl font-bold text-green-900 group-hover:text-green-600 transition-colors">
+                {stats.active}
+              </p>
+              <p className="text-xs text-green-600 mt-1">
+                {stats.total > 0 ? `${Math.round((stats.active / stats.total) * 100)}% of total` : '0% of total'}
+              </p>
+            </div>
           </div>
-        </Button>
+        </Card>
+
+        <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <User className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-700">Inactive</p>
+              <p className="text-3xl font-bold text-gray-900 group-hover:text-gray-600 transition-colors">
+                {stats.inactive}
+              </p>
+              <p className="text-xs text-gray-600 mt-1">
+                Not active
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <UserX className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-red-700">Suspended</p>
+              <p className="text-3xl font-bold text-red-900 group-hover:text-red-600 transition-colors">
+                {stats.suspended}
+              </p>
+              <p className="text-xs text-red-600 mt-1">
+                Restricted access
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <Shield className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-purple-700">Academic</p>
+              <p className="text-3xl font-bold text-purple-900 group-hover:text-purple-600 transition-colors">
+                {stats.academic}
+              </p>
+              <p className="text-xs text-purple-600 mt-1">
+                Teaching staff
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <TrendingUp className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-yellow-700">Accountant</p>
+              <p className="text-3xl font-bold text-yellow-900 group-hover:text-yellow-600 transition-colors">
+                {stats.accountant}
+              </p>
+              <p className="text-xs text-yellow-600 mt-1">
+                Finance team
+              </p>
+            </div>
+          </div>
+        </Card>
       </div>
 
-       {/* Search and Filter */}
-       <Card title="Search & Filter" description="Enter your search criteria and click Search to filter staff members">
-         <div className="space-y-4">
-           {/* Filter Options */}
-           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-             <Input
-               label="Name"
-               placeholder="Enter staff name..."
-               value={searchTerm}
-               onChange={(e) => setSearchTerm(e.target.value)}
-             />
-             <Input
-               label="Email"
-               placeholder="Enter email..."
-               value={emailFilter}
-               onChange={(e) => setEmailFilter(e.target.value)}
-             />
-             <Input
-               label="Phone Number"
-               placeholder="Enter phone number..."
-               value={phoneNumber}
-               onChange={(e) => setPhoneNumber(e.target.value)}
-             />
-             <Select
-               label="Status"
-               value={statusFilter}
-               onChange={(e) => setStatusFilter(e.target.value)}
-               options={[
-                 { label: "All Status", value: "all" },
-                 ...statuses.map(status => ({ label: status || "Unknown", value: status || "unknown" }))
-               ]}
-             />
-             <Select
-               label="Role"
-               value={roleFilter}
-               onChange={(e) => setRoleFilter(e.target.value)}
-               options={[
-                 { label: "All Roles", value: "all" },
-                 ...roles.map(role => ({ label: role, value: role }))
-               ]}
-             />
-             <Select
-               label="Sort Order"
-               value={sortOrderDisplay}
-               onChange={(e) => {
-                 setSortOrderDisplay(e.target.value);
-                 parseSortOrder(e.target.value);
-               }}
-               options={sortOptions}
-             />
-           </div>
-
-           {/* Action Buttons */}
-           <div className="flex flex-end justify-end items-center gap-3 pt-4 border-t">
-           {hasActiveFilters && (
-               <div className="flex items-center gap-2 text-sm text-gray-600">
-                 <span className="bg-primary-100 text-primary-700 px-2 py-1 rounded-md">
-                    {[searchTerm, emailFilter, phoneNumber, statusFilter, roleFilter, sortOrderDisplay].filter(f => f !== "" && f !== "all").length} filters active
-                 </span>
-               </div>
-             )}
-             <Button
-               onClick={filterStaffsAPI}
-               disabled={isSearching}
-               className="flex items-center gap-2"
-             >
-               {isSearching ? (
-                 <>
-                   <Loader2 className="w-4 h-4 animate-spin" />
-                   Searching...
-                 </>
-               ) : (
-                 <div className="flex items-center gap-2">
-                   <Search className="w-4 h-4" />
-                   Search
-                 </div>
-               )}
-             </Button>
-             <Button
-               onClick={clearFilters}
-               variant="secondary"
-               className="flex items-center gap-2 text-red-500"
-             >
-               <div className="flex items-center gap-2">
-               <X className="w-4 h-4" />
-               Clear All
-               </div>
-             </Button>
-            
-           </div>
-         </div>
-       </Card>
-
-      {/* Staff Table */}
-      <Card title="Staff List" description="View and manage all staff members">
-        <Table
-          columns={columns}
-          data={currentData}
-          emptyState={
-            <div className="text-center py-12">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                <Search className="w-8 h-8 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No staff found</h3>
-              <p className="text-gray-500 mb-4">
-                {hasActiveFilters 
-                  ? "Try adjusting your search or filter criteria" 
-                  : "Get started by adding your first staff member"
-                }
-              </p>
-              {!hasActiveFilters && (
-                <Button onClick={handleAdd} className="flex  items-center gap-2 mx-auto">
-                  <div className="flex items-center gap-2">
-                  <Plus className="w-4 h-4" />
-                  Add Staff
-                  </div>
-                </Button>
-              )}
-            </div>
-          }
-        />
-      </Card>
-
-      {/* Pagination */}
-      <Pagination 
-        currentPage={currentPage} 
-        totalPages={totalPages} 
-        onPageChange={setCurrentPage}
-        itemsPerPage={itemsPerPage}
-        totalItems={filteredStaffs.length}
-        startIndex={(currentPage - 1) * itemsPerPage}
-        endIndex={Math.min(currentPage * itemsPerPage, filteredStaffs.length)}
+      {/* Staff Management with DataTable */}
+      <DataTable
+        title="Staff Management"
+        description="Manage and oversee all staff members"
+        data={staffs}
+        columns={columns}
+        searchFields={['fullName', 'email', 'phoneNumber']}
+        filterConfigs={filterConfigs}
+        bulkActions={bulkActions}
+        onAdd={handleAdd}
+        addButtonLabel="Add Staff"
+        addButtonIcon={<Plus className="w-4 h-4" />}
+        loading={loading}
+        error={error}
+        onRefresh={fetchStaffs}
+        emptyStateTitle="No staff found"
+        emptyStateDescription="Get started by adding your first staff member"
+        emptyStateAction={{
+          label: "Add Staff",
+          onClick: handleAdd
+        }}
+        getItemId={(staff) => staff.accountId}
+        enableSelection={true}
+        itemsPerPage={8}
       />
     
       <DeleteConfirmDialog
