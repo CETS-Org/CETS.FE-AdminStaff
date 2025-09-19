@@ -33,7 +33,13 @@ export interface Student extends Account {
       total: number,
       summary: string
   }
-
+  
+  export interface TotalStudentAttendanceByCourse {
+    studentId: string;
+    totalMeetings: number;
+    totalPresent: number;
+    totalAbsent: number;
+}
   export interface UpdateStudent {
     accountID: string;
     fullName: string | null;
