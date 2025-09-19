@@ -24,6 +24,8 @@ import AddEditTeacherPage from "./staff_teachers/AddTeacherPage";
 import EditTeacherPage from "./staff_teachers/EditTeacherPage";
 import ComplaintDetailPage from "@/shared/ComplaintDetailPage";
 import ComplaintResponsePage from "@/shared/ComplaintResponsePage";
+import EditStudentPage from "./staff_students/EditStudentPage";
+import AddStudentPage from "./staff_students/AddStudentPage";
 
 export default function StaffHome() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -61,6 +63,8 @@ export default function StaffHome() {
             <Route path="schedule" element={<StaffSchedulePage />} />
             <Route path="students" element={<StaffStudentsPage />} />
             <Route path="students/:id" element={<StudentDetailPage />} />
+            <Route path="students/edit/:id" element={<EditStudentPage />} />
+            <Route path="students/add" element={<AddStudentPage />} />
             <Route path="courses" element={<StaffCoursesPage />} />
             <Route path="courses/add" element={<AddEditCoursePage />} />
             <Route path="courses/edit/:id" element={<AddEditCoursePage />} />

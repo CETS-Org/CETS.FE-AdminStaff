@@ -1,5 +1,5 @@
 import type { FilterUserParam } from "@/types/filter.type";
-import type { AssignmentSubmited, CourseEnrollment, Student, TotalStudentAttendanceByCourse, UpdateStudent } from "@/types/student.type";
+import type { AssignmentSubmited, CourseEnrollment, Student, TotalStudentAttendanceByCourse, UpdateStudent, AddStudent } from "@/types/student.type";
 import { api, endpoint } from "./api";
 
 
@@ -111,21 +111,9 @@ export const getTotalAttendceByStudentId = async (studentId: string, courseId: s
 /**
  * Create a new student
  */
-export const createStudent = async (studentData: {
-  email: string;
-  password: string;
-  fullName: string;
-  phoneNumber?: string;
-  dateOfBirth?: string;
-  cid?: string;
-  address?: string;
-  guardianName: string;
-  guardianPhone?: string;
-  school?: string;
-  academicNote?: string;
-}): Promise<Student> => {
+export const createStudent = async (studentData: AddStudent): Promise<Student> => {
   try {
-    const response = await api.post<Student>('/api/IDN_Account', {
+    const response = await api.post<Student>(`${endpoint.account}`, {
       ...studentData,
       roleNames: ['Student']
     });

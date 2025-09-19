@@ -54,3 +54,17 @@ export interface Student extends Account {
     school: string | null;
     academicNote: string | null;  
   }
+
+  export interface AddStudent {
+    fullName: string;
+    email: string;
+    phoneNumber: string | null;
+    dateOfBirth: string | null;
+    cid: string | null;
+    address: string | null;
+    avatarUrl: string | null;
+    guardianName: string | null;
+    guardianPhone: string | null;
+    school: string | null;
+    academicNote: string | null;
+  }

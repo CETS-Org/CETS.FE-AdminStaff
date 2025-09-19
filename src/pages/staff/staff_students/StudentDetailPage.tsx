@@ -4,26 +4,11 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import Table, { type TableColumn } from "@/components/ui/Table";
-import { 
-  Edit, 
-  Trash2, 
-  User, 
-  Eye, 
-  Settings, 
-  Calendar, 
-  BookOpen, 
-  Award,
-  Mail,
-  Phone,
-  MapPin,
-  IdCard,
-  Clock
-} from "lucide-react";
+import { Edit, UserX, User, Eye, Settings, Calendar, BookOpen, Award,Mail,Phone,MapPin,IdCard,Clock,MessageSquare,Plus,GraduationCap,Activity,ExternalLink,Copy} from "lucide-react";
 import { formatDate, getStatusColor, getStatusDisplay } from "@/helper/helper.service";
 import Loader from "@/components/ui/Loader";
 import { getStudentById, getListCourseEnrollment, getTotalAssignmentByStudentId, getTotalAttendceByStudentId } from "@/api/student.api";
-import type { Student, CourseEnrollment, AssignmentSubmited, UpdateStudent, TotalStudentAttendanceByCourse } from "@/types/student.type";
-import AddEditStudentDialog from "./components/AddEditStudentDialog";
+import type { Student, CourseEnrollment, AssignmentSubmited, TotalStudentAttendanceByCourse } from "@/types/student.type";
 import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
 
 
@@ -39,9 +24,10 @@ export default function StudentDetailPage() {
   const [assignmentData, setAssignmentData] = useState<AssignmentSubmited | null>(null);
   const [attendanceData, setAttendanceData] = useState<TotalStudentAttendanceByCourse | null>(null);
   const [performanceLoading, setPerformanceLoading] = useState(false);
-  const [openEditDialog, setOpenEditDialog] = useState(false);
+  // const [openEditDialog, setOpenEditDialog] = useState(false); // Replaced with page navigation
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [editingStudent, setEditingStudent] = useState<UpdateStudent | null>(null);
+  // const [editingStudent, setEditingStudent] = useState<UpdateStudent | null>(null); // Replaced with page navigation
+  const [newNote, setNewNote] = useState("");
   // Fetch student data
   useEffect(() => {
     const fetchStudent = async () => {
@@ -108,31 +94,22 @@ export default function StudentDetailPage() {
 
 
 
-  const handleEdit = async () => {
+  const handleEdit = () => {
     if (!id) return;
-    const getStudentByID= await getStudentById(id);
-
-    const editingStudent = {
-      accountID: getStudentByID.accountId,
-      fullName: getStudentByID.fullName,
-      email: getStudentByID.email,
-      phoneNumber: getStudentByID.phoneNumber || "",     
-      cid:getStudentByID.cid || "",
-      address: getStudentByID.address || "",
-      dateOfBirth: getStudentByID.dateOfBirth || "",
-      avatarUrl: getStudentByID.avatarUrl,
-      guardianName: getStudentByID.studentInfo?.guardianName,
-      guardianPhone: getStudentByID.studentInfo?.guardianPhone,
-      school: getStudentByID.studentInfo?.school,
-      academicNote: getStudentByID.studentInfo?.academicNote,
-    };
-    setEditingStudent(editingStudent as any);
-    setOpenEditDialog(true);
+    navigate(`/staff/students/edit/${id}`);
   };
 
   const handleDelete = () => {
     // Show delete confirmation
-    console.log("Delete student");
+    setOpenDeleteDialog(true);
+  };
+
+  const handleAddNote = () => {
+    if (newNote.trim()) {
+      // Add new note logic
+      console.log("Adding note:", newNote);
+      setNewNote("");
+    }
   };
 
  
@@ -166,75 +143,90 @@ export default function StudentDetailPage() {
   const courseColumns: TableColumn<CourseEnrollment>[] = [
     {
       header: "Course Name",
+      className: "min-w-[200px]",
       accessor: (course) => (
-        <div className="flex items-center gap-3">
-          <BookOpen className="w-4 h-4 text-blue-600" />
-          <div>
-            <span className="font-medium">{course.courseName}</span>
-            <div className="text-sm text-gray-500">{course.courseCode}</div>
+        <div className="flex items-center gap-3 py-2">
+          <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+            <BookOpen className="w-4 h-4 text-blue-600" />
+          </div>
+          <div className="min-w-0">
+            <div className="font-semibold text-gray-900 truncate">{course.courseName || "N/A"}</div>
+            <div className="text-sm text-gray-500 font-mono">{course.courseCode || "N/A"}</div>
           </div>
         </div>
       )
     },
     {
       header: "Teachers",
+      className: "min-w-[140px]",
       accessor: (course) => (
-        <div className="space-y-1">
+        <div className="space-y-1 py-2">
           {course.teachers.map((teacher, index) => (
-            <div key={index} className="text-sm">{teacher}</div>
+            <div key={index} className="text-sm text-gray-700 font-medium">{teacher}</div>
           ))}
         </div>
       )
     },
     {
       header: "Status",
+      className: "text-center min-w-[100px]",
       accessor: (course) => (
-        <div className="space-y-1">
-          <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+        <div className="flex items-center justify-center py-2">
+          <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium shadow-sm ${
             course.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
           }`}>
             {course.isActive ? 'Active' : 'Inactive'}
           </span>
-          {/* <div className="text-xs text-gray-500">{course.enrollmentStatus}</div> */}
         </div>
       )
     },
     {
       header: "Enrolled Date",
+      className: "min-w-[140px]",
       accessor: (course) => (
-        <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-gray-500" />
-          <span className="text-sm">{formatDate(course.createdAt)}</span>
+        <div className="flex items-center gap-3 py-2">
+          <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0">
+            <Calendar className="w-4 h-4 text-orange-600" />
+          </div>
+          <span className="text-sm font-medium text-gray-700">{formatDate(course.createdAt)}</span>
         </div>
       )
     },
     {
       header: "Actions",
+      className: "min-w-[160px]",
       accessor: (course) => (
-        <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
+        <div className="flex gap-2 py-2 justify-center">
+          <button
             onClick={() => handleViewCourse(course)}
-            className="inline-flex items-center justify-center gap-2"
+            className="p-2.5 rounded-xl border border-gray-300 text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-all duration-200 relative group shadow-sm hover:shadow-md"
           >
-            <div className="flex gap-2">
-              <Eye className="w-4 h-4 flex-shrink-0" />
-              <span className="leading-none">View</span>
+            <Eye className="w-4 h-4" />
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap shadow-lg">
+              View Performance
+              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
             </div>
-           
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
+          </button>
+          <button
             onClick={() => handleManageCourse(course.id)}
-            className="inline-flex items-center justify-center gap-2"
+            className="p-2.5 rounded-xl border border-gray-300 text-gray-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-all duration-200 relative group shadow-sm hover:shadow-md"
           >
-            <div className="flex gap-2">
-            <Settings className="w-4 h-4 flex-shrink-0" />
-            <span className="leading-none">Manage</span>
+            <Settings className="w-4 h-4" />
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap shadow-lg">
+              Manage Course
+              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
             </div>
-          </Button>
+          </button>
+          <button
+            onClick={() => window.open(`/staff/courses/${course.id}`, '_blank')}
+            className="p-2.5 rounded-xl border border-gray-300 text-gray-600 hover:bg-green-50 hover:border-green-300 hover:text-green-600 transition-all duration-200 relative group shadow-sm hover:shadow-md"
+          >
+            <ExternalLink className="w-4 h-4" />
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap shadow-lg">
+              View Details
+              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+            </div>
+          </button>
         </div>
       )
     }
@@ -273,19 +265,19 @@ export default function StudentDetailPage() {
     );
   }
 
-  const handleSave = (updatedStudentData: UpdateStudent) => {
-    console.log("Save student:", updatedStudentData);
-    
-    setOpenEditDialog(false);
-    setEditingStudent(null);
-  };
+  // const handleSave = (updatedStudentData: UpdateStudent) => {
+  //   console.log("Save student:", updatedStudentData);
+  //   
+  //   setOpenEditDialog(false);
+  //   setEditingStudent(null);
+  // }; // Replaced with page navigation
   const breadcrumbItems = [
     { label: "Students", to: "/staff/students" },
-    { label: studentData?.fullName || "Student Detail" }
+    { label: student?.fullName || "Student Detail" }
   ];
 
   return (
-    <div className="p-6 w-full mt-16 ">
+    <div className="p-6 mx-auto mt-16 ">
       {/* Header with Breadcrumb */}
       <div className="mb-8">
         <Breadcrumbs items={breadcrumbItems} />
@@ -295,158 +287,264 @@ export default function StudentDetailPage() {
             <Button
               onClick={handleEdit}
               variant="secondary"
-              className="flex items-center gap-2"
             >
-              <div className="flex items-center gap-2">
-                <Edit className="w-4 h-4" />
-                Edit Student
+              <div className="flex items-center">
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Profile
               </div>
             </Button>
             <Button
               onClick={handleDelete}
-              variant="secondary"
-              className="flex items-center gap-2 text-red-600 hover:text-red-700"
+              className="border-red-200 bg-red-500 hover:bg-red-100 hover:border-red-300 text-red-600 hover:text-red-700 shadow-sm hover:shadow-md transition-all duration-200"
             >
-              <div className="flex items-center gap-2">
-                <Trash2 className="w-4 h-4" />
-                Delete Student
+              <div className="flex items-center">
+                <UserX className="w-4 h-4 mr-2" />
+                Ban Student
               </div>
             </Button>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* First Row - Student Info and Academic Details */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
         {/* Left Column - Student Information */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-2">
           <Card title="Student Information">
             <div className="text-center mb-6">
-              <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                {student.avatarUrl ? (
-                  <img 
-                    src={student.avatarUrl} 
-                    alt={student.fullName}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <User className="w-12 h-12 text-gray-600" />
-                )}
+              <div className="relative w-24 h-24 mx-auto mb-4">
+                <div className="w-full h-full rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center overflow-hidden border-4 border-white shadow-lg hover:shadow-xl transition-all duration-300 group">
+                  {student.avatarUrl ? (
+                    <img 
+                      src={student.avatarUrl} 
+                      alt={student.fullName}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <User className="w-12 h-12 text-indigo-600 group-hover:text-indigo-700 transition-colors" />
+                  )}
+                </div>
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">{student.fullName}</h2>
-              <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(student.accountStatusID ?? "" )}`}>
-                {getStatusDisplay(student.accountStatusID ?? "")}
-              </span>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2 hover:text-indigo-600 transition-colors duration-200">{student.fullName}</h2>
+              <div className="flex items-center justify-center gap-2 mb-3 flex-wrap">
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium shadow-sm transition-all duration-200 hover:shadow-md ${getStatusColor(student.accountStatusID ?? "")}`}>
+                  <Activity className="w-3 h-3 mr-1" />
+                  {getStatusDisplay(student.accountStatusID ?? "")}
+                </span>
+              </div>
+              {student.studentInfo?.studentCode && (
+                <div className="flex items-center justify-center gap-2 text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-2 mx-auto max-w-fit hover:bg-gray-100 transition-colors cursor-pointer group" 
+                     onClick={() => navigator.clipboard.writeText(student.studentInfo?.studentCode || '')}>
+                  <IdCard className="w-4 h-4" />
+                  <span className="font-mono">{student.studentInfo.studentCode}</span>
+                  <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              )}
             </div>
             
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <Mail className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
-                <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 group">
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-200 transition-colors">
+                  <Mail className="w-4 h-4 text-blue-600" />
+                </div>
+                <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-900 mb-1">Email</label>
-                  <p className="text-gray-600">{student.email || "N/A"}</p>
+                  <p className="text-gray-600 font-medium hover:text-blue-600 transition-colors cursor-pointer" 
+                     onClick={() => window.open(`mailto:${student.email}`)}>
+                    {student.email || "N/A"}
+                  </p>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <Phone className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
-                <div>
+              
+              <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 group">
+                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 group-hover:bg-green-200 transition-colors">
+                  <Phone className="w-4 h-4 text-green-600" />
+                </div>
+                <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-900 mb-1">Phone</label>
-                  <p className="text-gray-600">{student.phoneNumber || "N/A"}</p>
+                  <p className="text-gray-600 font-medium hover:text-green-600 transition-colors cursor-pointer" 
+                     onClick={() => student.phoneNumber && window.open(`tel:${student.phoneNumber}`)}>
+                    {student.phoneNumber || "N/A"}
+                  </p>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <Calendar className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
-                <div>
+              
+              <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 group">
+                <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 group-hover:bg-purple-200 transition-colors">
+                  <Calendar className="w-4 h-4 text-purple-600" />
+                </div>
+                <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-900 mb-1">Date of Birth</label>
-                  <p className="text-gray-600">{formatDate(student.dateOfBirth || "N/A")}</p>
+                  <p className="text-gray-600 font-medium">{formatDate(student.dateOfBirth) || "N/A"}</p>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <Clock className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
-                <div>
+              
+              <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 group">
+                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0 group-hover:bg-orange-200 transition-colors">
+                  <Clock className="w-4 h-4 text-orange-600" />
+                </div>
+                <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-900 mb-1">Account Created</label>
-                  <p className="text-gray-600">{formatDate(student.createdAt || "N/A")}</p>
+                  <p className="text-gray-600 font-medium">{formatDate(student.createdAt) || "N/A"}</p>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
-                <div>
+              
+              <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 group">
+                <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 group-hover:bg-red-200 transition-colors">
+                  <MapPin className="w-4 h-4 text-red-600" />
+                </div>
+                <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-900 mb-1">Address</label>
-                  <p className="text-gray-600">{student.address || "N/A"}</p>
+                  <p className="text-gray-600 font-medium">{student.address || "N/A"}</p>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <IdCard className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
-                <div>
+              
+              <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 group">
+                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-200 transition-colors">
+                  <IdCard className="w-4 h-4 text-indigo-600" />
+                </div>
+                <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-900 mb-1">CID</label>
-                  <p className="text-gray-600">{student.cid || "N/A"}</p>
+                  <p className="text-gray-600 font-medium font-mono">{student.cid || "N/A"}</p>
                 </div>
               </div>
               {student.studentInfo && (
                 <>
-                  <div className="flex items-start gap-3">
-                    <IdCard className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-1">Student Code</label>
-                      <p className="text-gray-600">{student.studentInfo.studentCode || "N/A"}</p>
+                  <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 group">
+                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-200 transition-colors">
+                      <User className="w-4 h-4 text-emerald-600" />
                     </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <User className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
-                    <div>
+                    <div className="flex-1">
                       <label className="block text-sm font-medium text-gray-900 mb-1">Guardian Name</label>
-                      <p className="text-gray-600">{student.studentInfo.guardianName || "N/A"}</p>
+                      <p className="text-gray-600 font-medium">{student.studentInfo.guardianName || "N/A"}</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <Phone className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
-                    <div>
+                  
+                  <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 group">
+                    <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0 group-hover:bg-teal-200 transition-colors">
+                      <Phone className="w-4 h-4 text-teal-600" />
+                    </div>
+                    <div className="flex-1">
                       <label className="block text-sm font-medium text-gray-900 mb-1">Guardian Phone</label>
-                      <p className="text-gray-600">{student.studentInfo.guardianPhone || "N/A"}</p>
+                      <p className="text-gray-600 font-medium hover:text-teal-600 transition-colors cursor-pointer" 
+                         onClick={() => student.studentInfo?.guardianPhone && window.open(`tel:${student.studentInfo.guardianPhone}`)}>
+                        {student.studentInfo.guardianPhone || "N/A"}
+                      </p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <BookOpen className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
-                    <div>
+                  
+                  <div className="md:col-span-2 flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 group">
+                    <div className="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center flex-shrink-0 group-hover:bg-cyan-200 transition-colors">
+                      <BookOpen className="w-4 h-4 text-cyan-600" />
+                    </div>
+                    <div className="flex-1">
                       <label className="block text-sm font-medium text-gray-900 mb-1">School</label>
-                      <p className="text-gray-600">{student.studentInfo.school || "N/A"}</p>
+                      <p className="text-gray-600 font-medium">{student.studentInfo.school || "N/A"}</p>
                     </div>
                   </div>
+                  
+                  {student.studentInfo.academicNote && (
+                    <div className="md:col-span-2 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200">
+                      <label className="text-sm font-medium text-gray-900 mb-2 flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4" />
+                        Academic Note
+                      </label>
+                      <p className="text-gray-700 leading-relaxed">
+                        "{student.studentInfo.academicNote}"
+                      </p>
+                    </div>
+                  )}
                 </>
               )}
             </div>
           </Card>
         </div>
 
-        {/* Right Column - Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Enrolled Courses */}
-          <Card title="Enrolled Courses" description="View and manage student's course enrollments">
-            {coursesLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader />
+        {/* Right Column - Academic Information */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Academic Overview */}
+          <Card title="Academic Overview">
+            <div className="space-y-4">
+              <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 hover:shadow-lg transition-all duration-300 group">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+                    <BookOpen className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-blue-600 font-medium mb-1">Enrolled Courses</p>
+                    <p className="text-2xl font-bold text-blue-700">{enrolledCourses.length}</p>
+                  </div>
+                </div>
               </div>
-            ) : (
+              
+              <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200 hover:shadow-lg transition-all duration-300 group">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+                    <Activity className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-green-600 font-medium mb-1">Active Courses</p>
+                    <p className="text-2xl font-bold text-green-700">
+                      {enrolledCourses.filter(course => course.isActive).length}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-5 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 hover:border-indigo-300 transition-colors">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <GraduationCap className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-indigo-900 mb-2">Learning Progress</h4>
+                    <p className="text-sm text-indigo-700 leading-relaxed">
+                      {enrolledCourses.length > 0 
+                        ? `Currently enrolled in ${enrolledCourses.length} course${enrolledCourses.length > 1 ? 's' : ''} with ${enrolledCourses.filter(course => course.isActive).length} active enrollment${enrolledCourses.filter(course => course.isActive).length !== 1 ? 's' : ''}.`
+                        : 'No course enrollments yet. Ready to start learning journey.'
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* Second Row - Enrolled Courses (Full Width) */}
+      <div className="mb-8">
+        <Card title="Enrolled Courses">
+          {coursesLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader />
+            </div>
+          ) : (
+            <div className="overflow-hidden">
               <Table
                 columns={courseColumns}
                 data={enrolledCourses}
                 emptyState={
-                  <div className="text-center py-8">
+                  <div className="text-center py-12">
                     <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-500">No courses enrolled</p>
                   </div>
                 }
               />
-            )}
-          </Card>
+            </div>
+          )}
+        </Card>
+      </div>
 
-          {/* Performance Overview */}
-          {selectedCourse && (
-            <div 
-              className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-slide-down"
-              style={{
-                animation: 'slideDown 0.5s ease-out'
-              }}
-            >
+      {/* Third Row - Performance Overview */}
+      {selectedCourse && (
+        <div className="mb-8">
+          <div 
+            className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-slide-down"
+            style={{
+              animation: 'slideDown 0.5s ease-out'
+            }}
+          >
               {/* Attendance Overview */}
               <Card title={`Attendance Overview - ${selectedCourse.courseName}`} className=" from-emerald-50 to-teal-100 border-emerald-200">
                 {performanceLoading ? (
@@ -617,12 +715,13 @@ export default function StudentDetailPage() {
                   </div>
                 )}
               </Card>
-            </div>
-          )}
+          </div>
+        </div>
+      )}
 
-          {/* Default Performance Overview when no course selected */}
-          {!selectedCourse && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Default Performance Overview when no course selected */}
+      {!selectedCourse && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
               {/* Attendance Overview */}
               <Card title="Attendance Overview" className=" from-emerald-50 to-teal-100 border-emerald-200">
                 <div className="text-center">
@@ -644,23 +743,64 @@ export default function StudentDetailPage() {
                   <p className="text-gray-500">Click "View" on any enrolled course to see detailed performance</p>
                 </div>
               </Card>
-            </div>
-          )}
-          <AddEditStudentDialog
-            open={openEditDialog}
-            onOpenChange={setOpenEditDialog}
-            onSave={handleSave}
-            initial={editingStudent}
-          />
-          <DeleteConfirmDialog
-            open={openDeleteDialog}
-            onOpenChange={setOpenDeleteDialog}
-            onConfirm={handleDelete}
-            title="Delete Student"
-            message={`Are you sure you want to delete this student? This action cannot be undone.`}
-          />
         </div>
-      </div>
+      )}
+
+      {/* Fourth Row - Notes & Comments (Full Width) */}
+      <Card title="Notes & Comments">
+        <div className="space-y-6">
+          {/* Existing Notes */}
+          <div className="space-y-4">
+            <div className="flex gap-4 p-4 bg-gray-50 rounded-lg">
+              <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                <User className="w-5 h-5 text-gray-600" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="font-medium text-gray-900">Academic Advisor</span>
+                  <span className="text-sm text-gray-500">•</span>
+                  <span className="text-sm text-gray-500">{formatDate(new Date().toISOString())}</span>
+                </div>
+                <p className="text-gray-700">Student shows consistent progress in course assignments and maintains good attendance record. Recommended for advanced level courses.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Add New Note */}
+          <div className="border-t pt-6">
+            <h4 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
+              <MessageSquare className="w-5 h-5" />
+              Add New Note
+            </h4>
+            <div className="flex gap-3">
+              <textarea
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+                placeholder="Add a new note or comment..."
+                className="flex-1 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                rows={3}
+              />
+              <Button
+                onClick={handleAddNote}
+                disabled={!newNote.trim()}
+                className="flex items-center gap-2 self-end"
+              >
+                <Plus className="w-4 h-4" />
+                Add
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* AddEditStudentDialog replaced with dedicated edit page */}
+      <DeleteConfirmDialog
+        open={openDeleteDialog}
+        onOpenChange={setOpenDeleteDialog}
+        onConfirm={handleDelete}
+        title="Ban Student"
+        message={`Are you sure you want to ban this student? This action can be reversed later.`}
+      />
 
     </div>
   );
