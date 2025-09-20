@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Routes, Route } from "react-router-dom";
 import Navbar from "@/shared/navbar";
-import Sidebar from "@/sidebar";
+import StaffSidebar from "@/shared/StaffSidebar";
 
 import StaffSchedulePage from "./staff_schedule";
 import StaffStudentsPage from "./staff_students";
@@ -10,7 +10,9 @@ import StaffCoursesPage from "./staff_courses";
 import TeacherManagement from "./staff_teachers";
 import StaffAnalytics from "./staff_analys";
 import CourseDetailPage from "./staff_courses/CourseDetailPage";
+import ClassDetailPage from "./staff_courses/ClassDetailPage";
 import AddEditCoursePage from "./staff_courses/AddEditCoursePage";
+import AddEditClassPage from "./staff_courses/AddEditClassPage";
 import AssignTeacherPage from "./staff_assign_teacher";
 import StaffRequestPage from "./staff_request";
 import StaffEventsPage from "./staff_events";
@@ -18,9 +20,12 @@ import EventDetailPage from "./staff_events/EventDetailPage";
 import StaffComplaintManagement from "./staff_complaints";
 import StudentDetailPage from "./staff_students/StudentDetailPage";
 import TeacherDetailPage from "./staff_teachers/TeacherDetailPage";
-import AddEditTeacherPage from "./staff_teachers/AddEditTeacherPage";
+import AddEditTeacherPage from "./staff_teachers/AddTeacherPage";
+import EditTeacherPage from "./staff_teachers/EditTeacherPage";
 import ComplaintDetailPage from "@/shared/ComplaintDetailPage";
 import ComplaintResponsePage from "@/shared/ComplaintResponsePage";
+import EditStudentPage from "./staff_students/EditStudentPage";
+import AddStudentPage from "./staff_students/AddStudentPage";
 
 export default function StaffHome() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -32,7 +37,7 @@ export default function StaffHome() {
     <div className="min-h-screen bg-neutral-50">
       <Navbar toggleSidebar={() => setMobileOpen((v) => !v)} />
 
-      <Sidebar
+      <StaffSidebar
         collapsed={collapsed}
         mobileOpen={mobileOpen}
         onToggleCollapse={() => setCollapsed((v: boolean) => !v)}
@@ -54,14 +59,19 @@ export default function StaffHome() {
             <Route path="teachers" element={<TeacherManagement />} />
             <Route path="teachers/add" element={<AddEditTeacherPage />} />
             <Route path="teachers/:id" element={<TeacherDetailPage />} />
-            <Route path="teachers/edit/:id" element={<AddEditTeacherPage />} />
+            <Route path="teachers/edit/:id" element={<EditTeacherPage />} />
             <Route path="schedule" element={<StaffSchedulePage />} />
             <Route path="students" element={<StaffStudentsPage />} />
             <Route path="students/:id" element={<StudentDetailPage />} />
+            <Route path="students/edit/:id" element={<EditStudentPage />} />
+            <Route path="students/add" element={<AddStudentPage />} />
             <Route path="courses" element={<StaffCoursesPage />} />
             <Route path="courses/add" element={<AddEditCoursePage />} />
             <Route path="courses/edit/:id" element={<AddEditCoursePage />} />
             <Route path="courses/:id" element={<CourseDetailPage />} />
+            <Route path="courses/:courseId/classes/add" element={<AddEditClassPage />} />
+            <Route path="courses/:courseId/classes/:classId" element={<ClassDetailPage />} />
+            <Route path="courses/:courseId/classes/:classId/edit" element={<AddEditClassPage />} />
             <Route path="assign-teacher" element={<AssignTeacherPage />} />
             <Route path="events" element={<StaffEventsPage />} />
             <Route path="events/:id" element={<EventDetailPage />} />

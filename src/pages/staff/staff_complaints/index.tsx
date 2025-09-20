@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Eye, Plus } from 'lucide-react';
+import { Search, Eye, Filter, Download, CheckSquare, Square, MoreVertical, MessageSquare, Clock, CheckCircle, XCircle } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import Card from '@/components/ui/Card';
 import PageHeader from '@/components/ui/PageHeader';
+import ComplaintDetailDialog from './components/ComplaintDetailDialog';
 
 interface Complaint {
   id: string;
@@ -139,9 +140,15 @@ export default function StaffComplaintManagement() {
   const [statusFilter, setStatusFilter] = useState('All Status');
   const [typeFilter, setTypeFilter] = useState('All Types');
   const [priorityFilter, setPriorityFilter] = useState('All Priority');
-  const [complaints] = useState<Complaint[]>(mockComplaints);
+  const [complaints, setComplaints] = useState<Complaint[]>(mockComplaints);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
+  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [selectedComplaints, setSelectedComplaints] = useState<string[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const filteredComplaints = complaints.filter(complaint => {
     const matchesSearch = complaint.complaintId.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -197,6 +204,51 @@ export default function StaffComplaintManagement() {
     setCurrentPage(1);
   };
 
+  // Handle complaint actions
+  const handleViewComplaint = (complaint: Complaint) => {
+    setSelectedComplaint(complaint);
+    setShowDetailDialog(true);
+  };
+
+  const handleStatusChange = (complaintId: string, newStatus: string) => {
+    setComplaints(prev => prev.map(complaint => 
+      complaint.id === complaintId 
+        ? { ...complaint, status: newStatus as Complaint['status'] }
+        : complaint
+    ));
+  };
+
+  // Handle bulk actions
+  const handleSelectComplaint = (complaintId: string) => {
+    setSelectedComplaints(prev => 
+      prev.includes(complaintId)
+        ? prev.filter(id => id !== complaintId)
+        : [...prev, complaintId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedComplaints.length === currentComplaints.length) {
+      setSelectedComplaints([]);
+    } else {
+      setSelectedComplaints(currentComplaints.map(c => c.id));
+    }
+  };
+
+  const handleBulkStatusChange = (newStatus: string) => {
+    setComplaints(prev => prev.map(complaint => 
+      selectedComplaints.includes(complaint.id)
+        ? { ...complaint, status: newStatus as Complaint['status'] }
+        : complaint
+    ));
+    setSelectedComplaints([]);
+  };
+
+  const handleExportComplaints = () => {
+    // In a real app, this would generate and download a CSV/Excel file
+    console.log('Exporting complaints...', filteredComplaints);
+  };
+
   // Pagination handlers
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -215,68 +267,80 @@ export default function StaffComplaintManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50 lg:ml-0 pt-11">
-      <div className="p-6">
+    <div className="min-h-screen bg-gray-50/50 lg:ml-0 pt-11 ">
+      <div className="p-6 space-y-8">
         {/* Page Header */}
-        <PageHeader
-          title="Complaint Management"
-          subtitle="Manage and resolve student and staff complaints"
+        <PageHeader 
+          title="Complaint Management" 
+          description="Manage and resolve student and staff complaints"
         />
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Complaints</p>
-                <p className="text-2xl font-bold text-gray-900">{complaints.length}</p>
+        {/* Enhanced Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <MessageSquare className="w-7 h-7 text-white" />
               </div>
-              <div className="p-3 bg-gray-100 rounded-full">
-                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
+              <div>
+                <p className="text-sm font-medium text-gray-700">Total Complaints</p>
+                <p className="text-3xl font-bold text-gray-900 group-hover:text-gray-600 transition-colors">
+                  {complaints.length}
+                </p>
+                <p className="text-xs text-gray-600 mt-1">
+                  All submissions
+                </p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Pending</p>
-                <p className="text-2xl font-bold text-yellow-600">{complaints.filter(c => c.status === 'Pending').length}</p>
+          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <Clock className="w-7 h-7 text-white" />
               </div>
-              <div className="p-3 bg-yellow-100 rounded-full">
-                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+              <div>
+                <p className="text-sm font-medium text-yellow-700">Pending</p>
+                <p className="text-3xl font-bold text-yellow-900 group-hover:text-yellow-600 transition-colors">
+                  {complaints.filter(c => c.status === 'Pending').length}
+                </p>
+                <p className="text-xs text-yellow-600 mt-1">
+                  Awaiting review
+                </p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">In Progress</p>
-                <p className="text-2xl font-bold text-blue-600">{complaints.filter(c => c.status === 'In Progress').length}</p>
+          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <XCircle className="w-7 h-7 text-white" />
               </div>
-              <div className="p-3 bg-blue-100 rounded-full">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+              <div>
+                <p className="text-sm font-medium text-blue-700">In Progress</p>
+                <p className="text-3xl font-bold text-blue-900 group-hover:text-blue-600 transition-colors">
+                  {complaints.filter(c => c.status === 'In Progress').length}
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Being processed
+                </p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Resolved</p>
-                <p className="text-2xl font-bold text-green-600">{complaints.filter(c => c.status === 'Resolved').length}</p>
+          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <CheckCircle className="w-7 h-7 text-white" />
               </div>
-              <div className="p-3 bg-green-100 rounded-full">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+              <div>
+                <p className="text-sm font-medium text-green-700">Resolved</p>
+                <p className="text-3xl font-bold text-green-900 group-hover:text-green-600 transition-colors">
+                  {complaints.filter(c => c.status === 'Resolved').length}
+                </p>
+                <p className="text-xs text-green-600 mt-1">
+                  Successfully closed
+                </p>
               </div>
             </div>
           </Card>
@@ -285,55 +349,159 @@ export default function StaffComplaintManagement() {
         {/* Main Content */}
         <Card className="overflow-hidden">
           <div className="p-6 border-b border-gray-200">
-            
+            {/* Header Actions */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <div className="flex items-center gap-4">
+                <h2 className="text-lg font-semibold text-gray-900">All Complaints</h2>
+                {selectedComplaints.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">
+                      {selectedComplaints.length} selected
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="sm"
+                        onClick={() => handleBulkStatusChange('In Progress')}
+                        className="text-xs !bg-blue-500 text-blue-700 border-blue-200 hover:!bg-blue-300"
+                      >
+                        Mark In Progress
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleBulkStatusChange('Resolved')}
+                        className="text-xs !bg-green-500 text-green-700 border-green-200 hover:!bg-green-300"
+                      >
+                        Resolve
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleBulkStatusChange('Rejected')}
+                        className="text-xs !bg-red-500 text-red-700 border-red-200 hover:!bg-red-300"
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="flex items-center gap-2"
+                  iconLeft={<Filter className="w-4 h-4" />}
+                >
+                  Filters
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleExportComplaints}
+                  className="flex items-center gap-2"
+                  iconLeft={<Download className="w-4 h-4" />}
+                >
+                  Export
+                </Button>
+              </div>
+            </div>
 
             {/* Filters and Search */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Select
-                value={statusFilter}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleStatusFilterChange(e.target.value)}
-                options={[
-                  { value: 'All Status', label: 'All Status' },
-                  { value: 'Pending', label: 'Pending' },
-                  { value: 'In Progress', label: 'In Progress' },
-                  { value: 'Resolved', label: 'Resolved' },
-                  { value: 'Rejected', label: 'Rejected' }
-                ]}
-                className="w-full sm:w-auto"
-              />
-              <Select
-                value={typeFilter}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleTypeFilterChange(e.target.value)}
-                options={[
-                  { value: 'All Types', label: 'All Types' },
-                  { value: 'Payment', label: 'Payment' },
-                  { value: 'Schedule', label: 'Schedule' },
-                  { value: 'Technical', label: 'Technical' },
-                  { value: 'Course', label: 'Course' },
-                  { value: 'Faculty', label: 'Faculty' }
-                ]}
-                className="w-full sm:w-auto"
-              />
-              <Select
-                value={priorityFilter}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handlePriorityFilterChange(e.target.value)}
-                options={[
-                  { value: 'All Priority', label: 'All Priority' },
-                  { value: 'High', label: 'High' },
-                  { value: 'Medium', label: 'Medium' },
-                  { value: 'Low', label: 'Low' }
-                ]}
-                className="w-full sm:w-auto"
-              />
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="Search complaints..."
-                  value={searchTerm}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSearchChange(e.target.value)}
-                  className="pl-10"
-                />
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="flex flex-col sm:flex-row gap-3 flex-1">
+                  <Select
+                    value={statusFilter}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleStatusFilterChange(e.target.value)}
+                    options={[
+                      { value: 'All Status', label: 'All Status' },
+                      { value: 'Pending', label: 'Pending' },
+                      { value: 'In Progress', label: 'In Progress' },
+                      { value: 'Resolved', label: 'Resolved' },
+                      { value: 'Rejected', label: 'Rejected' }
+                    ]}
+                    className="w-full sm:w-44"
+                  />
+                  <Select
+                    value={typeFilter}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleTypeFilterChange(e.target.value)}
+                    options={[
+                      { value: 'All Types', label: 'All Types' },
+                      { value: 'Payment', label: 'Payment' },
+                      { value: 'Schedule', label: 'Schedule' },
+                      { value: 'Technical', label: 'Technical' },
+                      { value: 'Course', label: 'Course' },
+                      { value: 'Faculty', label: 'Faculty' }
+                    ]}
+                    className="w-full sm:w-44"
+                  />
+                  <Select
+                    value={priorityFilter}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handlePriorityFilterChange(e.target.value)}
+                    options={[
+                      { value: 'All Priority', label: 'All Priority' },
+                      { value: 'High', label: 'High' },
+                      { value: 'Medium', label: 'Medium' },
+                      { value: 'Low', label: 'Low' }
+                    ]}
+                    className="w-full sm:w-44"
+                  />
+                </div>
+                <div className="relative w-full sm:w-80">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    placeholder="Search complaints..."
+                    value={searchTerm}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSearchChange(e.target.value)}
+                    className="pl-10 w-full"
+                  />
+                </div>
               </div>
+              
+              {/* Advanced Filters */}
+              {showFilters && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Date From
+                    </label>
+                    <Input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDateFrom(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Date To
+                    </label>
+                    <Input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDateTo(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setDateFrom('');
+                        setDateTo('');
+                        setStatusFilter('All Status');
+                        setTypeFilter('All Types');
+                        setPriorityFilter('All Priority');
+                        setSearchTerm('');
+                      }}
+                      className="w-full"
+                    >
+                      Clear Filters
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -341,6 +509,18 @@ export default function StaffComplaintManagement() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+                    <button
+                      onClick={handleSelectAll}
+                      className="flex items-center justify-center w-4 h-4"
+                    >
+                      {selectedComplaints.length === currentComplaints.length && currentComplaints.length > 0 ? (
+                        <CheckSquare className="w-4 h-4 text-gray-600" />
+                      ) : (
+                        <Square className="w-4 h-4 text-gray-400" />
+                      )}
+                    </button>
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     ID
                   </th>
@@ -367,6 +547,18 @@ export default function StaffComplaintManagement() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {currentComplaints.map((complaint) => (
                   <tr key={complaint.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => handleSelectComplaint(complaint.id)}
+                        className="flex items-center justify-center w-4 h-4"
+                      >
+                        {selectedComplaints.includes(complaint.id) ? (
+                          <CheckSquare className="w-4 h-4 text-blue-600" />
+                        ) : (
+                          <Square className="w-4 h-4 text-gray-400" />
+                        )}
+                      </button>
+                    </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900 font-mono">
                         {complaint.complaintId}
@@ -405,18 +597,23 @@ export default function StaffComplaintManagement() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleViewComplaint(complaint)}
+                          className="inline-flex items-center justify-center gap-2"
+                          iconLeft={<Eye className="w-4 h-4 flex-shrink-0" />}
+                        >
+                          <span className="leading-none">View</span>
+                        </Button>
                         <Link to={`/staff/complaints/${complaint.id}`}>
                           <Button
-                                      variant="secondary"
-                                      size="sm"
-                                      className="inline-flex items-center justify-center gap-2"
-                                    >
-                                      <div className="flex items-center gap-2">
-                                        <Eye className="w-4 h-4 flex-shrink-0" />
-                                        <span className="leading-none">View</span>
-                                      </div>
-                                      
-                                    </Button>
+                            variant="ghost"
+                            size="sm"
+                            className="inline-flex items-center justify-center"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
                         </Link>
                       </div>
                     </td>
@@ -475,6 +672,14 @@ export default function StaffComplaintManagement() {
             </div>
           )}
         </Card>
+
+        {/* Complaint Detail Dialog */}
+        <ComplaintDetailDialog
+          isOpen={showDetailDialog}
+          onClose={() => setShowDetailDialog(false)}
+          complaint={selectedComplaint}
+          onStatusChange={handleStatusChange}
+        />
       </div>
     </div>
   );

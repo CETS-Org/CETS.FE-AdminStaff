@@ -1,26 +1,26 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "@/components/ui/Button";
-import Card from "@/components/ui/Card";
 import Table, { type TableColumn } from "@/components/ui/Table";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Pagination from "@/shared/pagination";
-import AddEditStudentDialog from "./AddEditStudentDialog";
-import { Eye, Edit, Trash2, Search, Filter, X, Plus, Loader2, User } from "lucide-react";
-import { getStudents, filterStudent, getStudentById } from "@/api/student.api";
+import { 
+  Eye, Edit, UserX, Search, Filter, X, Plus, Loader2, User, 
+  Download, RefreshCw, AlertCircle, CheckSquare, Square, Users
+} from "lucide-react";
+import { getStudents, filterStudent } from "@/api/student.api";
 import type { FilterUserParam } from "@/types/filter.type";
-import type { Student, UpdateStudent} from "@/types/student.type";
+import type { Student } from "@/types/student.type";
 import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
 import { useStudentStore } from "@/store/student.store";
 import { setIsDelete, setIsActive } from "@/api/account.api";
 
 export default function StudentsList() {
   const navigate = useNavigate();
-  const [openDialog, setOpenDialog] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; student: Student | null; action?: 'ban' | 'unban' }>({ open: false, student: null });
-  const [editingStudent, setEditingStudent] = useState<UpdateStudent | null>(null);
- const { students, setStudents, updatedStudent } = useStudentStore();
+  const { students, setStudents } = useStudentStore();
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
 
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState("");
@@ -116,25 +116,36 @@ export default function StudentsList() {
 
   const columns: TableColumn<Student>[] = [
     { 
-      header: "Student", 
+      header: "Student",
+      className: "w-2/5", 
       accessor: (row) => (
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-semibold overflow-hidden">
+          <button
+            onClick={() => toggleStudentSelection(row.accountId)}
+            className="p-1 hover:bg-gray-100 rounded transition-colors"
+          >
+            {selectedStudents.includes(row.accountId) ? (
+              <CheckSquare className="w-4 h-4 text-primary-600" />
+            ) : (
+              <Square className="w-4 h-4 text-gray-400" />
+            )}
+          </button>
+          <div className="relative w-12 h-12 bg-gradient-to-br from-primary-100 to-primary-200 rounded-xl flex items-center justify-center text-primary-700 font-bold text-lg shadow-sm overflow-hidden">
             {row.avatarUrl ? (
               <img 
                 src={row.avatarUrl} 
                 alt={row.fullName}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover rounded-xl"
               />
             ) : (
               row.fullName.charAt(0)
             )}
           </div>
-          <div>
-            <div className="font-medium">{row.fullName}</div>
-            <div className="text-sm text-neutral-500">{row.email}</div>
+          <div className="min-w-0 flex-1">
+            <div className="font-semibold text-gray-900 truncate">{row.fullName}</div>
+            <div className="text-sm text-gray-600 truncate">{row.email}</div>
             {row.studentInfo?.studentCode && (
-              <div className="text-xs text-gray-400 font-mono">
+              <div className="text-xs text-gray-500 font-mono">
                 Code: {row.studentInfo.studentCode}
               </div>
             )}
@@ -179,54 +190,38 @@ export default function StudentsList() {
     { header: "Join Date", accessor: (row) => new Date(row.createdAt).toLocaleDateString() },
     {
       header: "Actions",
+      className: "w-40",
       accessor: (row) => (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <Button
-            variant="secondary"
             size="sm"
             onClick={() => handleView(row)}
-            className="inline-flex items-center justify-center gap-2"
+            className="!p-2 !bg-blue-50 !text-blue-600 !border !border-blue-200 hover:!bg-blue-100 hover:!text-blue-700 hover:!border-blue-300 !transition-colors !rounded-md"
           >
-            <div className="flex items-center gap-2">
-            <Eye className="w-4 h-4 flex-shrink-0" />
-            <span className="leading-none">View</span>
-            </div>
-            
+            <Eye className="w-4 h-4" />
           </Button>
           <Button
-            variant="secondary"
             size="sm"
             onClick={() => handleEdit(row)}
-            className="inline-flex items-center justify-center gap-2"
+            className="!p-2 !bg-green-50 !text-green-600 !border !border-green-200 hover:!bg-green-100 hover:!text-green-700 hover:!border-green-300 !transition-colors !rounded-md"
           >
-            <div className="flex items-center gap-2">
-            <Edit className="w-4 h-4 flex-shrink-0" />
-            <span className="leading-none">Edit</span>
-            </div>
+            <Edit className="w-4 h-4" />
           </Button>
           {row.statusName === 'Locked' ? (
             <Button
-              variant="secondary"
               size="sm"
               onClick={() => handleUnban(row)}
-              className="inline-flex items-center justify-center gap-2 text-green-600 hover:text-green-700"
+              className="!p-2 !bg-emerald-50 !text-emerald-600 !border !border-emerald-200 hover:!bg-emerald-100 hover:!text-emerald-700 hover:!border-emerald-300 !transition-colors !rounded-md"
             >
-              <div className="flex items-center gap-2">
-                <User className="w-4 h-4 flex-shrink-0" />
-                <span className="leading-none">Unban</span>
-              </div>
+              <User className="w-4 h-4" />
             </Button>
           ) : (
             <Button
-              variant="secondary"
               size="sm"
               onClick={() => handleBan(row)}
-              className="inline-flex items-center justify-center gap-2 text-red-600 hover:text-red-700"
+              className="!p-2 !bg-red-50 !text-red-600 !border !border-red-200 hover:!bg-red-100 hover:!text-red-700 hover:!border-red-300 !transition-colors !rounded-md"
             >
-              <div className="flex items-center gap-2">
-                <Trash2 className="w-4 h-4 flex-shrink-0" />
-                <span className="leading-none">Ban</span>
-              </div>
+              <UserX className="w-4 h-4" />
             </Button>
           )}
         </div>
@@ -235,8 +230,7 @@ export default function StudentsList() {
   ];
 
   const handleAdd = () => {
-    setEditingStudent(null);
-    setOpenDialog(true);
+    navigate('/staff/students/add');
   };
 
   const handleView = (student: Student) => {
@@ -244,27 +238,8 @@ export default function StudentsList() {
     navigate(`/staff/students/${student.accountId}`);
   };
 
-  const handleEdit = async (student: Student) => {
-    // Convert Student to the format expected by the dialog
-    const getStudentByID= await getStudentById(student.accountId);
-
-    const editingStudent = {
-      accountID: getStudentByID.accountId,
-      fullName: getStudentByID.fullName,
-      email: getStudentByID.email,
-      phoneNumber: getStudentByID.phoneNumber || "",     
-      cid:getStudentByID.cid || "",
-      address: getStudentByID.address || "",
-      dateOfBirth: getStudentByID.dateOfBirth || "",
-      avatarUrl: getStudentByID.avatarUrl,
-      guardianName: getStudentByID.studentInfo?.guardianName,
-      guardianPhone: getStudentByID.studentInfo?.guardianPhone,
-      school: getStudentByID.studentInfo?.school,
-      academicNote: getStudentByID.studentInfo?.academicNote,
-    };
-    setEditingStudent(editingStudent as any);
-    
-    setOpenDialog(true);
+  const handleEdit = (student: Student) => {
+    navigate(`/staff/students/edit/${student.accountId}`);
   };
 
   const handleBan = (student: Student) => {
@@ -275,15 +250,15 @@ export default function StudentsList() {
     setDeleteDialog({ open: true, student, action: 'unban' });
   };
 
-  const handleSave = (updatedStudentData: UpdateStudent) => {
-    console.log("Save student:", updatedStudentData);
-    
-    // Use store function to update student
-    updatedStudent(updatedStudentData);
-    
-    setOpenDialog(false);
-    setEditingStudent(null);
-  };
+  // const handleSave = (updatedStudentData: UpdateStudent) => {
+  //   console.log("Save student:", updatedStudentData);
+  //   
+  //   // Use store function to update student
+  //   updatedStudent(updatedStudentData);
+  //   
+  //   setOpenDialog(false);
+  //   setEditingStudent(null);
+  // }; // Replaced with page navigation
 
   const confirmDelete = async () => {
     if (deleteDialog.student) {
@@ -326,7 +301,25 @@ export default function StudentsList() {
     }
   };
 
-  const hasActiveFilters = searchTerm !== "" || emailFilter !== "" || phoneNumber !== "" || statusFilter !== "all" || sortOrderDisplay !== "";
+  const toggleStudentSelection = (studentId: string) => {
+    setSelectedStudents(prev => 
+      prev.includes(studentId) 
+        ? prev.filter(id => id !== studentId)
+        : [...prev, studentId]
+    );
+  };
+
+  const handleBulkExport = () => {
+    console.log("Bulk export:", selectedStudents);
+  };
+
+  const handleBulkDelete = () => {
+    console.log("Bulk delete:", selectedStudents);
+    setSelectedStudents([]);
+  };
+
+  // const hasActiveFilters = searchTerm !== "" || emailFilter !== "" || phoneNumber !== "" || statusFilter !== "all" || sortOrderDisplay !== ""; // Not used
+  const activeFiltersCount = [searchTerm, emailFilter, phoneNumber, statusFilter, sortOrderDisplay].filter(item => item !== "" && item !== "all").length;
 
   // Get unique statuses for filter options
   const statuses = useMemo(() => {
@@ -378,161 +371,211 @@ export default function StudentsList() {
   }
 
   return (
-    <div>
-      <Card title="Students List" description="View and manage your students" actions={
-        <Button onClick={handleAdd} size="sm" className="inline-flex items-center gap-2">
-          <div className="flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Add New Student
-          </div>
-        </Button>    
-      }>
-        {/* Search and Filter Section */}
-    
-        <div className="space-y-4 mb-6">
-          {/* Search Bar */}
-          <div className="flex items-center gap-4">
-            <div className="flex-1 relative">
-              {isSearching ? (
-                <Loader2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 animate-spin" />
-              ) : (
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              )}
-              <Input
-                placeholder="Search students by name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-                disabled={isSearching}
-              />
+    <div className="space-y-6">
+      {/* Enhanced Students List Section */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        {/* Enhanced Header */}
+        <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Students Management</h2>
+              <p className="text-gray-600 mt-1">
+                {filteredStudents.length} student{filteredStudents.length !== 1 ? 's' : ''} found
+                {selectedStudents.length > 0 && ` • ${selectedStudents.length} selected`}
+              </p>
             </div>
-            <Button
-              onClick={() => setShowFilters(!showFilters)}
-              variant="secondary"
-              className="flex items-center gap-2 text-primary-500"
-            >
-              <span className="flex items-center gap-2">
-                <Filter className="w-4 h-4" />
-                {showFilters ? 'Hide Filters' : 'Show Filters'}
-                {hasActiveFilters && (
-                  <span className="bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {[searchTerm, emailFilter, phoneNumber, statusFilter, sortOrderDisplay].filter(f => f !== "" && f !== "all").length}
+            
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              {/* Bulk Actions */}
+              {selectedStudents.length > 0 && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg border border-blue-200">
+                  <span className="text-sm font-medium text-blue-700">
+                    {selectedStudents.length} selected
                   </span>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleBulkExport}
+                    className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleBulkDelete}
+                    className="text-red-600 border-red-300 hover:bg-red-100"
+                  >
+                    <UserX className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+              
+              {/* Add Student Button */}
+              <Button onClick={handleAdd} className="whitespace-nowrap" iconLeft={<Plus className="w-4 h-4" />}>
+                Add Student
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6">
+          {/* Enhanced Search and Filter Section */}
+          <div className="space-y-4 mb-6">
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="flex-1 relative">
+                <Input
+                  placeholder="Search students by name, email, or code..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 pr-10"
+                />
+                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                {isSearching && (
+                  <Loader2 className="w-4 h-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 animate-spin" />
                 )}
-              </span>
-            </Button>
-            <Button
-              onClick={filterStudentsAPI}
-              disabled={isSearching}
-              className="whitespace-nowrap bg-primary-600 hover:bg-primary-700 text-white"
-            >
-              <span className="flex items-center gap-2">
-                {isSearching ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Search className="w-4 h-4" />
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`whitespace-nowrap transition-colors ${showFilters ? 'bg-primary-50 text-primary-700 border-primary-200' : ''}`}
+                  iconLeft={<Filter className="w-4 h-4 mr-2" />}
+                >
+                  Filters
+                  {activeFiltersCount > 0 && (
+                    <span className="bg-primary-500 text-white text-xs rounded-full px-1.5 py-0.5 ml-2 min-w-[18px] text-center">
+                      {activeFiltersCount}
+                    </span>
+                  )}
+                </Button>
+                
+                <Button
+                  onClick={filterStudentsAPI}
+                  disabled={isSearching}
+                  className="whitespace-nowrap bg-primary-600 hover:bg-primary-700 text-white"
+                  iconLeft={isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                >
+                  Search
+                </Button>
+                
+                {activeFiltersCount > 0 && (
+                  <Button
+                    variant="secondary"
+                    onClick={clearFilters}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 whitespace-nowrap"
+                    iconLeft={<X className="w-4 h-4" />}
+                  >
+                    Clear
+                  </Button>
                 )}
-                Search
-              </span>
-            </Button>
-            <Button
-              onClick={clearFilters}
-              variant="secondary"
-              className="whitespace-nowrap text-red-500"
-            >
-              <span className="flex items-center gap-2">
-                <X className="w-4 h-4" />
-                Clear All
-              </span>
-            </Button>
+                
+                <Button
+                  variant="secondary"
+                  onClick={fetchStudents}
+                  className="p-2"
+                  title="Refresh"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            {showFilters && (
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Input
+                    label="Email"
+                    placeholder="Enter email..."
+                    value={emailFilter}
+                    onChange={(e) => setEmailFilter(e.target.value)}
+                  />
+                  <Input
+                    label="Phone Number"
+                    placeholder="Enter phone number..."
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                  />
+                  <Select
+                    label="Status"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    options={[
+                      { label: "All Status", value: "all" },
+                      ...statuses.map(status => ({ label: status, value: status }))
+                    ]}
+                  />
+                  <Select
+                    label="Sort Order"
+                    value={sortOrderDisplay}
+                    onChange={(e) => {
+                      setSortOrderDisplay(e.target.value);
+                      parseSortOrder(e.target.value);
+                    }}
+                    options={sortOptions}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Filter Options */}
-          {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t">
-              <Input
-                label="Email"
-                placeholder="Enter email..."
-                value={emailFilter}
-                onChange={(e) => setEmailFilter(e.target.value)}
-              />
-              <Input
-                label="Phone Number"
-                placeholder="Enter phone number..."
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-              />
-              <Select
-                label="Status"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                options={[
-                  { label: "All Status", value: "all" },
-                  ...statuses.map(status => ({ label: status, value: status }))
-                ]}
-              />
-              <Select
-                label="Sort Order"
-                value={sortOrderDisplay}
-                onChange={(e) => {
-                  setSortOrderDisplay(e.target.value);
-                  parseSortOrder(e.target.value);
-                }}
-                options={sortOptions}
+          {/* Content Area with Enhanced States */}
+          {loading ? (
+            <div className="space-y-4">
+              <div className="animate-pulse space-y-4">
+                <div className="h-12 bg-gray-200 rounded"></div>
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-16 bg-gray-100 rounded"></div>
+                ))}
+              </div>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Students</h3>
+              <p className="text-gray-600 mb-4">{error}</p>
+              <Button onClick={fetchStudents}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Try Again
+              </Button>
+            </div>
+          ) : filteredStudents.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No students found</h3>
+              <p className="text-gray-600 mb-4">
+                {searchTerm || activeFiltersCount > 0 
+                  ? "Try adjusting your search or filters"
+                  : "Get started by adding your first student"
+                }
+              </p>
+              <Button onClick={handleAdd} iconLeft={<Plus className="w-4 h-4" />}>
+                Add Student
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <Table columns={columns} data={currentData} />
+              </div>
+              <Pagination 
+                currentPage={currentPage} 
+                totalPages={totalPages} 
+                onPageChange={setCurrentPage}
+                itemsPerPage={itemsPerPage}
+                totalItems={filteredStudents.length}
+                startIndex={(currentPage - 1) * itemsPerPage + 1}
+                endIndex={Math.min(currentPage * itemsPerPage, filteredStudents.length)}
               />
             </div>
           )}
-
         </div>
-     
-        <Table 
-          columns={columns} 
-          data={currentData}
-          emptyState={
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Search className="w-8 h-8 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {hasActiveFilters ? "No students match your filters" : "No students found"}
-              </h3>
-              <p className="text-gray-500 mb-4">
-                {hasActiveFilters 
-                  ? "Try adjusting your search criteria or clear the filters."
-                  : "Get started by adding your first student."
-                }
-              </p>
-              {hasActiveFilters ? (
-                <Button onClick={clearFilters} variant="secondary">
-                  Clear Filters
-                </Button>
-              ) : (
-                <Button onClick={handleAdd} className="inline-flex items-center gap-2">
-                  <Plus className="w-4 h-4" />
-                  Add New Student
-                </Button>
-              )}
-            </div>
-          }
-        />
-      </Card>
-      
-      <Pagination 
-        currentPage={currentPage} 
-        totalPages={totalPages} 
-        onPageChange={setCurrentPage}
-        itemsPerPage={itemsPerPage}
-        totalItems={filteredStudents.length}
-        startIndex={(currentPage - 1) * itemsPerPage}
-        endIndex={Math.min(currentPage * itemsPerPage, filteredStudents.length)}
-      />
+      </div>
 
-      <AddEditStudentDialog 
-        open={openDialog} 
-        onOpenChange={setOpenDialog} 
-        onSave={handleSave} 
-        initial={editingStudent} 
-      />
+      {/* AddEditStudentDialog replaced with dedicated pages */}
 
       <DeleteConfirmDialog
         open={deleteDialog.open}

@@ -13,5 +13,5 @@
         address: string | null;
         cid: string | null;
         avatarUrl: string | null;
-        roleID: string | null;      
+        roleID: string | null;
     }

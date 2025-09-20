@@ -3,9 +3,11 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
+import PageHeader from "@/components/ui/PageHeader";
+import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import RequestCard from "./components/RequestCard";
 import Pagination from "@/shared/pagination";
-import { Search, Filter, Clock, CheckCircle, XCircle, AlertCircle, Calendar, X } from "lucide-react";
+import { Search, Filter, Clock, CheckCircle, XCircle, Calendar, X, TrendingUp, Download, SortAsc, SortDesc, FileText, Zap, MessageSquare } from "lucide-react";
 import RequestDetailDialog from "./components/RequestDetailDialog";
 import ConfirmRequestDialog from "./components/ConfirmRequestDialog";
 
@@ -35,8 +37,12 @@ export default function StaffRequestPage() {
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<"approve" | "reject">("approve");
+  const [confirmAction] = useState<"approve" | "reject">("approve");
   const [confirmRequest, setConfirmRequest] = useState<Request | null>(null);
+  const [selectedRequests, setSelectedRequests] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<'date' | 'priority' | 'status' | 'name'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [filterPriority, setFilterPriority] = useState('all');
 
   // Mock data
   useEffect(() => {
@@ -175,12 +181,117 @@ export default function StaffRequestPage() {
     setLoading(false);
   }, []);
 
-  const filteredRequests = requests.filter(request => {
+  // Statistics calculations
+  const stats = {
+    total: requests.length,
+    pending: requests.filter(r => r.status === 'pending').length,
+    approved: requests.filter(r => r.status === 'approved').length,
+    rejected: requests.filter(r => r.status === 'rejected').length,
+    highPriority: requests.filter(r => r.priority === 'high').length,
+    thisWeek: requests.filter(r => {
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      return new Date(r.submittedDate) >= weekAgo;
+    }).length
+  };
+
+  // Sorting logic
+  const sortRequests = (requests: Request[]) => {
+    return [...requests].sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortBy) {
+        case 'date':
+          aValue = new Date(a.submittedDate).getTime();
+          bValue = new Date(b.submittedDate).getTime();
+          break;
+        case 'priority':
+          const priorityOrder = { high: 3, medium: 2, low: 1 };
+          aValue = priorityOrder[a.priority];
+          bValue = priorityOrder[b.priority];
+          break;
+        case 'status':
+          aValue = a.status;
+          bValue = b.status;
+          break;
+        case 'name':
+          aValue = a.studentName;
+          bValue = b.studentName;
+          break;
+        default:
+          return 0;
+      }
+      
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+  };
+
+  // Bulk actions
+  const handleSelectAll = () => {
+    if (selectedRequests.length === paginatedRequests.length) {
+      setSelectedRequests([]);
+    } else {
+      setSelectedRequests(paginatedRequests.map(r => r.id));
+    }
+  };
+
+  const handleSelectRequest = (requestId: string) => {
+    setSelectedRequests(prev => 
+      prev.includes(requestId) 
+        ? prev.filter(id => id !== requestId)
+        : [...prev, requestId]
+    );
+  };
+
+  const handleBulkApprove = () => {
+    selectedRequests.forEach(id => {
+      handleStatusChange(id, 'approved');
+    });
+    setSelectedRequests([]);
+  };
+
+  const handleBulkReject = () => {
+    selectedRequests.forEach(id => {
+      handleStatusChange(id, 'rejected');
+    });
+    setSelectedRequests([]);
+  };
+
+  const handleExport = () => {
+    const dataToExport = filteredRequests.map(request => ({
+      'Student Name': request.studentName,
+      'Student Email': request.studentEmail,
+      'Request Type': getTypeLabel(request.requestType),
+      'Description': request.description,
+      'Status': request.status,
+      'Priority': request.priority,
+      'Submitted Date': request.submittedDate,
+      'Note': request.note || ''
+    }));
+    
+    const csv = [
+      Object.keys(dataToExport[0]).join(','),
+      ...dataToExport.map(row => Object.values(row).map(val => `"${val}"`).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'student-requests.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const filteredRequests = sortRequests(requests.filter(request => {
     const matchesSearch = request.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          request.studentEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          request.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === "all" || request.status === filterStatus;
     const matchesType = filterType === "all" || request.requestType === filterType;
+    const matchesPriority = filterPriority === "all" || request.priority === filterPriority;
     
     // Date filtering
     const requestDate = new Date(request.submittedDate);
@@ -196,8 +307,8 @@ export default function StaffRequestPage() {
       matchesDate = requestDate <= toDate;
     }
     
-    return matchesSearch && matchesStatus && matchesType && matchesDate;
-  });
+    return matchesSearch && matchesStatus && matchesType && matchesPriority && matchesDate;
+  }));
 
   // Pagination logic
   const totalPages = Math.ceil(filteredRequests.length / itemsPerPage);
@@ -213,9 +324,11 @@ export default function StaffRequestPage() {
     setSearchTerm("");
     setFilterStatus("all");
     setFilterType("all");
+    setFilterPriority("all");
     setDateFrom("");
     setDateTo("");
     setCurrentPage(1);
+    setSelectedRequests([]);
   };
 
   const handleStatusChange = (requestId: string, newStatus: "approved" | "rejected") => {
@@ -245,18 +358,6 @@ export default function StaffRequestPage() {
     }
   };
 
-  const handleQuickApprove = (request: Request) => {
-    setConfirmAction("approve");
-    setConfirmRequest(request);
-    setShowConfirmDialog(true);
-  };
-
-  const handleQuickReject = (request: Request) => {
-    setConfirmAction("reject");
-    setConfirmRequest(request);
-    setShowConfirmDialog(true);
-  };
-
   const handleConfirmAction = (reply: string) => {
     if (confirmRequest) {
       const status = confirmAction === "approve" ? "approved" : "rejected";
@@ -265,32 +366,6 @@ export default function StaffRequestPage() {
     }
     setShowConfirmDialog(false);
     setConfirmRequest(null);
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Clock className="w-4 h-4 text-yellow-600" />;
-      case "approved":
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case "rejected":
-        return <XCircle className="w-4 h-4 text-red-600" />;
-      default:
-        return <AlertCircle className="w-4 h-4 text-gray-600" />;
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "high":
-        return "bg-red-100 text-red-800 border-red-200";
-      case "medium":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "low":
-        return "bg-green-100 text-green-800 border-green-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
   };
 
   const getTypeLabel = (type: string) => {
@@ -309,23 +384,195 @@ export default function StaffRequestPage() {
   };
 
 
+  // Breadcrumb items
+  const breadcrumbItems = [
+    { label: "Staff Dashboard", href: "/staff" },
+    { label: "Student Requests", href: "/staff/requests" }
+  ];
+
   if (loading) {
     return <div className="p-6">Loading...</div>;
   }
 
   return (
-    <div className="p-6 mx-auto mt-16 lg:pl-0 bg-gray-50">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Student Requests</h1>
-        <p className="text-gray-600">Manage and respond to student requests</p>
-      </div>
+    <div className="mt-16 p-4 md:p-8 lg:pl-0 space-y-8">
+      {/* Breadcrumbs */}
+      <Breadcrumbs items={breadcrumbItems} />
+      
+      {/* Page Header */}
+      <PageHeader
+        title="Student Requests"
+        description="Manage and respond to student requests with comprehensive tools"
+        icon={<MessageSquare className="w-5 h-5 text-white" />}
+        controls={[
+          {
+            type: 'button',
+            label: 'Export',
+            variant: 'secondary',
+            icon: <Download className="w-4 h-4" />,
+            onClick: handleExport
+          }
+        ]}
+      />
+
+      <div className="space-y-6">
+
+        {/* Enhanced Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <FileText className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-blue-700">Total Requests</p>
+                <p className="text-3xl font-bold text-blue-900 group-hover:text-blue-600 transition-colors">
+                  {stats.total}
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  All submissions
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <Clock className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-yellow-700">Pending</p>
+                <p className="text-3xl font-bold text-yellow-900 group-hover:text-yellow-600 transition-colors">
+                  {stats.pending}
+                </p>
+                <p className="text-xs text-yellow-600 mt-1">
+                  Awaiting review
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <CheckCircle className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-green-700">Approved</p>
+                <p className="text-3xl font-bold text-green-900 group-hover:text-green-600 transition-colors">
+                  {stats.approved}
+                </p>
+                <p className="text-xs text-green-600 mt-1">
+                  {stats.total > 0 ? `${Math.round((stats.approved / stats.total) * 100)}% of total` : '0% of total'}
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <XCircle className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-red-700">Rejected</p>
+                <p className="text-3xl font-bold text-red-900 group-hover:text-red-600 transition-colors">
+                  {stats.rejected}
+                </p>
+                <p className="text-xs text-red-600 mt-1">
+                  {stats.total > 0 ? `${Math.round((stats.rejected / stats.total) * 100)}% of total` : '0% of total'}
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <Zap className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-purple-700">High Priority</p>
+                <p className="text-3xl font-bold text-purple-900 group-hover:text-purple-600 transition-colors">
+                  {stats.highPriority}
+                </p>
+                <p className="text-xs text-purple-600 mt-1">
+                  Urgent attention
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          
+        </div>
 
       {/* Requests Table */}
       <Card title="Student Requests Management">
+        {/* Bulk Actions and Sorting */}
+        {selectedRequests.length > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-blue-900">
+                  {selectedRequests.length} request(s) selected
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleBulkApprove}
+                  className="!bg-green-600 hover:!bg-green-700 text-white"
+                  iconLeft={<CheckCircle className="w-4 h-4 mr-2" />}
+                >
+                  Approve All
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleBulkReject}
+                  className="!bg-red-600 hover:!bg-red-700 text-white"
+                  iconLeft={<XCircle className="w-4 h-4 mr-2" />}
+                >
+                  Reject All
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Search and Filter Section */}
         <div className="space-y-4 mb-6">
+          {/* Sorting Controls */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 pb-4 border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <span className="text-sm font-medium text-gray-700">Sort by:</span>
+              <div className="flex gap-2">
+                <Select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as 'date' | 'priority' | 'status' | 'name')}
+                  options={[
+                    { label: "Date", value: "date" },
+                    { label: "Priority", value: "priority" },
+                    { label: "Status", value: "status" },
+                    { label: "Student Name", value: "name" }
+                  ]}
+                  className="w-full sm:w-40"
+                />
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  iconLeft={sortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
+                  className="flex items-center gap-1 whitespace-nowrap"
+                >
+                  <span className="hidden sm:inline">{sortOrder === 'asc' ? 'Ascending' : 'Descending'}</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+
           {/* Search Bar */}
-          <div className="flex gap-4 items-end">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-end">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
@@ -335,36 +582,40 @@ export default function StaffRequestPage() {
                 className="pl-10"
               />
             </div>
-            <Button
-              variant="secondary"
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2 text-primary-500"
-            >
-              <span className="flex items-center gap-2">
-                <Filter className="w-4 h-4" />
-                {showFilters ? 'Hide Filters' : 'Show Filters'}
-                {(searchTerm || filterStatus !== "all" || filterType !== "all" || dateFrom || dateTo) && (
-                  <span className="bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {[searchTerm, filterStatus, filterType, dateFrom, dateTo].filter(f => f !== "" && f !== "all").length}
-                  </span>
-                )}
-              </span>
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={clearFilters}
-              className="whitespace-nowrap text-red-500"
-            >
-              <span className="flex items-center gap-2">
-                <X className="w-4 h-4" />
-                Clear Filters
-              </span>
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-2 text-primary-500 flex-1 sm:flex-none"
+              >
+                <span className="flex items-center gap-2">
+                  <Filter className="w-4 h-4" />
+                  <span className="sm:hidden">Filters</span>
+                  <span className="hidden sm:inline">{showFilters ? 'Hide Filters' : 'Show Filters'}</span>
+                  {(searchTerm || filterStatus !== "all" || filterType !== "all" || filterPriority !== "all" || dateFrom || dateTo) && (
+                    <span className="bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {[searchTerm, filterStatus, filterType, filterPriority, dateFrom, dateTo].filter(f => f !== "" && f !== "all").length}
+                    </span>
+                  )}
+                </span>
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={clearFilters}
+                className="whitespace-nowrap text-red-500 flex-1 sm:flex-none"
+              >
+                <span className="flex items-center gap-2">
+                  <X className="w-4 h-4" />
+                  <span className="sm:hidden">Clear</span>
+                  <span className="hidden sm:inline">Clear Filters</span>
+                </span>
+              </Button>
+            </div>
           </div>
 
           {/* Filter Options */}
           {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 pt-4 border-t">
               <Select
                 label="Status"
                 value={filterStatus}
@@ -386,6 +637,17 @@ export default function StaffRequestPage() {
                   { label: "Schedule Change", value: "schedule_change" },
                   { label: "Refund", value: "refund" },
                   { label: "Other", value: "other" }
+                ]}
+              />
+              <Select
+                label="Priority"
+                value={filterPriority}
+                onChange={(e) => setFilterPriority(e.target.value)}
+                options={[
+                  { label: "All Priorities", value: "all" },
+                  { label: "High Priority", value: "high" },
+                  { label: "Medium Priority", value: "medium" },
+                  { label: "Low Priority", value: "low" }
                 ]}
               />
               <div>
@@ -417,6 +679,21 @@ export default function StaffRequestPage() {
         </div>
 
         <div className="space-y-4">
+          {/* Select All Checkbox */}
+          {paginatedRequests.length > 0 && (
+            <div className="flex items-center gap-2 pb-4 border-b border-gray-200">
+              <input
+                type="checkbox"
+                checked={selectedRequests.length === paginatedRequests.length && paginatedRequests.length > 0}
+                onChange={handleSelectAll}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <span className="text-sm text-gray-700">
+                Select all ({paginatedRequests.length} items)
+              </span>
+            </div>
+          )}
+
           {/* Request Cards */}
           {paginatedRequests.length > 0 ? (
             <div className="space-y-4">
@@ -425,6 +702,8 @@ export default function StaffRequestPage() {
                   key={request.id}
                   request={request}
                   onViewDetails={handleViewDetails}
+                  isSelected={selectedRequests.includes(request.id)}
+                  onSelect={handleSelectRequest}
                 />
               ))}
             </div>
@@ -435,15 +714,15 @@ export default function StaffRequestPage() {
                   <Search className="w-8 h-8 text-gray-400" />
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {(searchTerm || filterStatus !== "all" || filterType !== "all" || dateFrom || dateTo) ? "No requests match your filters" : "No requests found"}
+                  {(searchTerm || filterStatus !== "all" || filterType !== "all" || filterPriority !== "all" || dateFrom || dateTo) ? "No requests match your filters" : "No requests found"}
                 </h3>
                 <p className="text-gray-500 mb-4">
-                  {(searchTerm || filterStatus !== "all" || filterType !== "all" || dateFrom || dateTo)
+                  {(searchTerm || filterStatus !== "all" || filterType !== "all" || filterPriority !== "all" || dateFrom || dateTo)
                     ? "Try adjusting your search criteria or filters"
                     : "No student requests have been submitted yet"
                   }
                 </p>
-                {(searchTerm || filterStatus !== "all" || filterType !== "all" || dateFrom || dateTo) && (
+                {(searchTerm || filterStatus !== "all" || filterType !== "all" || filterPriority !== "all" || dateFrom || dateTo) && (
                   <Button
                     variant="secondary"
                     onClick={clearFilters}
@@ -488,6 +767,7 @@ export default function StaffRequestPage() {
         studentName={confirmRequest?.studentName || ""}
         requestType={confirmRequest ? getTypeLabel(confirmRequest.requestType) : ""}
       />
+      </div>
     </div>
   );
 }

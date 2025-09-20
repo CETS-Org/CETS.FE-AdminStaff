@@ -210,16 +210,16 @@ export default function RequestDetailDialog({
               <>
                 <Button
                   onClick={handleReject}
-                  className="bg-red-600 hover:bg-red-700 text-white"
+                  iconLeft={<XCircle className="w-4 h-4 mr-2" />}
+                  className="!bg-red-600 hover:!bg-red-700 !text-white"
                 >
-                  <XCircle className="w-4 h-4 mr-2" />
                   Reject
                 </Button>
                 <Button
                   onClick={handleApprove}
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  iconLeft={<CheckCircle className="w-4 h-4 mr-2" />}
+                  className="!bg-green-600 hover:!bg-green-700 !text-white"
                 >
-                  <CheckCircle className="w-4 h-4 mr-2" />
                   Approve
                 </Button>
               </>
