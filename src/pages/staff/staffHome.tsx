@@ -26,6 +26,7 @@ import ComplaintDetailPage from "@/shared/ComplaintDetailPage";
 import ComplaintResponsePage from "@/shared/ComplaintResponsePage";
 import EditStudentPage from "./staff_students/EditStudentPage";
 import AddStudentPage from "./staff_students/AddStudentPage";
+import StaffPromotionsPage from "./staff_promotions";
 
 export default function StaffHome() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -73,6 +74,7 @@ export default function StaffHome() {
             <Route path="courses/:courseId/classes/:classId" element={<ClassDetailPage />} />
             <Route path="courses/:courseId/classes/:classId/edit" element={<AddEditClassPage />} />
             <Route path="assign-teacher" element={<AssignTeacherPage />} />
+            <Route path="promotions" element={<StaffPromotionsPage />} />
             <Route path="events" element={<StaffEventsPage />} />
             <Route path="events/:id" element={<EventDetailPage />} />
             <Route path="complaints" element={<StaffComplaintManagement />} />

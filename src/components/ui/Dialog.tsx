@@ -49,7 +49,7 @@ export function DialogContent({ size = "md", className = "", children, ...props 
       <RadixDialog.Content
         className={[
           "fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2",
-          "w-[85vw] rounded-lg bg-neutral-0 shadow-xl",
+          "w-[85vw] rounded-lg bg-neutral-0 shadow-xl px-8",
           getSizeClasses(size),
           "max-h-[85vh] overflow-hidden",
           "z-50",
@@ -72,7 +72,7 @@ export function DialogContent({ size = "md", className = "", children, ...props 
 }
 
 export function DialogHeader({ className = "", ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={["px-6 pt-6", className].join(" ")} {...props} />;
+  return <div className={[" pt-6", className].join(" ")} {...props} />;
 }
 
 export function DialogTitle({ className = "", ...props }: ComponentPropsWithoutRef<typeof RadixDialog.Title>) {
@@ -98,7 +98,7 @@ export function DialogBody({ className = "", ...props }: HTMLAttributes<HTMLDivE
 }
 
 export function DialogFooter({ className = "", ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={["flex items-center justify-end gap-3 px-6 pb-6", className].join(" ")} {...props} />;
+  return <div className={["flex items-center justify-end gap-3 pb-6", className].join(" ")} {...props} />;
 }
 
 

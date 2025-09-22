@@ -113,7 +113,7 @@ export default function GenericSidebar({
               </button>
             )}
           </div>
-          <div className="flex-1 overflow-y-auto p-3 pt-0">
+          <div className="flex-1 overflow-y-auto sidebar-scrollbar p-3 pt-0">
             <ul className="space-y-2">
               {config.items.map((item) => {
                 if (item.subItems) {

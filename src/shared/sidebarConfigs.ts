@@ -1,7 +1,7 @@
 // src/shared/sidebarConfigs.ts
 import {
   BarChart3, BookOpenText, Users, GraduationCap, CalendarDays,
-  UserPlus, Mail, Calendar, MessageSquare, FileText, UserCheck
+  UserPlus, Mail, Calendar, MessageSquare, FileText, UserCheck, Percent
 } from "lucide-react";
 import type { SidebarConfig } from "./GenericSidebar";
 import AdminFooterContent from "./AdminFooterContent";
@@ -16,6 +16,7 @@ export const staffSidebarConfig: SidebarConfig = {
     { id: "teachers", label: "Teachers", icon: GraduationCap, path: "/staff/teachers" },
     { id: "schedule", label: "Schedule", icon: CalendarDays, path: "/staff/schedule" },
     { id: "assign-teacher", label: "Assign Teacher", icon: UserPlus, path: "/staff/assign-teacher" },
+    { id: "promotions", label: "Promotions", icon: Percent, path: "/staff/promotions" },
     { id: "events", label: "Events", icon: Calendar, path: "/staff/events" },
     { id: "complaints", label: "Complaints", icon: MessageSquare, path: "/staff/complaints" },
     { id: "requests", label: "Requests", icon: Mail, path: "/staff/requests" },

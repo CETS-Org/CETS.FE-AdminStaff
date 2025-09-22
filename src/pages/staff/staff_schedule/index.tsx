@@ -385,52 +385,72 @@ export default function StaffSchedulePage() {
             </Card>
         )}
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 mt-8">
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Sessions</p>
-                <p className="text-2xl font-bold text-gray-900">{statistics.totalSessions}</p>
+        {/* Enhanced Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 mt-8">
+          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <Calendar className="w-7 h-7 text-white" />
               </div>
-              <div className="p-3 bg-blue-100 rounded-full">
-                <Calendar className="w-6 h-6 text-blue-600" />
+              <div>
+                <p className="text-sm font-medium text-blue-700">Total Sessions</p>
+                <p className="text-3xl font-bold text-blue-900 group-hover:text-blue-600 transition-colors">
+                  {statistics.totalSessions}
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  All scheduled sessions
+                </p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Today's Sessions</p>
-                <p className="text-2xl font-bold text-gray-900">{statistics.todaySessions}</p>
+          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <Clock className="w-7 h-7 text-white" />
               </div>
-              <div className="p-3 bg-green-100 rounded-full">
-                <Clock className="w-6 h-6 text-green-600" />
+              <div>
+                <p className="text-sm font-medium text-green-700">Today's Sessions</p>
+                <p className="text-3xl font-bold text-green-900 group-hover:text-green-600 transition-colors">
+                  {statistics.todaySessions}
+                </p>
+                <p className="text-xs text-green-600 mt-1">
+                  Sessions scheduled today
+                </p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Active Classes</p>
-                <p className="text-2xl font-bold text-gray-900">{statistics.activeClasses}</p>
+          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <BookOpen className="w-7 h-7 text-white" />
               </div>
-              <div className="p-3 bg-purple-100 rounded-full">
-                <BookOpen className="w-6 h-6 text-purple-600" />
+              <div>
+                <p className="text-sm font-medium text-purple-700">Active Classes</p>
+                <p className="text-3xl font-bold text-purple-900 group-hover:text-purple-600 transition-colors">
+                  {statistics.activeClasses}
+                </p>
+                <p className="text-xs text-purple-600 mt-1">
+                  Currently running classes
+                </p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Upcoming Sessions</p>
-                <p className="text-2xl font-bold text-gray-900">{statistics.upcomingSessions}</p>
+          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <TrendingUp className="w-7 h-7 text-white" />
               </div>
-              <div className="p-3 bg-orange-100 rounded-full">
-                <TrendingUp className="w-6 h-6 text-orange-600" />
+              <div>
+                <p className="text-sm font-medium text-orange-700">Upcoming</p>
+                <p className="text-3xl font-bold text-orange-900 group-hover:text-orange-600 transition-colors">
+                  {statistics.upcomingSessions}
+                </p>
+                <p className="text-xs text-orange-600 mt-1">
+                  Future scheduled sessions
+                </p>
               </div>
             </div>
           </Card>
