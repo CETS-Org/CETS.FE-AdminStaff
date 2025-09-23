@@ -5,7 +5,7 @@ import DataTable, { type BulkAction, type FilterConfig } from "@/components/ui/D
 import { type TableColumn } from "@/components/ui/Table";
 import { 
   Eye, Edit, UserX, Plus, User, Download, 
-  GraduationCap, Award
+  GraduationCap, Award, KeyRound
 } from "lucide-react";
 import { getTeachers } from "@/api/teacher.api";
 import type { Teacher } from "@/types/teacher.type";
@@ -13,7 +13,11 @@ import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
 import { setIsDelete, setIsActive } from "@/api/account.api";
 
 
-export default function TeacherList() {
+type Props = {
+  onResetPassword?: (teacher: Teacher) => void;
+};
+
+export default function TeacherList({ onResetPassword }: Props) {
   const navigate = useNavigate();
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; teacher: Teacher | null; action?: 'ban' | 'unban' }>({ open: false, teacher: null });
   
@@ -141,6 +145,16 @@ export default function TeacherList() {
           >
             <Edit className="w-4 h-4" />
           </Button>
+          {onResetPassword && (
+            <Button
+              size="sm"
+              onClick={() => onResetPassword(row)}
+              className="!p-2 !bg-orange-50 !text-orange-600 !border !border-orange-200 hover:!bg-orange-100 hover:!text-orange-700 hover:!border-orange-300 !transition-colors !rounded-md"
+              title="Reset Password"
+            >
+              <KeyRound className="w-4 h-4" />
+            </Button>
+          )}
           {row.statusName === 'Blocked' || row.statusName === 'Locked' ? (
             <Button
               size="sm"
