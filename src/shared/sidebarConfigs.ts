@@ -25,9 +25,19 @@ export const staffSidebarConfig: SidebarConfig = {
 
 export const adminSidebarConfig: SidebarConfig = {
   title: "Admin",
- 
   items: [
-    { id: "staffs", label: "Staff Management", icon: UserCheck, path: "/admin/staffs" },
+    {
+      id: "user-management",
+      label: "User Management",
+      icon: Users,
+      path: "#",
+      subItems: [
+        { id: "staffs", label: "Staff Management", icon: UserCheck, path: "/admin/staffs" },
+        { id: "teachers", label: "Teacher Management", icon: GraduationCap, path: "/admin/teachers" },
+        { id: "students", label: "Student Management", icon: Users, path: "/admin/students" },
+      ]
+     
+    },
     { id: "reports", label: "Complaint Management", icon: FileText, path: "/admin/reports" },
   ]
 };
