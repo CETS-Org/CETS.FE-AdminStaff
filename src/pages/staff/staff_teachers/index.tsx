@@ -5,6 +5,7 @@ import Card from "@/components/ui/Card";
 import PageHeader from "@/components/ui/PageHeader";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import Button from "@/components/ui/Button";
+import ResetPasswordDialog from "@/components/ui/ResetPasswordDialog";
 import { Users, GraduationCap, Clock, Award, Download, BarChart3, AlertCircle, Loader2 } from "lucide-react";
 import { getTeachers } from "@/api/teacher.api";
 import type { Teacher } from "@/types/teacher.type";
@@ -13,6 +14,8 @@ export default function TeacherManagement() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
+    const [selectedTeacherForReset, setSelectedTeacherForReset] = useState<any>(null);
     const [stats, setStats] = useState({
         totalTeachers: 0,
         activeTeachers: 0,
@@ -28,6 +31,25 @@ export default function TeacherManagement() {
 
     const handleViewAnalytics = () => {
         navigate("/staff/analytics");
+    };
+
+    const handleResetPassword = (teacher: any) => {
+        setSelectedTeacherForReset(teacher);
+        setIsResetPasswordOpen(true);
+    };
+
+    const handleResetPasswordSubmit = async (email: string) => {
+        // Simulate API call for password reset
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Here you would typically call an API endpoint
+        console.log("Reset password for teacher:", selectedTeacherForReset?.fullName, "with email:", email);
+        
+        // For demo purposes, we'll just simulate success
+        // In real implementation, this would call something like:
+        // await resetTeacherPassword(selectedTeacherForReset.accountId, email);
+        
+        setSelectedTeacherForReset(null);
     };
 
     // Calculate stats from teacher data
@@ -211,8 +233,21 @@ export default function TeacherManagement() {
 
             {/* Teacher List Component */}
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
-                <TeacherList />
+                <TeacherList onResetPassword={handleResetPassword} />
             </div>
+
+            {/* Reset Password Dialog */}
+            <ResetPasswordDialog
+                open={isResetPasswordOpen}
+                onOpenChange={(open) => {
+                    setIsResetPasswordOpen(open);
+                    if (!open) setSelectedTeacherForReset(null);
+                }}
+                onResetPassword={handleResetPasswordSubmit}
+                title="Reset Teacher Password"
+                description={`Send password reset instructions${selectedTeacherForReset ? ` to ${selectedTeacherForReset.fullName}` : ''}.`}
+                defaultEmail={selectedTeacherForReset?.email || ''}
+            />
         </div>
     );
 }

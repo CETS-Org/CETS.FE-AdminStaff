@@ -7,7 +7,7 @@ import Select from "@/components/ui/Select";
 import Pagination from "@/shared/pagination";
 import { 
   Eye, Edit, UserX, Search, Filter, X, Plus, Loader2, User, 
-  Download, RefreshCw, AlertCircle, CheckSquare, Square, Users
+  Download, RefreshCw, AlertCircle, CheckSquare, Square, Users, KeyRound
 } from "lucide-react";
 import { getStudents, filterStudent } from "@/api/student.api";
 import type { FilterUserParam } from "@/types/filter.type";
@@ -16,7 +16,11 @@ import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
 import { useStudentStore } from "@/store/student.store";
 import { setIsDelete, setIsActive } from "@/api/account.api";
 
-export default function StudentsList() {
+type Props = {
+  onResetPassword?: (student: Student) => void;
+};
+
+export default function StudentsList({ onResetPassword }: Props) {
   const navigate = useNavigate();
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; student: Student | null; action?: 'ban' | 'unban' }>({ open: false, student: null });
   const { students, setStudents } = useStudentStore();
@@ -207,6 +211,16 @@ export default function StudentsList() {
           >
             <Edit className="w-4 h-4" />
           </Button>
+          {onResetPassword && (
+            <Button
+              size="sm"
+              onClick={() => onResetPassword(row)}
+              className="!p-2 !bg-orange-50 !text-orange-600 !border !border-orange-200 hover:!bg-orange-100 hover:!text-orange-700 hover:!border-orange-300 !transition-colors !rounded-md"
+              title="Reset Password"
+            >
+              <KeyRound className="w-4 h-4" />
+            </Button>
+          )}
           {row.statusName === 'Locked' ? (
             <Button
               size="sm"
