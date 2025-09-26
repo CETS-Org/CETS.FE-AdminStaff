@@ -57,15 +57,15 @@ export default function StaffHome() {
         <div className="px-6 lg:px-8">
           <Routes>
             <Route path="analytics" element={<StaffAnalytics />} />
-            <Route path="teachers" element={<TeacherManagement />} />
+            {/* <Route path="teachers" element={<TeacherManagement />} />
             <Route path="teachers/add" element={<AddEditTeacherPage />} />
             <Route path="teachers/:id" element={<TeacherDetailPage />} />
-            <Route path="teachers/edit/:id" element={<EditTeacherPage />} />
-            <Route path="schedule" element={<StaffSchedulePage />} />
+            <Route path="teachers/edit/:id" element={<EditTeacherPage />} />         
             <Route path="students" element={<StaffStudentsPage />} />
             <Route path="students/:id" element={<StudentDetailPage />} />
             <Route path="students/edit/:id" element={<EditStudentPage />} />
-            <Route path="students/add" element={<AddStudentPage />} />
+            <Route path="students/add" element={<AddStudentPage />} /> */}            
+            <Route path="schedule" element={<StaffSchedulePage />} />
             <Route path="courses" element={<StaffCoursesPage />} />
             <Route path="courses/add" element={<AddEditCoursePage />} />
             <Route path="courses/edit/:id" element={<AddEditCoursePage />} />

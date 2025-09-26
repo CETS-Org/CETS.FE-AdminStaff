@@ -241,7 +241,7 @@ export default function AddEditTeacherPage() {
       await createTeacher(teacherData);
       
       // Navigate back to teachers list
-      navigate("/staff/teachers");
+      navigate("admin/teachers");
     } catch (error) {
       console.error("Error saving teacher:", error);
       // You can add more specific error handling here
@@ -290,7 +290,7 @@ export default function AddEditTeacherPage() {
   };
 
   const handleCancel = () => {
-    navigate("/staff/teachers");
+    navigate("/admin/teachers");
   };
 
   if (isLoading && isEdit) {
@@ -307,7 +307,7 @@ export default function AddEditTeacherPage() {
   }
 
   const breadcrumbItems = [
-    { label: "Teachers", to: "/staff/teachers" },
+    { label: "Teachers", to: "/admin/teachers" },
     { label: isEdit ? "Edit Teacher" : "Add New Teacher" }
   ];
 

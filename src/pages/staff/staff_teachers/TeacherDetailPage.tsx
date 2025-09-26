@@ -179,7 +179,7 @@ export default function TeacherDetailPage() {
   const handleEdit = () => {
     // Navigate to edit page
     if (teacher?.accountId) {
-      navigate(`/staff/teachers/edit/${teacher.accountId}`);
+      navigate(`/admin/teachers/edit/${teacher.accountId}`);
     }
   };
 
@@ -197,7 +197,7 @@ export default function TeacherDetailPage() {
   };
 
   const handleManageCourse = (courseId: string) => {
-    navigate(`/staff/courses/${courseId}`);
+    navigate(`/admin/courses/${courseId}`);
   };
 
   // Function to categorize credentials by type
@@ -303,7 +303,7 @@ export default function TeacherDetailPage() {
             </div>
           </button>
           <button
-            onClick={() => window.open(`/staff/courses/${course.courseId}`, '_blank')}
+            onClick={() => window.open(`/admin/courses/${course.courseId}`, '_blank')}
             className="p-2.5 rounded-xl border border-gray-300 text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-all duration-200 relative group shadow-sm hover:shadow-md"
           >
             <ExternalLink className="w-4 h-4" />
@@ -352,7 +352,7 @@ export default function TeacherDetailPage() {
 
 
   const breadcrumbItems = [
-    { label: "Teachers", to: "/staff/teachers" },
+    { label: "Teachers", to: "/admin/teachers" },
     { label: teacher?.fullName || "Teacher Detail" }
   ];
 

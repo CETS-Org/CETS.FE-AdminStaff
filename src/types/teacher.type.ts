@@ -70,7 +70,7 @@ export interface CourseTeaching {
   assignedAt: string ;
 }
     
-export interface UpdateTeacherProfile{
+export interface UpdateTeacherProfile {
   teacherCode: string | null;
   yearsExperience: number;
   fullName: string ;
@@ -79,6 +79,13 @@ export interface UpdateTeacherProfile{
   address: string | null;
   avatarUrl: string | null;
   bio: string | null;
+  credentials: {
+    credentialId?: string;
+    credentialTypeId: string;
+    pictureUrl: string | null;
+    name: string | null;
+    level: string | null;
+  }[] | null;
 }
 
 export interface AddTeacherCredential {

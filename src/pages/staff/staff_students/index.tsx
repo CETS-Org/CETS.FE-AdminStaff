@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Card from "@/components/ui/Card";
 import PageHeader from "@/components/ui/PageHeader";
@@ -6,71 +6,115 @@ import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import StudentsList from "./components/students_list";
 import Button from "@/components/ui/Button";
 import { Users, GraduationCap, Clock, Award, Download, BarChart3, AlertCircle, Loader2 } from "lucide-react";
+import { useStudentStore } from "@/store/student.store";
+import { getStudents } from "@/api/student.api";
 
 export default function StaffStudentsPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState({
-    totalStudents: 0,
-    activeStudents: 0,
-    newThisMonth: 0,
-    graduated: 0,
-    monthlyGrowth: 0,
-    weeklyGrowth: 0
-  });
+  const { students, setStudents } = useStudentStore();
+
+  // Calculate statistics from real student data
+  const stats = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const totalStudents = students.length;
+    const activeStudents = students.filter(s => 
+      s.statusName === 'Active' || (!s.statusName && !s.isDeleted)
+    ).length;
+    
+    const newThisMonth = students.filter(s => {
+      const createdDate = new Date(s.createdAt);
+      return createdDate.getMonth() === currentMonth && createdDate.getFullYear() === currentYear;
+    }).length;
+    
+    const newThisWeek = students.filter(s => {
+      const createdDate = new Date(s.createdAt);
+      return createdDate >= oneWeekAgo;
+    }).length;
+
+    // For graduated students, we'll use a placeholder since we don't have graduation data
+    const graduated = 0; // This would need to be calculated from actual graduation data
+
+    return {
+      totalStudents,
+      activeStudents,
+      newThisMonth,
+      newThisWeek,
+      graduated,
+      activePercentage: totalStudents > 0 ? Math.round((activeStudents / totalStudents) * 100) : 0
+    };
+  }, [students]);
 
   const handleExportData = () => {
-    console.log("Export student data");
+    const dataToExport = students.map(student => ({
+      'Full Name': student.fullName,
+      'Email': student.email,
+      'Phone': student.phoneNumber || 'N/A',
+      'Status': student.statusName || (student.isDeleted ? 'Inactive' : 'Active'),
+      'Date of Birth': student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString() : 'N/A',
+      'Created Date': new Date(student.createdAt).toLocaleDateString(),
+      'Guardian': student.studentInfo?.guardianName || 'N/A',
+      'School': student.studentInfo?.school || 'N/A'
+    }));
+    
+    const csv = [
+      Object.keys(dataToExport[0]).join(','),
+      ...dataToExport.map(row => Object.values(row).map(val => `"${val}"`).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'students-list.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const handleViewAnalytics = () => {
     navigate("/staff/analytics");
   };
 
-  // Simulate data loading
+  // Fetch students data
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchStudents = async () => {
       try {
         setLoading(true);
         setError(null);
-        
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        setStats({
-          totalStudents: 156,
-          activeStudents: 142,
-          newThisMonth: 23,
-          graduated: 14,
-          monthlyGrowth: 5,
-          weeklyGrowth: 12
-        });
+        const data = await getStudents();
+        setStudents(data);
       } catch (err) {
-        setError("Failed to load student statistics. Please try again.");
+        setError("Failed to load student data. Please try again.");
+        console.error('Error fetching students:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchStats();
-  }, []);
+    fetchStudents();
+  }, [setStudents]);
 
   const handleRetry = () => {
     setError(null);
     // Re-trigger the useEffect
     setLoading(true);
-    setTimeout(() => {
-      setStats({
-        totalStudents: 156,
-        activeStudents: 142,
-        newThisMonth: 23,
-        graduated: 14,
-        monthlyGrowth: 5,
-        weeklyGrowth: 12
-      });
-      setLoading(false);
-    }, 1000);
+    const fetchStudents = async () => {
+      try {
+        const data = await getStudents();
+        setStudents(data);
+      } catch (err) {
+        setError("Failed to load student data. Please try again.");
+        console.error('Error fetching students:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStudents();
   };
 
   const breadcrumbItems = [
@@ -134,7 +178,7 @@ export default function StaffStudentsPage() {
                   {loading ? "..." : stats.totalStudents}
                 </p>
                 <p className="text-xs text-blue-600 mt-1">
-                  {loading ? "Loading..." : `+${stats.monthlyGrowth} this month`}
+                  {loading ? "Loading..." : `+${stats.newThisMonth} this month`}
                 </p>
               </div>
             </div>
@@ -151,7 +195,7 @@ export default function StaffStudentsPage() {
                   {loading ? "..." : stats.activeStudents}
                 </p>
                 <p className="text-xs text-green-600 mt-1">
-                  {loading ? "Loading..." : `${Math.round((stats.activeStudents / stats.totalStudents) * 100)}% of total`}
+                  {loading ? "Loading..." : `${stats.activePercentage}% of total`}
                 </p>
               </div>
             </div>
@@ -168,7 +212,7 @@ export default function StaffStudentsPage() {
                   {loading ? "..." : stats.newThisMonth}
                 </p>
                 <p className="text-xs text-amber-600 mt-1">
-                  {loading ? "Loading..." : `+${stats.weeklyGrowth} this week`}
+                  {loading ? "Loading..." : `+${stats.newThisWeek} this week`}
                 </p>
               </div>
             </div>

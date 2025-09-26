@@ -383,6 +383,7 @@ export default function AddEditStaffDialog({
            
 
             {/* Role and Status */}
+            {mode === "add" && (
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
                 <User className="w-5 h-5" />
@@ -402,7 +403,7 @@ export default function AddEditStaffDialog({
                     error={errors.roleID}
                   />
                 )}
-{/*                 
+                
                 <Select
                   label="Status"
                   value={formData.statusName}
@@ -411,9 +412,10 @@ export default function AddEditStaffDialog({
                     { label: "Active", value: "Active" },
                     { label: "Inactive", value: "Inactive" }
                   ]}
-                /> */}
+                />
               </div>
             </div>
+            )}
           </div>
         </DialogBody>
 

@@ -229,17 +229,17 @@ export default function StudentsList() {
     }
   ];
 
-  const handleAdd = () => {
-    navigate('/staff/students/add');
-  };
+  // const handleAdd = () => {
+  //   navigate('/admin/students/add');
+  // };
 
   const handleView = (student: Student) => {
     // Use accountId for navigation to student detail page
-    navigate(`/staff/students/${student.accountId}`);
+    navigate(`/admin/students/${student.accountId}`);
   };
 
   const handleEdit = (student: Student) => {
-    navigate(`/staff/students/edit/${student.accountId}`);
+    navigate(`/admin/students/edit/${student.accountId}`);
   };
 
   const handleBan = (student: Student) => {
@@ -412,9 +412,9 @@ export default function StudentsList() {
               )}
               
               {/* Add Student Button */}
-              <Button onClick={handleAdd} className="whitespace-nowrap" iconLeft={<Plus className="w-4 h-4" />}>
+              {/* <Button onClick={handleAdd} className="whitespace-nowrap" iconLeft={<Plus className="w-4 h-4" />}>
                 Add Student
-              </Button>
+              </Button> */}
             </div>
           </div>
         </div>
@@ -553,9 +553,9 @@ export default function StudentsList() {
                   : "Get started by adding your first student"
                 }
               </p>
-              <Button onClick={handleAdd} iconLeft={<Plus className="w-4 h-4" />}>
+              {/* <Button onClick={handleAdd} iconLeft={<Plus className="w-4 h-4" />}>
                 Add Student
-              </Button>
+              </Button> */}
             </div>
           ) : (
             <div className="space-y-6">

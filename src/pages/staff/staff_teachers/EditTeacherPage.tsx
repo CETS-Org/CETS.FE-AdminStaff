@@ -9,8 +9,9 @@ import {
   Plus, Trash2, GraduationCap, ArrowLeft, Upload, User, Camera, Save, 
   CheckCircle, AlertCircle, Loader2 
 } from "lucide-react";
-import { getTeacherById, updateTeacher, getListCredentialType } from "@/api/teacher.api";
+import { getTeacherById, updateTeacher, getListCredentialType, getListCredentialByTeacherId } from "@/api/teacher.api";
 import type { Teacher, UpdateTeacherProfile, CredentialTypeResponse } from "@/types/teacher.type";
+import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
 
 interface CredentialFormData {
   id: string;
@@ -54,6 +55,12 @@ export default function EditTeacherPage() {
   const [avatarPreview, setAvatarPreview] = useState<string>("");
   const [credentialTypes, setCredentialTypes] = useState<CredentialTypeResponse[]>([]);
   const [teacher, setTeacher] = useState<Teacher | null>(null);
+  const [deleteCredentialDialog, setDeleteCredentialDialog] = useState<{ open: boolean; credentialId: string | null; credentialName: string | null }>({ 
+    open: false, 
+    credentialId: null, 
+    credentialName: null 
+  });
+  const [existingCredentialIds, setExistingCredentialIds] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch credential types and teacher data when component mounts
@@ -71,6 +78,11 @@ export default function EditTeacherPage() {
           const teacherData = await getTeacherById(id);
           setTeacher(teacherData);
           
+          // Fetch existing credentials separately
+          const credentials = await getListCredentialByTeacherId(id);
+          console.log("Fetched existing credentials:", credentials);
+          setExistingCredentialIds(new Set(credentials.map((c) => c.credentialId)));
+          
           setFormData({
             teacherCode: teacherData.teacherInfo?.teacherCode || "",
             fullName: teacherData.fullName || "",
@@ -80,13 +92,13 @@ export default function EditTeacherPage() {
             avatarUrl: teacherData.avatarUrl || "",
             yearsExperience: teacherData.teacherInfo?.yearsExperience || 0,
             bio: teacherData.teacherInfo?.bio || "",
-            credentials: teacherData.teacherInfo?.teacherCredentials?.map(cred => ({
+            credentials: credentials.map(cred => ({
               id: cred.credentialId,
               credentialTypeId: cred.credentialTypeId,
               pictureUrl: cred.pictureUrl,
               name: cred.name,
               level: cred.level
-            })) || []
+            }))
           });
           
           if (teacherData.avatarUrl) {
@@ -107,22 +119,45 @@ export default function EditTeacherPage() {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
+    // Validate required fields
     if (!formData.fullName.trim()) {
       newErrors.fullName = "Full name is required";
+    } else if (formData.fullName.trim().length < 2) {
+      newErrors.fullName = "Full name must be at least 2 characters";
     }
 
     if (!formData.dateOfBirth) {
       newErrors.dateOfBirth = "Date of birth is required";
+    } else {
+      // Validate date is not in the future
+      const birthDate = new Date(formData.dateOfBirth);
+      const today = new Date();
+      if (birthDate > today) {
+        newErrors.dateOfBirth = "Date of birth cannot be in the future";
+      }
     }
 
     if (formData.yearsExperience < 0) {
       newErrors.yearsExperience = "Years of experience must be a positive number";
+    } else if (formData.yearsExperience > 50) {
+      newErrors.yearsExperience = "Years of experience seems unrealistic (max 50)";
+    }
+
+    // Validate CID if provided
+    if (formData.cid && formData.cid.trim()) {
+      const cidRegex = /^[0-9]{9,12}$/;
+      if (!cidRegex.test(formData.cid.trim())) {
+        newErrors.cid = "CID must be 9-12 digits";
+      }
     }
 
     // Validate credentials
     formData.credentials.forEach((cred, index) => {
       if (!cred.credentialTypeId) {
         newErrors[`credential_${index}_type`] = "Credential type is required";
+      }
+      if (cred.name && cred.name.trim().length < 2) {
+        newErrors[`credential_${index}_name`] = "Credential name must be at least 2 characters";
       }
     });
 
@@ -161,10 +196,25 @@ export default function EditTeacherPage() {
   };
 
   const removeCredential = (id: string) => {
-    setFormData(prev => ({
-      ...prev,
-      credentials: prev.credentials.filter(cred => cred.id !== id)
-    }));
+    const credential = formData.credentials.find(cred => cred.id === id);
+    const credentialType = credentialTypes.find(type => type.id === credential?.credentialTypeId);
+    const credentialName = credential?.name || credentialType?.name || 'this credential';
+    
+    setDeleteCredentialDialog({
+      open: true,
+      credentialId: id,
+      credentialName: credentialName
+    });
+  };
+
+  const confirmDeleteCredential = () => {
+    if (deleteCredentialDialog.credentialId) {
+      setFormData(prev => ({
+        ...prev,
+        credentials: prev.credentials.filter(cred => cred.id !== deleteCredentialDialog.credentialId)
+      }));
+      setDeleteCredentialDialog({ open: false, credentialId: null, credentialName: null });
+    }
   };
 
   const handleSave = async () => {
@@ -174,8 +224,9 @@ export default function EditTeacherPage() {
 
     setIsLoading(true);
     try {
+      // Prepare teacher update data
       const updateData: UpdateTeacherProfile = {
-        teacherCode: formData.teacherCode?.trim() || null, // Read-only field, but API may require it
+        teacherCode: formData.teacherCode?.trim() || null,
         yearsExperience: formData.yearsExperience,
         fullName: formData.fullName.trim(),
         dateOfBirth: formData.dateOfBirth,
@@ -183,17 +234,91 @@ export default function EditTeacherPage() {
         address: formData.address?.trim() || null,
         avatarUrl: formData.avatarUrl?.trim() || null,
         bio: formData.bio?.trim() || null,
+        credentials:
+          formData.credentials && formData.credentials.length > 0
+            ? formData.credentials.map((cred) => ({
+                ...(existingCredentialIds.has(cred.id) ? { credentialId: cred.id } : {}),
+                credentialTypeId: cred.credentialTypeId,
+                pictureUrl: cred.pictureUrl,
+                name: cred.name,
+                level: cred.level,
+              }))
+            : null,
       };
       
-      await updateTeacher(teacher.accountId, updateData);
+      // Update teacher profile using API
+      const updatedTeacher = await updateTeacher(teacher.accountId, updateData);
+      console.log("Teacher updated successfully:", updatedTeacher);
       
-      // Navigate back to teachers list
-      navigate("/staff/teachers");
+      // Handle credential updates with mock data
+      await handleCredentialUpdates();
+      
+      // Show success message and navigate back
+      console.log("Teacher and credentials updated successfully!");
+      // You can replace this with a toast notification library like react-hot-toast
+      // toast.success("Teacher updated successfully!");
+      navigate("/admin/teachers");
     } catch (error) {
       console.error("Error updating teacher:", error);
       setErrors({ submit: "Failed to update teacher. Please try again." });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCredentialUpdates = async () => {
+    if (!teacher) return;
+
+    try {
+      // Get existing credentials from API
+      const existingCredentials = await getListCredentialByTeacherId(teacher.accountId);
+      
+      // Mock credential update logic
+      console.log("Existing credentials:", existingCredentials);
+      console.log("New credentials to save:", formData.credentials);
+      
+      // Simulate credential operations
+      const credentialsToAdd = formData.credentials.filter(cred => 
+        !existingCredentials.some(existing => existing.credentialId === cred.id)
+      );
+      
+      const credentialsToUpdate = formData.credentials.filter(cred => 
+        existingCredentials.some(existing => existing.credentialId === cred.id)
+      );
+      
+      const credentialsToDelete = existingCredentials.filter(existing => 
+        !formData.credentials.some(cred => cred.id === existing.credentialId)
+      );
+      
+      console.log("Credentials to add:", credentialsToAdd);
+      console.log("Credentials to update:", credentialsToUpdate);
+      console.log("Credentials to delete:", credentialsToDelete);
+      
+      // Mock API calls for credential operations
+      if (credentialsToAdd.length > 0) {
+        console.log("Mock: Adding new credentials...");
+        // In real implementation, you would call addTeacherCredential API here
+        // await Promise.all(credentialsToAdd.map(cred => addTeacherCredential(teacher.accountId, cred)));
+      }
+      
+      if (credentialsToUpdate.length > 0) {
+        console.log("Mock: Updating existing credentials...");
+        // In real implementation, you would call updateTeacherCredential API here
+        // await Promise.all(credentialsToUpdate.map(cred => updateTeacherCredential(cred.id, cred)));
+      }
+      
+      if (credentialsToDelete.length > 0) {
+        console.log("Mock: Deleting credentials...");
+        // In real implementation, you would call deleteTeacherCredential API here
+        // await Promise.all(credentialsToDelete.map(cred => deleteTeacherCredential(cred.credentialId)));
+      }
+      
+      console.log("Mock credential operations completed successfully");
+      
+    } catch (error) {
+      console.error("Error handling credential updates:", error);
+      // Don't throw error here to prevent blocking teacher update
+      console.log("Continuing with teacher update despite credential error");
     }
   };
 
@@ -236,7 +361,7 @@ export default function EditTeacherPage() {
   };
 
   const handleCancel = () => {
-    navigate("/staff/teachers");
+    navigate("/admin/teachers");
   };
 
   if (isInitialLoading) {
@@ -269,7 +394,7 @@ export default function EditTeacherPage() {
   }
 
   const breadcrumbItems = [
-    { label: "Teachers", to: "/staff/teachers" },
+    { label: "Teachers", to: "/admin/teachers" },
     { label: "Edit Teacher" }
   ];
 
@@ -494,6 +619,65 @@ export default function EditTeacherPage() {
               </Button>
             </div>
             
+            {/* Display existing credentials */}
+            {/* {existingCredentials.length > 0 && (
+              <div className="mb-6">
+                <h4 className="text-md font-medium text-gray-700 mb-4">Current Credentials</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {existingCredentials.map((cred) => {
+                    const credentialType = credentialTypes.find(type => type.id === cred.credentialTypeId);
+                    const isCertificate = credentialType?.name === 'Certificate';
+                    const bgColor = isCertificate ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200';
+                    const iconBg = isCertificate ? 'bg-blue-100' : 'bg-green-100';
+                    const iconColor = isCertificate ? 'text-blue-600' : 'text-green-600';
+                    
+                    return (
+                      <div key={cred.credentialId} className={`p-4 border rounded-lg ${bgColor} shadow-sm`}>
+                        <div className="flex items-start gap-3">
+                          <div className={`w-8 h-8 ${iconBg} rounded-full flex items-center justify-center flex-shrink-0`}>
+                            <GraduationCap className={`w-4 h-4 ${iconColor}`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-2">
+                              <h5 className="font-medium text-gray-900 truncate">
+                                {credentialType?.name || 'Unknown Type'}
+                              </h5>
+                              <span className="text-xs text-gray-500">
+                                {new Date(cred.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                            {cred.name && (
+                              <p className="text-sm text-gray-700 mb-1">
+                                <span className="font-medium">Name:</span> {cred.name}
+                              </p>
+                            )}
+                            {cred.level && (
+                              <p className="text-sm text-gray-700 mb-1">
+                                <span className="font-medium">Level:</span> {cred.level}
+                              </p>
+                            )}
+                            {cred.pictureUrl && (
+                              <div className="mt-2">
+                                <img 
+                                  src={cred.pictureUrl} 
+                                  alt={cred.name || 'Credential'} 
+                                  className="w-full h-32 object-cover rounded border"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )} */}
+
             <div className="space-y-4">
                 {formData.credentials.map((cred, index) => {
                   const credentialType = credentialTypes.find(type => type.id === cred.credentialTypeId);
@@ -699,6 +883,34 @@ export default function EditTeacherPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete Credential Confirmation Dialog */}
+      {/* <ConfirmationDialog
+        isOpen={deleteCredentialDialog.open}
+        onClose={() => setDeleteCredentialDialog({ open: false, credentialId: null, credentialName: null })}
+        onConfirm={confirmDeleteCredential}
+        title="Delete Credential"
+        message={`Are you sure you want to delete "${deleteCredentialDialog.credentialName}"? This action cannot be undone.`}
+
+        type="danger"
+      /> */}
+<DeleteConfirmDialog
+  open={deleteCredentialDialog.open}
+  onOpenChange={(open: boolean) =>
+    setDeleteCredentialDialog({
+      open,
+      credentialId: null,
+      credentialName: null,
+    })
+  }
+  onConfirm={confirmDeleteCredential}
+  title="Delete Credential"
+  message={
+    deleteCredentialDialog.credentialName
+      ? `Are you sure you want to delete "${deleteCredentialDialog.credentialName}"? This action cannot be undone.`
+      : "Are you sure you want to delete this credential? This action cannot be undone."
+  }
+/>
     </div>
   );
 }

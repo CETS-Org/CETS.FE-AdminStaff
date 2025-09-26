@@ -96,7 +96,7 @@ export default function StudentDetailPage() {
 
   const handleEdit = () => {
     if (!id) return;
-    navigate(`/staff/students/edit/${id}`);
+    navigate(`/admin/students/edit/${id}`);
   };
 
   const handleDelete = () => {
@@ -272,7 +272,7 @@ export default function StudentDetailPage() {
   //   setEditingStudent(null);
   // }; // Replaced with page navigation
   const breadcrumbItems = [
-    { label: "Students", to: "/staff/students" },
+    { label: "Students", to: "/admin/students" },
     { label: student?.fullName || "Student Detail" }
   ];
 
