@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Card from "@/components/ui/Card";
 import PageHeader from "@/components/ui/PageHeader";
@@ -16,19 +16,22 @@ export default function StaffStudentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
   const [selectedStudentForReset, setSelectedStudentForReset] = useState<any>(null);
+  const { students, setStudents } = useStudentStore();
   const [stats, setStats] = useState({
     totalStudents: 0,
     activeStudents: 0,
     newThisMonth: 0,
     graduated: 0,
     monthlyGrowth: 0,
-    weeklyGrowth: 0
+    weeklyGrowth: 0,
+    activePercentage: 0,
+    newThisWeek: 0
   });
 
   const handleExportData = () => {
     const dataToExport = students.map(student => ({
-      'Full Name': student.fullName,
-      'Email': student.email,
+      'Full Name': student.fullName || 'N/A',
+      'Email': student.email || 'N/A',
       'Phone': student.phoneNumber || 'N/A',
       'Status': student.statusName || (student.isDeleted ? 'Inactive' : 'Active'),
       'Date of Birth': student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString() : 'N/A',
@@ -39,7 +42,7 @@ export default function StaffStudentsPage() {
     
     const csv = [
       Object.keys(dataToExport[0]).join(','),
-      ...dataToExport.map(row => Object.values(row).map(val => `"${val}"`).join(','))
+      ...dataToExport.map((row) => Object.values(row).map(val => `"${val}"`).join(','))
     ].join('\n');
     
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -74,7 +77,7 @@ export default function StaffStudentsPage() {
     setSelectedStudentForReset(null);
   };
 
-  // Simulate data loading
+  // Load students and compute stats
   useEffect(() => {
     const fetchStudents = async () => {
       try {
@@ -82,6 +85,25 @@ export default function StaffStudentsPage() {
         setError(null);
         const data = await getStudents();
         setStudents(data);
+        // Compute stats
+        const total = data.length;
+        const active = data.filter(s => (s.statusName === 'Active' || (!s.statusName && !s.isDeleted)) && !s.isDeleted).length;
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const oneWeekAgo = new Date(now);
+        oneWeekAgo.setDate(now.getDate() - 7);
+        const newMonth = data.filter(s => new Date(s.createdAt) >= startOfMonth).length;
+        const newWeek = data.filter(s => new Date(s.createdAt) >= oneWeekAgo).length;
+        setStats({
+          totalStudents: total,
+          activeStudents: active,
+          newThisMonth: newMonth,
+          graduated: 0,
+          monthlyGrowth: 0,
+          weeklyGrowth: 0,
+          activePercentage: total > 0 ? Math.round((active / total) * 100) : 0,
+          newThisWeek: newWeek
+        });
       } catch (err) {
         setError("Failed to load student data. Please try again.");
         console.error('Error fetching students:', err);
@@ -101,6 +123,24 @@ export default function StaffStudentsPage() {
       try {
         const data = await getStudents();
         setStudents(data);
+        const total = data.length;
+        const active = data.filter(s => (s.statusName === 'Active' || (!s.statusName && !s.isDeleted)) && !s.isDeleted).length;
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const oneWeekAgo = new Date(now);
+        oneWeekAgo.setDate(now.getDate() - 7);
+        const newMonth = data.filter(s => new Date(s.createdAt) >= startOfMonth).length;
+        const newWeek = data.filter(s => new Date(s.createdAt) >= oneWeekAgo).length;
+        setStats({
+          totalStudents: total,
+          activeStudents: active,
+          newThisMonth: newMonth,
+          graduated: 0,
+          monthlyGrowth: 0,
+          weeklyGrowth: 0,
+          activePercentage: total > 0 ? Math.round((active / total) * 100) : 0,
+          newThisWeek: newWeek
+        });
       } catch (err) {
         setError("Failed to load student data. Please try again.");
         console.error('Error fetching students:', err);
