@@ -115,3 +115,23 @@ export const changePassword = async (data: ChangePasswordRequest): Promise<Chang
     throw error;
   }
 };
+
+// Resend verification email types and API
+export interface ResendVerificationRequest {
+  email: string;
+}
+
+export interface ResendVerificationResponse {
+  message: string;
+  success: boolean;
+}
+
+export const resendVerificationEmail = async (email: string): Promise<ResendVerificationResponse> => {
+  try {
+    const response = await api.post(`${endpoint.account}/resend-verification`, { email });
+    return response.data;
+  } catch (error) {
+    console.error('Error resending verification email:', error);
+    throw error;
+  }
+};

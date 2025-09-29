@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import Header from './components/layout/Header'
 import Footer from './components/layout/Footer'
 import Requests from './pages/Requests'
@@ -10,7 +10,6 @@ import AdminHome from './pages/admin/AdminHome'
 
 // Common pages imports
 import Login from './pages/common/Login'
-import Register from './pages/common/Register'
 import HomePage from './pages/common/HomePage'
 import ForgotPassword from './pages/common/ForgotPassword'
 import Gateway from './pages/common/Gateway'
@@ -24,7 +23,6 @@ export default function App() {
       <Routes>
         {/* Authentication & Public Routes */}
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
         <Route path="/forgotPassword" element={<ForgotPassword />} />
         <Route path="/otpVerification" element={<OtpVerification />} />
         <Route path="/resetPassword" element={<ResetPassword />} />
@@ -43,8 +41,8 @@ export default function App() {
         <Route path="/reports" element={<Reports />} />
         <Route path="/dev" element={<Dev_Dashboard />} />
         
-        {/* Default route - redirect to gateway/login */}
-        <Route path="/" element={<Gateway />} />
+        {/* Default route - redirect to login */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </div>
   )

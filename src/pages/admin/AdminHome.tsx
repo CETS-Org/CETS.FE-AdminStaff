@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
-import Navbar from "@/shared/navbar";
+import GenericNavbar from "@/shared/GenericNavbar";
+import { createAdminNavbarConfig } from "@/shared/navbarConfigs";
 import AdminSidebar from "@/shared/AdminSidebar";
 import ComplaintManagement from "./admin_complaint/ComplaintManagement";
 import ComplaintDetailPage from "../../shared/ComplaintDetailPage";
@@ -19,12 +20,25 @@ import TeacherDetailPage from "../staff/staff_teachers/TeacherDetailPage";
 export default function AdminHome() {
         const [mobileOpen, setMobileOpen] = useState(false);
         const [collapsed, setCollapsed] = useState(false);
+        const [userAccount, setUserAccount] = useState(null);
 
         const contentShiftClass = collapsed ? "lg:ml-16" : "lg:ml-64";
 
+        // Load user account data
+        useEffect(() => {
+            const userData = localStorage.getItem('userInfo'); 
+            if (userData) {
+                setUserAccount(JSON.parse(userData));
+            }
+        }, []);
+
         return (
             <div className="">
-                <Navbar toggleSidebar={() => setMobileOpen(!mobileOpen)} />
+                <GenericNavbar 
+                    config={createAdminNavbarConfig(userAccount)} 
+                    collapsed={collapsed}
+                    mobileOpen={mobileOpen}
+                />
             <AdminSidebar 
                 collapsed={collapsed}
                 mobileOpen={mobileOpen}
