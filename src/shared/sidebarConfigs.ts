@@ -1,27 +1,41 @@
 // src/shared/sidebarConfigs.ts
 import {
   BarChart3, BookOpenText, Users, GraduationCap, CalendarDays,
-  UserPlus, Mail, Calendar, MessageSquare, FileText, UserCheck, Percent
+  UserPlus, Mail, MessageSquare, FileText, UserCheck, Percent,
+  Receipt, CreditCard, TrendingUp, PieChart
 } from "lucide-react";
 import type { SidebarConfig } from "./GenericSidebar";
-import AdminFooterContent from "./AdminFooterContent";
 
-export const staffSidebarConfig: SidebarConfig = {
-  title: "Staff",
+// Academic Staff Sidebar Configuration
+export const academicStaffSidebarConfig: SidebarConfig = {
+  title: "Academic Staff",
   showUpcomingDeadlines: true,
   items: [
     { id: "analytics", label: "Analytics", icon: BarChart3, path: "/staff/analytics" },
     { id: "courses", label: "Courses", icon: BookOpenText, path: "/staff/courses" },
-    // { id: "students", label: "Students", icon: Users, path: "/staff/students" },
-    // { id: "teachers", label: "Teachers", icon: GraduationCap, path: "/staff/teachers" },
     { id: "schedule", label: "Schedule", icon: CalendarDays, path: "/staff/schedule" },
     { id: "assign-teacher", label: "Assign Teacher", icon: UserPlus, path: "/staff/assign-teacher" },
-    { id: "promotions", label: "Promotions", icon: Percent, path: "/staff/promotions" },
-    // { id: "events", label: "Events", icon: Calendar, path: "/staff/events" },
     { id: "complaints", label: "Complaints", icon: MessageSquare, path: "/staff/complaints" },
     { id: "requests", label: "Requests", icon: Mail, path: "/staff/requests" },
   ],
 };
+
+// Accountant Staff Sidebar Configuration
+export const accountantStaffSidebarConfig: SidebarConfig = {
+  title: "Accountant Staff",
+  showUpcomingDeadlines: true,
+  items: [
+    { id: "analytics", label: "Financial Analytics", icon: TrendingUp, path: "/staff/analytics" },
+    { id: "billing", label: "Billing & Payments", icon: Receipt, path: "/staff/billing" },
+    { id: "transactions", label: "Transactions", icon: CreditCard, path: "/staff/transactions" },
+    { id: "promotions", label: "Promotions", icon: Percent, path: "/staff/promotions" },
+    { id: "complaints", label: "Complaints", icon: MessageSquare, path: "/staff/complaints" },
+    { id: "requests", label: "Requests", icon: Mail, path: "/staff/requests" },
+  ],
+};
+
+// Legacy config for backward compatibility (defaults to Academic Staff)
+export const staffSidebarConfig: SidebarConfig = academicStaffSidebarConfig;
 
 export const adminSidebarConfig: SidebarConfig = {
   title: "Admin",

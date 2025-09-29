@@ -193,21 +193,6 @@ export default function GenericSidebar({
             </ul>
           </div>
           <div className="sticky bottom-0 z-10 bg-sidebar-primary">
-            {config.showUpcomingDeadlines && (!collapsed || mobileOpen) && (
-              <div className="p-3">
-                <h2 className="font-semibold text-white mb-2 text-sm">Upcoming Deadlines</h2>
-                <div className="flex flex-col gap-2">
-                  <div className="rounded-lg p-2 bg-white/20 ">
-                    <h3 className="text-xs font-semibold text-white">Math 101 Registration</h3>
-                    <p className="text-[11px] text-white/70">Due, Jan 15, 2025</p>
-                  </div>
-                  <div className="rounded-lg p-2 bg-white/20">
-                    <h3 className="text-xs font-semibold text-white">Physics 201 Registration</h3>
-                    <p className="text-[11px] text-white/70">Due, Jan 20, 2025</p>
-                  </div>
-                </div>
-              </div>
-            )}
             <div className="p-3 text-center text-[11px] text-white/70">
               © 2025 CETS
             </div>

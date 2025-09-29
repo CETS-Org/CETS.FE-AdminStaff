@@ -1,6 +1,7 @@
 // src/shared/StaffSidebar.tsx
 import GenericSidebar from "./GenericSidebar";
 import { staffSidebarConfig } from "./sidebarConfigs";
+import type { SidebarConfig } from "./GenericSidebar";
 
 type Props = {
   collapsed: boolean;
@@ -8,6 +9,7 @@ type Props = {
   onToggleCollapse: () => void;
   onCloseMobile: () => void;
   onNavigate?: () => void;
+  config?: SidebarConfig; // Optional config prop, defaults to staffSidebarConfig
 };
 
 export default function StaffSidebar({
@@ -16,6 +18,7 @@ export default function StaffSidebar({
   onToggleCollapse,
   onCloseMobile,
   onNavigate,
+  config = staffSidebarConfig, // Default to legacy config for backward compatibility
 }: Props) {
   return (
     <GenericSidebar
@@ -24,7 +27,7 @@ export default function StaffSidebar({
       onToggleCollapse={onToggleCollapse}
       onCloseMobile={onCloseMobile}
       onNavigate={onNavigate}
-      config={staffSidebarConfig}
+      config={config}
     />
   );
 }

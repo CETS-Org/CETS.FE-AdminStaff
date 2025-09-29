@@ -1,7 +1,9 @@
 // src/pages/staff/StaffHome.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
-import Navbar from "@/shared/navbar";
+import GenericNavbar from "@/shared/GenericNavbar";
+import { createAcademicStaffNavbarConfig, createAccountantStaffNavbarConfig } from "@/shared/navbarConfigs";
+import { academicStaffSidebarConfig, accountantStaffSidebarConfig } from "@/shared/sidebarConfigs";
 import StaffSidebar from "@/shared/StaffSidebar";
 
 import StaffSchedulePage from "./staff_schedule";
@@ -31,12 +33,57 @@ import StaffPromotionsPage from "./staff_promotions";
 export default function StaffHome() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [userAccount, setUserAccount] = useState(null);
+  const [userRole, setUserRole] = useState<string>('');
 
   const contentShiftClass = collapsed ? "lg:ml-16" : "lg:ml-64";
 
+  // Load user account data and determine role
+  useEffect(() => {
+    const userData = localStorage.getItem('userInfo'); 
+    if (userData) {
+      const account = JSON.parse(userData);
+      setUserAccount(account);
+      // Get the first role from roleNames array
+      if (account.roleNames && account.roleNames.length > 0) {
+        setUserRole(account.roleNames[0]);
+      } else {
+        console.warn('StaffHome - No roleNames found in user account:', account);
+      }
+    } else {
+      console.warn('StaffHome - No user data found in localStorage');
+    }
+  }, []);
+
+  // Determine which navbar config to use based on role
+  const getNavbarConfig = () => {
+    if (userRole === 'AcademicStaff') {
+      return createAcademicStaffNavbarConfig(userAccount);
+    } else if (userRole === 'AccountantStaff') {
+      return createAccountantStaffNavbarConfig(userAccount);
+    }
+    // Default to academic staff if role is unclear
+    return createAcademicStaffNavbarConfig(userAccount);
+  };
+
+  // Determine which sidebar config to use based on role
+  const getSidebarConfig = () => {
+    if (userRole === 'AcademicStaff') {
+      return academicStaffSidebarConfig;
+    } else if (userRole === 'AccountantStaff') {
+      return accountantStaffSidebarConfig;
+    }
+    // Default to academic staff if role is unclear
+    return academicStaffSidebarConfig;
+  };
+
   return (
     <div className="min-h-screen bg-neutral-50">
-      <Navbar toggleSidebar={() => setMobileOpen((v) => !v)} />
+      <GenericNavbar 
+        config={getNavbarConfig()} 
+        collapsed={collapsed}
+        mobileOpen={mobileOpen}
+      />
 
       <StaffSidebar
         collapsed={collapsed}
@@ -44,6 +91,7 @@ export default function StaffHome() {
         onToggleCollapse={() => setCollapsed((v: boolean) => !v)}
         onCloseMobile={() => setMobileOpen(false)}
         onNavigate={() => setMobileOpen(false)}
+        config={getSidebarConfig()}
       />
 
       <div
