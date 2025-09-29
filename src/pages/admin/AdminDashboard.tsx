@@ -206,7 +206,7 @@ export default function AdminDashboard() {
         {/* Page Header */}
         <PageHeader
           title="User Management"
-          subtitle="Manage your users, roles, and permissions"
+          description="Manage your users, roles, and permissions"
         />
 
         {/* Main Content */}
