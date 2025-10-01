@@ -12,6 +12,7 @@ import {
 import { getTeacherById, updateTeacher, getListCredentialType, getListCredentialByTeacherId } from "@/api/teacher.api";
 import type { Teacher, UpdateTeacherProfile, CredentialTypeResponse } from "@/types/teacher.type";
 import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
+import ConfirmationDialog from "@/components/ui/ConfirmationDialog";
 
 interface CredentialFormData {
   id: string;
@@ -61,6 +62,7 @@ export default function EditTeacherPage() {
     credentialName: null 
   });
   const [existingCredentialIds, setExistingCredentialIds] = useState<Set<string>>(new Set());
+  const [isConfirmUpdateOpen, setIsConfirmUpdateOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch credential types and teacher data when component mounts
@@ -217,7 +219,7 @@ export default function EditTeacherPage() {
     }
   };
 
-  const handleSave = async () => {
+  const performUpdate = async () => {
     if (!validateForm() || !teacher) {
       return;
     }
@@ -257,13 +259,18 @@ export default function EditTeacherPage() {
       console.log("Teacher and credentials updated successfully!");
       // You can replace this with a toast notification library like react-hot-toast
       // toast.success("Teacher updated successfully!");
-      navigate("/admin/teachers");
+      navigate(`/admin/teachers/${teacher.accountId}`, { state: { updateStatus: "success" } });
     } catch (error) {
       console.error("Error updating teacher:", error);
       setErrors({ submit: "Failed to update teacher. Please try again." });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSave = () => {
+    // Open confirm dialog first
+    setIsConfirmUpdateOpen(true);
   };
 
   const handleCredentialUpdates = async () => {
@@ -911,6 +918,21 @@ export default function EditTeacherPage() {
       : "Are you sure you want to delete this credential? This action cannot be undone."
   }
 />
+
+      {/* Confirm Update Dialog */}
+      <ConfirmationDialog
+        isOpen={isConfirmUpdateOpen}
+        onClose={() => setIsConfirmUpdateOpen(false)}
+        onConfirm={() => {
+          setIsConfirmUpdateOpen(false);
+          void performUpdate();
+        }}
+        title="Confirm Update"
+        message="Are you sure you want to update this teacher's information?"
+        confirmText="Yes, update"
+        cancelText="No, cancel"
+        type="warning"
+      />
     </div>
   );
 }

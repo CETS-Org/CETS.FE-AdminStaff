@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
@@ -26,6 +26,8 @@ interface Note {
 
 export default function TeacherDetailPage() {
   const { id } = useParams();
+  const location = useLocation();
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [newNote, setNewNote] = useState("");
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,6 +42,16 @@ export default function TeacherDetailPage() {
 
   // Fetch credential types when component mounts
   useEffect(() => {
+    // Show success toast if redirected after update
+    if (location.state && (location.state as any).updateStatus === "success") {
+      setShowSuccessToast(true);
+      // Auto hide after 5 seconds
+      const timer = setTimeout(() => setShowSuccessToast(false), 5000);
+      // Clear the state so it doesn't show again on refresh/back
+      navigate(location.pathname, { replace: true, state: {} });
+      return () => clearTimeout(timer);
+    }
+
     const fetchCredentialTypes = async () => {
       try {
         const types = await getListCredentialType();
@@ -358,6 +370,27 @@ export default function TeacherDetailPage() {
 
   return (
     <div className="p-6 mx-auto mt-16 ">
+      {/* Success Toast after update */}
+      {showSuccessToast && (
+        <div className="fixed top-4 right-4 z-50">
+          <div className="flex items-start gap-3 p-4 rounded-lg border border-green-200 bg-green-50 text-green-800 shadow-lg min-w-[280px]">
+            <div className="w-6 h-6 mt-0.5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+              <CheckCircle className="w-4 h-4 text-green-600" />
+            </div>
+            <div className="flex-1">
+              <p className="font-medium">Update Successful</p>
+              <p className="text-sm">Teacher profile updated successfully.</p>
+            </div>
+            <button
+              onClick={() => setShowSuccessToast(false)}
+              className="ml-2 text-green-700 hover:text-green-900"
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
       {/* Header with Breadcrumb */}
       <div className="mb-8">
         <Breadcrumbs items={breadcrumbItems} />

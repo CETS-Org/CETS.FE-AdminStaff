@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Loader from "@/components/ui/Loader";
@@ -30,14 +30,23 @@ interface Note {
 
 export default function StaffDetailPage() {
   const { id } = useParams();
+  const location = useLocation();
   const [newNote, setNewNote] = useState("");
   const [staff, setStaff] = useState<Account | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
 
   // Fetch staff data
   useEffect(() => {
+    if (location.state && (location.state as any).updateStatus === "success") {
+      setShowSuccessToast(true);
+      const timer = setTimeout(() => setShowSuccessToast(false), 5000);
+      navigate(location.pathname, { replace: true, state: {} });
+      return () => clearTimeout(timer);
+    }
+
     const fetchStaff = async () => {
       if (!id) {
         setError("Staff ID is required");
@@ -138,6 +147,26 @@ export default function StaffDetailPage() {
 
   return (
     <div className="p-6 mx-auto mt-16 ">
+      {showSuccessToast && (
+        <div className="fixed top-4 right-4 z-50">
+          <div className="flex items-start gap-3 p-4 rounded-lg border border-green-200 bg-green-50 text-green-800 shadow-lg min-w-[280px]">
+            <div className="w-6 h-6 mt-0.5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+              <User className="w-4 h-4 text-green-600" />
+            </div>
+            <div className="flex-1">
+              <p className="font-medium">Update Successful</p>
+              <p className="text-sm">Staff profile updated successfully.</p>
+            </div>
+            <button
+              onClick={() => setShowSuccessToast(false)}
+              className="ml-2 text-green-700 hover:text-green-900"
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
       {/* Header with Breadcrumb */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">

@@ -7,6 +7,8 @@ import { User, Upload, Camera, Trash2 } from "lucide-react";
 import type { Account, Role } from "@/types/account.type";
 import type { UpdateStaffProfile, AddStaffProfile } from "@/types/staff.type";
 import { updateStaffProfile, addStaff, getRoles } from "@/api/staff.api";
+import ConfirmationDialog from "@/components/ui/ConfirmationDialog";
+import { useNavigate } from "react-router-dom";
 
 interface AddEditStaffDialogProps {
   open: boolean;
@@ -23,6 +25,7 @@ export default function AddEditStaffDialog({
   staff,
   mode
 }: AddEditStaffDialogProps) {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -41,6 +44,7 @@ export default function AddEditStaffDialog({
   const [avatarPreview, setAvatarPreview] = useState<string>("");
   const [staffRoles, setStaffRoles] = useState<Role[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   // Fetch roles when dialog opens
   useEffect(() => {
@@ -169,7 +173,7 @@ export default function AddEditStaffDialog({
     }
   };
 
-  const handleSave = async () => {
+  const performSave = async () => {
     if (validateForm()) {
       setIsLoading(true);
       setUpdateError(null);
@@ -187,12 +191,9 @@ export default function AddEditStaffDialog({
           
           await updateStaffProfile(staff.accountId, updateData);
           
-          // Call success callback to refresh the list
-          if (onUpdateSuccess) {
-            onUpdateSuccess();
-          }
-          
+          if (onUpdateSuccess) onUpdateSuccess();
           onOpenChange(false);
+          navigate(`/admin/staffs/${staff.accountId}`, { state: { updateStatus: "success" } });
         } else {
           // For add mode, use the addStaff API
           const staffData: AddStaffProfile = {
@@ -206,14 +207,13 @@ export default function AddEditStaffDialog({
             roleID: formData.roleID || null
           };
           
-          await addStaff(staffData);
+          const created = await addStaff(staffData);
           
-          // Call success callback to refresh the list
-          if (onUpdateSuccess) {
-            onUpdateSuccess();
-          }
-          
+          if (onUpdateSuccess) onUpdateSuccess();
           onOpenChange(false);
+          if (created && (created as any).accountId) {
+            navigate(`/admin/staffs/${(created as any).accountId}`, { state: { updateStatus: "success" } });
+          }
         }
       } catch (error) {
         console.error("Error saving staff:", error);
@@ -224,8 +224,13 @@ export default function AddEditStaffDialog({
     }
   };
 
+  const handleSave = () => {
+    setIsConfirmOpen(true);
+  };
+
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="lg">
         <DialogHeader>
@@ -444,5 +449,19 @@ export default function AddEditStaffDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <ConfirmationDialog
+      isOpen={isConfirmOpen}
+      onClose={() => setIsConfirmOpen(false)}
+      onConfirm={() => {
+        setIsConfirmOpen(false);
+        void performSave();
+      }}
+      title="Confirm Update"
+      message={mode === "add" ? "Do you want to create this staff account?" : "Do you want to update this staff?"}
+      confirmText={mode === "add" ? "Yes, create" : "Yes, update"}
+      cancelText="No, cancel"
+      type="warning"
+    />
+    </>
   );
 }

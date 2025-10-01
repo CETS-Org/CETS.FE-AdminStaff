@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Button from "@/components/ui/Button";
+import ConfirmationDialog from "@/components/ui/ConfirmationDialog";
 import PageHeader from "@/components/ui/PageHeader";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import Input from "@/components/ui/Input";
@@ -52,6 +53,7 @@ export default function EditStudentPage() {
   const [student, setStudent] = useState<Student | null>(null);
   const [completedSteps] = useState<number[]>([1, 2, 3]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isConfirmUpdateOpen, setIsConfirmUpdateOpen] = useState(false);
 
   const steps = [
     { id: 1, title: "Profile Photo", description: "Update student's photo" },
@@ -165,22 +167,22 @@ export default function EditStudentPage() {
       newErrors.fullName = "Full name is required";
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email)) {
-        newErrors.email = "Please enter a valid email address";
-      }
-    }
+    // if (!formData.email.trim()) {
+    //   newErrors.email = "Email is required";
+    // } else {
+    //   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    //   if (!emailRegex.test(formData.email)) {
+    //     newErrors.email = "Please enter a valid email address";
+    //   }
+    // }
 
     // Validate phone number format if provided
-    if (formData.phoneNumber && formData.phoneNumber.trim()) {
-      const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-      if (!phoneRegex.test(formData.phoneNumber.replace(/\s/g, ''))) {
-        newErrors.phoneNumber = "Please enter a valid phone number";
-      }
-    }
+    // if (formData.phoneNumber && formData.phoneNumber.trim()) {
+    //   const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+    //   if (!phoneRegex.test(formData.phoneNumber.replace(/\s/g, ''))) {
+    //     newErrors.phoneNumber = "Please enter a valid phone number";
+    //   }
+    // }
 
     // Validate guardian phone format if provided
     if (formData.guardianPhone && formData.guardianPhone.trim()) {
@@ -194,7 +196,7 @@ export default function EditStudentPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async () => {
+  const performUpdate = async () => {
     if (!validateForm() || !id) {
       return;
     }
@@ -218,8 +220,8 @@ export default function EditStudentPage() {
       };
 
       await updateStudent(id, updateData);
-      navigate(`/staff/students/${id}`, { 
-        state: { message: "Student updated successfully!" }
+      navigate(`/admin/students/${id}`, { 
+        state: { updateStatus: "success" }
       });
     } catch (error) {
       console.error("Error updating student:", error);
@@ -227,6 +229,10 @@ export default function EditStudentPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSubmit = () => {
+    setIsConfirmUpdateOpen(true);
   };
 
   if (isInitialLoading) {
@@ -249,7 +255,7 @@ export default function EditStudentPage() {
           <h3 className="text-lg font-medium text-gray-900 mb-2">Student Not Found</h3>
           <p className="text-gray-500 mb-4">The student you're looking for doesn't exist or has been removed.</p>
           <Button
-            onClick={() => navigate("/staff/students")}
+            onClick={() => navigate("/admin/students")}
             variant="secondary"
           >
             Back to Students
@@ -260,8 +266,8 @@ export default function EditStudentPage() {
   }
 
   const breadcrumbItems = [
-    { label: "Students", to: "/staff/students" },
-    { label: student.fullName, to: `/staff/students/${id}` },
+    { label: "Students", to: "/admin/students" },
+    { label: student.fullName, to: `/admin/students/${id}` },
     { label: "Edit Student" }
   ];
 
@@ -280,7 +286,7 @@ export default function EditStudentPage() {
                 label: 'Back to Profile',
                 variant: 'secondary',
                 icon: <ArrowLeft className="w-4 h-4" />,
-                onClick:() => navigate(`/staff/students/${id}`)
+                onClick:() => navigate(`/admin/students/${id}`)
               }
             ]}
           />
@@ -422,29 +428,6 @@ export default function EditStudentPage() {
               </div>
               <div>
                 <Input
-                  label="Email Address *"
-                  type="email"
-                  placeholder="Enter email address"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  error={errors.email}
-                  required
-                />
-              </div>
-              <div>
-                <Input
-                  label="Phone Number"
-                  placeholder="Enter phone number"
-                  value={formData.phoneNumber}
-                  onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
-                  error={errors.phoneNumber}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div>
-                <Input
                   label="Date of Birth"
                   type="date"
                   value={formData.dateOfBirth}
@@ -461,6 +444,11 @@ export default function EditStudentPage() {
                   error={errors.cid}
                 />
               </div>
+              
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              
               <div>
                 <Input
                   label="Address"
@@ -470,6 +458,26 @@ export default function EditStudentPage() {
                   error={errors.address}
                 />
               </div>
+              {/* <div>
+                <Input
+                  label="Email Address *"
+                  type="email"
+                  placeholder="Enter email address"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  error={errors.email}
+                  required
+                />
+              </div> */}
+              {/* <div>
+                <Input
+                  label="Phone Number"
+                  placeholder="Enter phone number"
+                  value={formData.phoneNumber}
+                  onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
+                  error={errors.phoneNumber}
+                />
+              </div> */}
             </div>
           </div>
 
@@ -551,7 +559,7 @@ export default function EditStudentPage() {
           <div className="flex items-center gap-4">
             <Button
               variant="secondary"
-              onClick={() => navigate(`/staff/students/${id}`)}
+              onClick={() => navigate(`/admin/students/${id}`)}
               disabled={isLoading}
             >
               Cancel
@@ -567,6 +575,20 @@ export default function EditStudentPage() {
           </div>
         </div>
       </div>
+      {/* Confirm Update Dialog */}
+      <ConfirmationDialog
+        isOpen={isConfirmUpdateOpen}
+        onClose={() => setIsConfirmUpdateOpen(false)}
+        onConfirm={() => {
+          setIsConfirmUpdateOpen(false);
+          void performUpdate();
+        }}
+        title="Confirm Update"
+        message="Do you want to update this student?"
+        confirmText="Yes, update"
+        cancelText="No, cancel"
+        type="warning"
+      />
     </div>
   );
 }

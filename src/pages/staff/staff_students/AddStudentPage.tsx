@@ -173,7 +173,7 @@ export default function AddStudentPage() {
       };
 
       await createStudent(studentData);
-      navigate("/staff/students", { 
+      navigate("/admin/students", { 
         state: { message: "Student created successfully!" }
       });
     } catch (error) {
@@ -185,7 +185,7 @@ export default function AddStudentPage() {
   };
 
   const breadcrumbItems = [
-    { label: "Students", to: "/staff/students" },
+    { label: "Students", to: "/admin/students" },
     { label: "Add New Student" }
   ];
 
@@ -204,7 +204,7 @@ export default function AddStudentPage() {
                 label: 'Back to Courses',
                 variant: 'secondary',
                 icon: <ArrowLeft className="w-4 h-4" />,
-                onClick:() => navigate("/staff/students")
+                onClick:() => navigate("/admin/students")
               }
             ]}
           />
@@ -477,7 +477,7 @@ export default function AddStudentPage() {
           <div className="flex items-center gap-4">
             <Button
               variant="secondary"
-              onClick={() => navigate("/staff/students")}
+              onClick={() => navigate("/admin/students")}
               disabled={isLoading}
             >
               Cancel
