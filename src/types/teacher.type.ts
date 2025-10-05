@@ -72,6 +72,8 @@ export interface CourseTeaching {
     
 export interface UpdateTeacherProfile {
   teacherCode: string | null;
+  email: string | null;
+  phoneNumber: string | null;
   yearsExperience: number;
   fullName: string ;
   dateOfBirth: string;

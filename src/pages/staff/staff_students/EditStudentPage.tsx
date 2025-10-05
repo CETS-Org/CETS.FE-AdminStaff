@@ -101,9 +101,10 @@ export default function EditStudentPage() {
   }, [id]);
 
   const handleInputChange = (field: keyof StudentFormData, value: string) => {
+    // keep strings in form state; convert to null only in payload
     setFormData(prev => ({
       ...prev,
-      [field]: value || null
+      [field]: value
     }));
     
     // Clear error when user starts typing
@@ -167,22 +168,22 @@ export default function EditStudentPage() {
       newErrors.fullName = "Full name is required";
     }
 
-    // if (!formData.email.trim()) {
-    //   newErrors.email = "Email is required";
-    // } else {
-    //   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    //   if (!emailRegex.test(formData.email)) {
-    //     newErrors.email = "Please enter a valid email address";
-    //   }
-    // }
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        newErrors.email = "Please enter a valid email address";
+      }
+    }
 
-    // Validate phone number format if provided
-    // if (formData.phoneNumber && formData.phoneNumber.trim()) {
-    //   const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-    //   if (!phoneRegex.test(formData.phoneNumber.replace(/\s/g, ''))) {
-    //     newErrors.phoneNumber = "Please enter a valid phone number";
-    //   }
-    // }
+   // Validate phone number format if provided
+    if (formData.phoneNumber && formData.phoneNumber.trim()) {
+      const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+      if (!phoneRegex.test(formData.phoneNumber.replace(/\s/g, ''))) {
+        newErrors.phoneNumber = "Please enter a valid phone number";
+      }
+    }
 
     // Validate guardian phone format if provided
     if (formData.guardianPhone && formData.guardianPhone.trim()) {
@@ -220,8 +221,26 @@ export default function EditStudentPage() {
       };
 
       await updateStudent(id, updateData);
+      // Optimistic preloaded data to avoid waiting for refetch
+      const preloadedStudent: any = {
+        ...(student || {}),
+        fullName: updateData.fullName ?? student?.fullName,
+        email: updateData.email ?? student?.email,
+        phoneNumber: updateData.phoneNumber ?? student?.phoneNumber,
+        cid: updateData.cid ?? student?.cid,
+        address: updateData.address ?? student?.address,
+        dateOfBirth: updateData.dateOfBirth ?? student?.dateOfBirth,
+        avatarUrl: updateData.avatarUrl ?? student?.avatarUrl,
+        studentInfo: {
+          ...(student?.studentInfo || {}),
+          guardianName: updateData.guardianName ?? student?.studentInfo?.guardianName,
+          guardianPhone: updateData.guardianPhone ?? student?.studentInfo?.guardianPhone,
+          school: updateData.school ?? student?.studentInfo?.school,
+          academicNote: updateData.academicNote ?? student?.studentInfo?.academicNote,
+        }
+      };
       navigate(`/admin/students/${id}`, { 
-        state: { updateStatus: "success" }
+        state: { updateStatus: "success", preloadedStudent }
       });
     } catch (error) {
       console.error("Error updating student:", error);
@@ -458,7 +477,7 @@ export default function EditStudentPage() {
                   error={errors.address}
                 />
               </div>
-              {/* <div>
+               <div>
                 <Input
                   label="Email Address *"
                   type="email"
@@ -468,8 +487,8 @@ export default function EditStudentPage() {
                   error={errors.email}
                   required
                 />
-              </div> */}
-              {/* <div>
+              </div> 
+              <div>
                 <Input
                   label="Phone Number"
                   placeholder="Enter phone number"
@@ -477,7 +496,7 @@ export default function EditStudentPage() {
                   onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
                   error={errors.phoneNumber}
                 />
-              </div> */}
+              </div> 
             </div>
           </div>
 

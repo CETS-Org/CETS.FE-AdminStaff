@@ -29,6 +29,8 @@ interface TeacherFormData {
   cid: string | null;
   address: string | null;
   avatarUrl: string | null;
+  email: string;
+  phoneNumber: string | null;
   yearsExperience: number;
   bio: string | null;
   credentials: CredentialFormData[];
@@ -45,6 +47,8 @@ export default function EditTeacherPage() {
     cid: "",
     address: "",
     avatarUrl: "",
+    email: "",
+    phoneNumber: "",
     yearsExperience: 0,
     bio: "",
     credentials: []
@@ -92,6 +96,8 @@ export default function EditTeacherPage() {
             cid: teacherData.cid || "",
             address: teacherData.address || "",
             avatarUrl: teacherData.avatarUrl || "",
+            email: teacherData.email || "",
+            phoneNumber: teacherData.phoneNumber || "",
             yearsExperience: teacherData.teacherInfo?.yearsExperience || 0,
             bio: teacherData.teacherInfo?.bio || "",
             credentials: credentials.map(cred => ({
@@ -136,6 +142,24 @@ export default function EditTeacherPage() {
       const today = new Date();
       if (birthDate > today) {
         newErrors.dateOfBirth = "Date of birth cannot be in the future";
+      }
+    }
+
+    // Validate email
+    if (!formData.email || !formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email.trim())) {
+        newErrors.email = "Please enter a valid email";
+      }
+    }
+
+    // Validate phone (optional)
+    if (formData.phoneNumber && formData.phoneNumber.trim()) {
+      const phoneRegex = /^[+]?\d{7,15}$/;
+      if (!phoneRegex.test(formData.phoneNumber.replace(/\s/g, ''))) {
+        newErrors.phoneNumber = "Please enter a valid phone number";
       }
     }
 
@@ -235,6 +259,8 @@ export default function EditTeacherPage() {
         cid: formData.cid?.trim() || null,
         address: formData.address?.trim() || null,
         avatarUrl: formData.avatarUrl?.trim() || null,
+        email: formData.email.trim(),
+        phoneNumber: formData.phoneNumber?.trim() || null,
         bio: formData.bio?.trim() || null,
         credentials:
           formData.credentials && formData.credentials.length > 0
@@ -496,6 +522,25 @@ export default function EditTeacherPage() {
                     )}
                   </div>
                   <p className="text-xs text-gray-500 mt-2">JPG, PNG or GIF • Max 5MB</p>
+                  {/* Avatar URL input */}
+                  <div className="mt-4">
+                    <Input
+                      label="Avatar URL"
+                      placeholder="https://example.com/avatar.jpg"
+                      value={formData.avatarUrl || ""}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setFormData(prev => ({ ...prev, avatarUrl: value }));
+                        // simple URL validation (optional field)
+                        if (value && !/^https?:\/\//i.test(value)) {
+                          setErrors(prev => ({ ...prev, avatar: "Avatar URL must start with http or https" }));
+                        } else {
+                          setErrors(prev => ({ ...prev, avatar: "" }));
+                          if (value) setAvatarPreview(value);
+                        }
+                      }}
+                    />
+                  </div>
                   {errors.avatar && (
                     <div className="flex items-center gap-2 mt-2 text-sm text-red-600">
                       <AlertCircle className="w-4 h-4" />
@@ -555,6 +600,24 @@ export default function EditTeacherPage() {
                   placeholder="Enter home address"
                   value={formData.address || ""}
                   onChange={(e) => handleInputChange('address', e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Input
+                  label="Email *"
+                  type="email"
+                  placeholder="teacher@example.com"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  error={errors.email}
+                />
+                <Input
+                  label="Phone Number"
+                  placeholder="e.g., +84123456789"
+                  value={formData.phoneNumber || ""}
+                  onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                  error={errors.phoneNumber}
                 />
               </div>
             </div>

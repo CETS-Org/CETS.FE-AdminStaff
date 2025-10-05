@@ -10,6 +10,7 @@ import Loader from "@/components/ui/Loader";
 import { getStudentById, getListCourseEnrollment, getTotalAssignmentByStudentId, getTotalAttendceByStudentId } from "@/api/student.api";
 import type { Student, CourseEnrollment, AssignmentSubmited, TotalStudentAttendanceByCourse } from "@/types/student.type";
 import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
+import { setIsDelete, setIsActive } from "@/api/account.api";
 
 
 export default function StudentDetailPage() {
@@ -30,13 +31,32 @@ export default function StudentDetailPage() {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   // const [editingStudent, setEditingStudent] = useState<UpdateStudent | null>(null); // Replaced with page navigation
   const [newNote, setNewNote] = useState("");
-  // Fetch student data
+  // Load student data, supporting preloaded state to avoid F5
   useEffect(() => {
-    // show success toast once after update
-    if (location.state && (location.state as any).updateStatus === "success") {
+    const preloaded = (location.state as any)?.preloadedStudent;
+    const fromSuccess = (location.state as any)?.updateStatus === "success";
+
+    if (preloaded) {
+      setStudent(preloaded);
+      setLoading(false);
+    }
+
+    if (fromSuccess) {
       setShowSuccessToast(true);
       const timer = setTimeout(() => setShowSuccessToast(false), 5000);
+      // Clear state to avoid re-showing toast, but after we've consumed preloaded
       navigate(location.pathname, { replace: true, state: {} });
+      // Background refresh to ensure data is in sync
+      if (id) {
+        void (async () => {
+          try {
+            const fresh = await getStudentById(id);
+            setStudent(fresh);
+          } catch (err) {
+            console.error("Background refresh student failed:", err);
+          }
+        })();
+      }
       return () => clearTimeout(timer);
     }
 
@@ -48,26 +68,22 @@ export default function StudentDetailPage() {
       }
 
       try {
-        setLoading(true);
+        if (!preloaded) setLoading(true);
         setError(null);
-        console.log("Fetching student with accountId:", id);
         const studentData = await getStudentById(id);
-        console.log("Student data received:", studentData);
         setStudent(studentData);
       } catch (err) {
         console.error("Error fetching student:", err);
-        console.error("Error details:", {
-          message: err instanceof Error ? err.message : 'Unknown error',
-          status: err instanceof Error && 'response' in err ? (err as any).response?.status : 'No status',
-          data: err instanceof Error && 'response' in err ? (err as any).response?.data : 'No data'
-        });
         setError(`Failed to load student data: ${err instanceof Error ? err.message : 'Unknown error'}`);
       } finally {
-        setLoading(false);
+        if (!preloaded) setLoading(false);
       }
     };
 
-    fetchStudent();
+    // If not coming from success preloaded, proceed normal fetch
+    if (!fromSuccess) {
+      fetchStudent();
+    }
   }, [id]);
 
   // Fetch enrolled courses
@@ -110,8 +126,25 @@ export default function StudentDetailPage() {
   };
 
   const handleDelete = () => {
-    // Show delete confirmation
     setOpenDeleteDialog(true);
+  };
+
+  const confirmBanUnban = async () => {
+    if (!id) return;
+    try {
+      const isBanned = (student as any)?.isDeleted || student?.statusName === 'Blocked' || student?.statusName === 'Locked';
+      if (isBanned) {
+        await setIsActive(id);
+      } else {
+        await setIsDelete(id);
+      }
+      const refreshed = await getStudentById(id);
+      setStudent(refreshed);
+    } catch (e) {
+      console.error('Error updating student status:', e);
+    } finally {
+      setOpenDeleteDialog(false);
+    }
   };
 
   const handleAddNote = () => {
@@ -323,15 +356,30 @@ export default function StudentDetailPage() {
                 Edit Profile
               </div>
             </Button>
-            <Button
-              onClick={handleDelete}
-              className="border-red-200 bg-red-500 hover:bg-red-100 hover:border-red-300 text-red-600 hover:text-red-700 shadow-sm hover:shadow-md transition-all duration-200"
-            >
-              <div className="flex items-center">
-                <UserX className="w-4 h-4 mr-2" />
-                Ban Student
-              </div>
-            </Button>
+            {(() => {
+              const isBanned = (student as any)?.isDeleted || student?.statusName === 'Blocked' || student?.statusName === 'Locked';
+              return isBanned ? (
+                <Button
+                  onClick={handleDelete}
+                  className="border-emerald-200 bg-emerald-500 hover:bg-emerald-100 hover:border-emerald-300 text-emerald-700 hover:text-emerald-800 shadow-sm hover:shadow-md transition-all duration-200"
+                >
+                  <div className="flex items-center">
+                    <UserX className="w-4 h-4 mr-2" />
+                    Unban Student
+                  </div>
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleDelete}
+                  className="border-red-200 bg-red-500 hover:bg-red-100 hover:border-red-300 text-red-600 hover:text-red-700 shadow-sm hover:shadow-md transition-all duration-200"
+                >
+                  <div className="flex items-center">
+                    <UserX className="w-4 h-4 mr-2" />
+                    Ban Student
+                  </div>
+                </Button>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -827,9 +875,11 @@ export default function StudentDetailPage() {
       <DeleteConfirmDialog
         open={openDeleteDialog}
         onOpenChange={setOpenDeleteDialog}
-        onConfirm={handleDelete}
-        title="Ban Student"
-        message={`Are you sure you want to ban this student? This action can be reversed later.`}
+        onConfirm={confirmBanUnban}
+        title={((student as any)?.isDeleted || student?.statusName === 'Blocked' || student?.statusName === 'Locked') ? "Unban Student" : "Ban Student"}
+        message={((student as any)?.isDeleted || student?.statusName === 'Blocked' || student?.statusName === 'Locked')
+          ? `Are you sure you want to unban this student? This will reactivate their account.`
+          : `Are you sure you want to ban this student? This will deactivate their account.`}
       />
 
     </div>

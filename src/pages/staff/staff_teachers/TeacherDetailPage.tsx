@@ -9,6 +9,8 @@ import { Edit, UserX, User, Settings, Calendar, BookOpen, Award,MessageSquare,Pl
 // import { getTeacherById, type Teacher } from "@/pages/api/teacher.api";
 import { formatDate, getStatusColor, getStatusDisplay } from "@/helper/helper.service";
 import { getListCourseTeaching, getTeacherById, getListCredentialType, getListCredentialByTeacherId} from "@/api/teacher.api";
+import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
+import { setIsDelete, setIsActive } from "@/api/account.api";
 import type { CourseTeaching, Teacher, TeacherCredentialResponse, CredentialTypeResponse } from "@/types/teacher.type";
 
 
@@ -28,6 +30,7 @@ export default function TeacherDetailPage() {
   const { id } = useParams();
   const location = useLocation();
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [shouldRefetchCreds, setShouldRefetchCreds] = useState(false);
   const [newNote, setNewNote] = useState("");
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,29 +42,58 @@ export default function TeacherDetailPage() {
   const [qualifications, setQualifications] = useState<TeacherCredentialResponse[]>([]);
   const [credentialsLoading, setCredentialsLoading] = useState(false);
   const navigate = useNavigate();
+  const [banDialogOpen, setBanDialogOpen] = useState(false);
 
-  // Fetch credential types when component mounts
-  useEffect(() => {
-    // Show success toast if redirected after update
-    if (location.state && (location.state as any).updateStatus === "success") {
-      setShowSuccessToast(true);
-      // Auto hide after 5 seconds
-      const timer = setTimeout(() => setShowSuccessToast(false), 5000);
-      // Clear the state so it doesn't show again on refresh/back
-      navigate(location.pathname, { replace: true, state: {} });
-      return () => clearTimeout(timer);
+  // Helpers to load types and credentials together (prevents race)
+  const loadCredentialTypesIfNeeded = async (): Promise<CredentialTypeResponse[]> => {
+    if (credentialTypes.length > 0) return credentialTypes;
+    try {
+      const types = await getListCredentialType();
+      setCredentialTypes(types);
+      return types;
+    } catch (error) {
+      console.error('Error fetching credential types:', error);
+      return [];
     }
+  };
 
-    const fetchCredentialTypes = async () => {
-      try {
-        const types = await getListCredentialType();
-        setCredentialTypes(types);
-      } catch (error) {
-        console.error('Error fetching credential types:', error);
+  const loadCredentials = async (accountId: string) => {
+    const types = await loadCredentialTypesIfNeeded();
+    if (!accountId || types.length === 0) return;
+    try {
+      setCredentialsLoading(true);
+      const credentialsData = await getListCredentialByTeacherId(accountId);
+      const certificateType = types.find(type => type.name === "Certificate");
+      const qualificationType = types.find(type => type.name === "Qualification");
+      const certificateList = credentialsData.filter(cred => certificateType && cred.credentialTypeId === certificateType.id);
+      const qualificationList = credentialsData.filter(cred => qualificationType && cred.credentialTypeId === qualificationType.id);
+      setCertificates(certificateList);
+      setQualifications(qualificationList);
+    } catch (err) {
+      console.error("Error fetching teacher credentials:", err);
+      setCertificates([]);
+      setQualifications([]);
+    } finally {
+      setCredentialsLoading(false);
+    }
+  };
+
+  // On mount: load types; if coming from success, trigger toast and immediate credentials reload
+  useEffect(() => {
+    const fromSuccess = !!(location.state && (location.state as any).updateStatus === "success");
+    if (fromSuccess) {
+      setShowSuccessToast(true);
+      const timer = setTimeout(() => setShowSuccessToast(false), 5000);
+      navigate(location.pathname, { replace: true, state: {} });
+      // Load credentials immediately using the current id
+      if (id) {
+        void loadCredentials(id);
       }
-    };
-
-    fetchCredentialTypes();
+      return () => clearTimeout(timer);
+    } else {
+      // Ensure types are available for first render path
+      void loadCredentialTypesIfNeeded();
+    }
   }, []);
 
   // Fetch teacher data
@@ -131,42 +163,13 @@ export default function TeacherDetailPage() {
     fetchTeachingCourses();
   }, [id]);
 
-  // Fetch teacher credentials when teacher ID is available
+  // Watch flag to refetch credentials after other updates
   useEffect(() => {
-    const fetchTeacherCredentials = async () => {
-      if (!id || !credentialTypes.length) return;
-
-      try {
-        setCredentialsLoading(true);
-        console.log("Fetching teacher credentials for teacher:", id);
-
-        const credentialsData = await getListCredentialByTeacherId(id);
-        console.log("Teacher credentials data received:", credentialsData);
-
-        // Separate certificates and qualifications
-        const certificateType = credentialTypes.find(type => type.name === "Certificate");
-        const qualificationType = credentialTypes.find(type => type.name === "Qualification");
-        
-        const certificateList = credentialsData.filter(cred => 
-          certificateType && cred.credentialTypeId === certificateType.id
-        );
-        const qualificationList = credentialsData.filter(cred => 
-          qualificationType && cred.credentialTypeId === qualificationType.id
-        );
-
-        setCertificates(certificateList);
-        setQualifications(qualificationList);
-      } catch (err) {
-        console.error("Error fetching teacher credentials:", err);
-        setCertificates([]);
-        setQualifications([]);
-      } finally {
-        setCredentialsLoading(false);
-      }
-    };
-
-    fetchTeacherCredentials();
-  }, [id, credentialTypes]);
+    if (shouldRefetchCreds && id) {
+      void loadCredentials(id);
+      setShouldRefetchCreds(false);
+    }
+  }, [shouldRefetchCreds, id]);
    // Remove hardcoded teachingCourses data - now using API data
 
 
@@ -196,8 +199,25 @@ export default function TeacherDetailPage() {
   };
 
   const handleDelete = () => {
-    // Show delete confirmation
-    console.log("Delete teacher");
+    setBanDialogOpen(true);
+  };
+
+  const confirmBanTeacher = async () => {
+    if (!teacher?.accountId) return;
+    try {
+      const isBanned = (teacher as any)?.isDeleted || teacher.statusName === 'Blocked' || teacher.statusName === 'Locked';
+      if (isBanned) {
+        await setIsActive(teacher.accountId);
+      } else {
+        await setIsDelete(teacher.accountId);
+      }
+      const refreshed = await getTeacherById(teacher.accountId);
+      setTeacher(refreshed);
+    } catch (err) {
+      console.error("Error updating teacher status:", err);
+    } finally {
+      setBanDialogOpen(false);
+    }
   };
 
   const handleAddNote = () => {
@@ -406,15 +426,30 @@ export default function TeacherDetailPage() {
                 Edit Profile
               </div>
             </Button>
-            <Button
-              onClick={handleDelete}
-              className="border-red-200 bg-red-500 hover:bg-red-100 hover:border-red-300 text-red-600 hover:text-red-700 shadow-sm hover:shadow-md transition-all duration-200"
-            >
-              <div className="flex items-center">
-                <UserX className="w-4 h-4 mr-2" />
-                Ban Teacher
-              </div>
-            </Button>
+            {(() => {
+              const isBanned = (teacher as any)?.isDeleted || teacher.statusName === 'Blocked' || teacher.statusName === 'Locked';
+              return isBanned ? (
+                <Button
+                  onClick={handleDelete}
+                  className="border-emerald-200 bg-emerald-500 hover:bg-emerald-100 hover:border-emerald-300 text-emerald-700 hover:text-emerald-800 shadow-sm hover:shadow-md transition-all duration-200"
+                >
+                  <div className="flex items-center">
+                    <UserX className="w-4 h-4 mr-2" />
+                    Unban Teacher
+                  </div>
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleDelete}
+                  className="border-red-200 bg-red-500 hover:bg-red-100 hover:border-red-300 text-red-600 hover:text-red-700 shadow-sm hover:shadow-md transition-all duration-200"
+                >
+                  <div className="flex items-center">
+                    <UserX className="w-4 h-4 mr-2" />
+                    Ban Teacher
+                  </div>
+                </Button>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -855,6 +890,15 @@ export default function TeacherDetailPage() {
           </div>
         </div>
       </Card>
+      <DeleteConfirmDialog
+        open={banDialogOpen}
+        onOpenChange={setBanDialogOpen}
+        onConfirm={confirmBanTeacher}
+        title={((teacher as any)?.isDeleted || teacher.statusName === 'Blocked' || teacher.statusName === 'Locked') ? "Unban Teacher" : "Ban Teacher"}
+        message={((teacher as any)?.isDeleted || teacher.statusName === 'Blocked' || teacher.statusName === 'Locked')
+          ? `Are you sure you want to unban "${teacher.fullName}"? This will reactivate their account.`
+          : `Are you sure you want to ban "${teacher.fullName}"? This will deactivate their account.`}
+      />
     </div>
   );
 }

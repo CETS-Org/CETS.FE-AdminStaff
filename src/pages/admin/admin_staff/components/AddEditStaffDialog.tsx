@@ -46,16 +46,25 @@ export default function AddEditStaffDialog({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
+  // Derived form validity for disabling submit
+  const isFormValid = (() => {
+    const hasFullName = formData.fullName.trim().length > 0;
+    const hasEmail = formData.email.trim().length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email);
+    const validPhone = !formData.phoneNumber || formData.phoneNumber.trim() === "" || /^[+]?\d{7,15}$/.test(formData.phoneNumber.replace(/\s/g, ''));
+    const hasDob = !!formData.dateOfBirth && new Date(formData.dateOfBirth) <= new Date();
+    const validCid = /^\d{9,12}$/.test(formData.cid.trim());
+    const roleOk = mode === "edit" ? true : !!formData.roleID;
+    return hasFullName && hasEmail && validPhone && hasDob && validCid && roleOk;
+  })();
+
   // Fetch roles when dialog opens
   useEffect(() => {
     const fetchRoles = async () => {
       try {
         const allRoles = await getRoles();
-        // Filter roles that contain "staff" in roleName
-        const filteredRoles = allRoles.filter(role => 
-          role.roleName.toLowerCase().includes('staff')
-        );
-        setStaffRoles(filteredRoles);
+        // Prefer staff roles; fallback to all roles if none matched
+        const filteredRoles = allRoles.filter(role => role.roleName?.toLowerCase().includes('staff'));
+        setStaffRoles(filteredRoles.length > 0 ? filteredRoles : allRoles);
       } catch (error) {
         console.error('Error fetching roles:', error);
         setUpdateError('Failed to load roles');
@@ -116,16 +125,31 @@ export default function AddEditStaffDialog({
       newErrors.email = "Please enter a valid email";
     }
 
-    // if (!formData.phoneNumber.trim()) {
-    //   newErrors.phoneNumber = "Phone number is required";
-    // }
+    // Optional phone validation if provided
+    if (formData.phoneNumber && formData.phoneNumber.trim()) {
+      const phoneRegex = /^[+]?\d{7,15}$/;
+      if (!phoneRegex.test(formData.phoneNumber.replace(/\s/g, ''))) {
+        newErrors.phoneNumber = "Please enter a valid phone number";
+      }
+    }
 
     if (!formData.dateOfBirth) {
       newErrors.dateOfBirth = "Date of birth is required";
+    } else {
+      const dob = new Date(formData.dateOfBirth);
+      const today = new Date();
+      if (dob > today) {
+        newErrors.dateOfBirth = "Date of birth cannot be in the future";
+      }
     }
 
     if (!formData.cid.trim()) {
       newErrors.cid = "CID is required";
+    } else {
+      const cidRegex = /^\d{9,12}$/;
+      if (!cidRegex.test(formData.cid.trim())) {
+        newErrors.cid = "CID must be 9-12 digits";
+      }
     }
 
     if (mode === "add" && !formData.roleID) {
@@ -211,13 +235,15 @@ export default function AddEditStaffDialog({
           
           if (onUpdateSuccess) onUpdateSuccess();
           onOpenChange(false);
-          if (created && (created as any).accountId) {
-            navigate(`/admin/staffs/${(created as any).accountId}`, { state: { updateStatus: "success" } });
+          const newId = (created as any)?.accountId || (created as any)?.id || (created as any)?.accountID;
+          if (newId) {
+            navigate(`/admin/staffs/${newId}`, { state: { updateStatus: "success" } });
           }
         }
       } catch (error) {
         console.error("Error saving staff:", error);
-        setUpdateError(error instanceof Error ? error.message : "Failed to save staff");
+        const message = (error as any)?.response?.data?.message || (error as Error)?.message || "Failed to save staff";
+        setUpdateError(message);
       } finally {
         setIsLoading(false);
       }
@@ -231,7 +257,7 @@ export default function AddEditStaffDialog({
 
   return (
     <>
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} modal={!isConfirmOpen}>
       <DialogContent size="lg">
         <DialogHeader>
           <div className="flex items-center justify-between">
@@ -335,7 +361,14 @@ export default function AddEditStaffDialog({
                 <Input
                   label="Full Name *"
                   value={formData.fullName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData(prev => ({ ...prev, fullName: value }));
+                    setErrors(prev => ({
+                      ...prev,
+                      fullName: value.trim() ? "" : "Full name is required",
+                    }));
+                  }}
                   error={errors.fullName}
                   placeholder="Enter full name"
                 />
@@ -344,7 +377,16 @@ export default function AddEditStaffDialog({
                   label="Email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData(prev => ({ ...prev, email: value }));
+                    setErrors(prev => ({
+                      ...prev,
+                      email: !value.trim()
+                        ? "Email is required"
+                        : (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? "" : "Please enter a valid email"),
+                    }));
+                  }}
                   error={errors.email}
                   placeholder="Enter email address"
                   disabled={mode === "edit"}
@@ -353,7 +395,16 @@ export default function AddEditStaffDialog({
                 <Input
                   label="Phone Number"
                   value={formData.phoneNumber}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData(prev => ({ ...prev, phoneNumber: value }));
+                    setErrors(prev => ({
+                      ...prev,
+                      phoneNumber: !value || value.trim() === "" || /^[+]?\d{7,15}$/.test(value.replace(/\s/g, ''))
+                        ? ""
+                        : "Please enter a valid phone number",
+                    }));
+                  }}
                   error={errors.phoneNumber}
                   placeholder="Enter phone number"    
                   disabled={mode === "edit"}
@@ -363,7 +414,17 @@ export default function AddEditStaffDialog({
                   label="Date of Birth *"
                   type="date"
                   value={formData.dateOfBirth}
-                  onChange={(e) => setFormData(prev => ({ ...prev, dateOfBirth: e.target.value }))}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData(prev => ({ ...prev, dateOfBirth: value }));
+                    const date = value ? new Date(value) : null;
+                    setErrors(prev => ({
+                      ...prev,
+                      dateOfBirth: !value
+                        ? "Date of birth is required"
+                        : (date && date > new Date() ? "Date of birth cannot be in the future" : ""),
+                    }));
+                  }}
                   error={errors.dateOfBirth}
                 />
                 
@@ -377,7 +438,16 @@ export default function AddEditStaffDialog({
                 <Input
                   label="CID *"
                   value={formData.cid}
-                  onChange={(e) => setFormData(prev => ({ ...prev, cid: e.target.value }))}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData(prev => ({ ...prev, cid: value }));
+                    setErrors(prev => ({
+                      ...prev,
+                      cid: !value.trim()
+                        ? "CID is required"
+                        : (/^\d{9,12}$/.test(value.trim()) ? "" : "CID must be 9-12 digits"),
+                    }));
+                  }}
                   error={errors.cid}
                   placeholder="Enter CID"
                 />
@@ -400,7 +470,11 @@ export default function AddEditStaffDialog({
                   <Select
                     label="Role *"
                     value={formData.roleID}
-                    onChange={(e) => setFormData(prev => ({ ...prev, roleID: e.target.value }))}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData(prev => ({ ...prev, roleID: value }));
+                      setErrors(prev => ({ ...prev, roleID: value ? "" : "Role is required" }));
+                    }}
                     options={staffRoles.map(role => ({
                       label: role.roleName,
                       value: role.id
@@ -434,7 +508,7 @@ export default function AddEditStaffDialog({
           <Button
             variant="secondary"
             onClick={handleSave}
-            disabled={isLoading}
+            disabled={isLoading || !isFormValid}
             className="bg-primary-600 hover:bg-primary-700 text-white disabled:opacity-50"
           >
             {isLoading ? (
