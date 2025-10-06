@@ -27,6 +27,9 @@ function convertToStaffSession(classSession: any): StaffSession {
   // Convert date and time to the format expected by the schedule component
   const dateTime = new Date(`${classSession.date}T${classSession.startTime}:00`);
   const startTime = `${dateTime.getFullYear()}:${String(dateTime.getMonth() + 1).padStart(2, '0')}:${String(dateTime.getDate()).padStart(2, '0')}:${String(dateTime.getHours()).padStart(2, '0')}:${String(dateTime.getMinutes()).padStart(2, '0')}`;
+  const now = new Date();
+  const isPast = dateTime < now;
+  const status = classSession.attendanceStatus ?? (isPast ? "attended" : "upcoming");
   
   return {
     id: classSession.id.toString(),
@@ -38,6 +41,7 @@ function convertToStaffSession(classSession: any): StaffSession {
     type: classSession.type as "lesson" | "exam" | "break",
     endTime: classSession.endTime,
     durationMin: 90, // Default duration
+    attendanceStatus: status,
   };
 }
 
@@ -89,17 +93,17 @@ export default function StaffSchedulePage() {
       return d.toISOString().slice(0, 10);
     };
     return [
-      { id: 1, className: "IELTS A1", date: iso(1), teacherName: "liliBeth", startTime: "13:30", endTime: "15:00", room: "R101", type: "lesson" },
-      { id: 2, className: "TOEIC B2", date: iso(2), teacherName: "liliBeth", startTime: "15:30", endTime: "17:00", room: "R203", type: "lesson" },
-      { id: 3, className: "IELTS A1", date: iso(2), teacherName: "liliBeth", startTime: "18:00", endTime: "19:30", room: "R102", type: "lesson" },
-      { id: 4, className: "Kids C1", date: iso(3), teacherName: "liliBeth", startTime: "20:00", endTime: "21:30", room: "R305", type: "lesson" },
-      { id: 5, className: "IELTS A2", date: iso(4), teacherName: "liliBeth", startTime: "13:30", endTime: "15:00", room: "R101", type: "lesson" },
-      { id: 6, className: "Mock Test", date: iso(5), teacherName: "liliBeth", startTime: "15:30", endTime: "17:00", room: "Hall A", type: "exam" },
+      { id: 1, className: "IELTS A1", date: iso(1), teacherName: "liliBeth", startTime: "13:30", endTime: "15:00", room: "R101", type: "lesson", attendanceStatus: "attended" },
+      { id: 2, className: "TOEIC B2", date: iso(2), teacherName: "liliBeth", startTime: "15:30", endTime: "17:00", room: "R203", type: "lesson", attendanceStatus: "absent" },
+      { id: 3, className: "IELTS A1", date: iso(2), teacherName: "liliBeth", startTime: "18:00", endTime: "19:30", room: "R102", type: "lesson", attendanceStatus: "upcoming" },
+      { id: 4, className: "Kids C1", date: iso(3), teacherName: "liliBeth", startTime: "20:00", endTime: "21:30", room: "R305", type: "lesson", attendanceStatus: "attended" },
+      { id: 5, className: "IELTS A2", date: iso(4), teacherName: "liliBeth", startTime: "13:30", endTime: "15:00", room: "R101", type: "lesson", attendanceStatus: "upcoming" },
+      { id: 6, className: "Mock Test", date: iso(5), teacherName: "liliBeth", startTime: "15:30", endTime: "17:00", room: "Hall A", type: "exam", attendanceStatus: "absent" },
       { id: 7, className: "TOEIC B2", date: iso(6), teacherName: "liliBeth", startTime: "18:00", endTime: "19:30", room: "R203", type: "lesson" },
       { id: 8, className: "Business English", date: iso(1), teacherName: "liliBeth", startTime: "20:00", endTime: "21:30", room: "R201", type: "lesson" },
-      { id: 9, className: "Conversation Club", date: iso(3), teacherName: "liliBeth", startTime: "15:30", endTime: "17:00", room: "R301", type: "lesson" },
-      { id: 10, className: "English Grammar", date: iso(1), teacherName: "liliBeth", startTime: "09:00", endTime: "10:30", room: "R104", type: "lesson" },
-      { id: 11, className: "Speaking Practice", date: iso(4), teacherName: "liliBeth", startTime: "09:00", endTime: "10:30", room: "R205", type: "lesson" },
+      { id: 9, className: "Conversation Club", date: iso(3), teacherName: "liliBeth", startTime: "15:30", endTime: "17:00", room: "R301", type: "lesson", attendanceStatus: "attended" },
+      { id: 10, className: "English Grammar", date: iso(1), teacherName: "liliBeth", startTime: "09:00", endTime: "10:30", room: "R104", type: "lesson", attendanceStatus: "absent" },
+      { id: 11, className: "Speaking Practice", date: iso(4), teacherName: "liliBeth", startTime: "09:00", endTime: "10:30", room: "R205", type: "lesson", attendanceStatus: "upcoming" },
       { id: 12, className: "Writing Workshop", date: iso(6), teacherName: "liliBeth", startTime: "09:00", endTime: "10:30", room: "R301", type: "lesson" },
     ];
   });

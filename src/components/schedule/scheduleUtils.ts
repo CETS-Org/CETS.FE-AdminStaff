@@ -67,6 +67,7 @@ export type StaffSession = BaseSession & {
   instructor?: string;
   type?: "lesson" | "exam" | "break";
   endTime?: string; // Format: "HH:mm"
+  attendanceStatus?: "attended" | "absent" | "upcoming";
 };
 
 /* =========================
