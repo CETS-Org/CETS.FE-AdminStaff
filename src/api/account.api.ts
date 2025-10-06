@@ -1,5 +1,16 @@
+import type { AxiosRequestConfig } from 'axios';
+import { api, endpoint } from './api';
+
+export const loginAcademicStaff = (credentials: any, config?: AxiosRequestConfig) =>
+  api.post(`${endpoint.account}/login/academicStaff`, credentials, config);
+
+export const loginAccountantStaff = (credentials: any, config?: AxiosRequestConfig) =>
+  api.post(`${endpoint.account}/login/accountantStaff`, credentials, config);
+
+export const loginAdmin = (credentials: any, config?: AxiosRequestConfig) =>
+  api.post(`${endpoint.account}/login/admin`, credentials, config);
+
 import type { Role } from "@/types/account.type";
-import { api, endpoint } from "./api";
 
 // Types for forgot password flow
 export interface ForgotPasswordRequest {
