@@ -5,7 +5,6 @@ import PageHeader from "@/components/ui/PageHeader";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import StudentsList from "./components/students_list";
 import Button from "@/components/ui/Button";
-import ResetPasswordDialog from "@/components/ui/ResetPasswordDialog";
 import { Users, GraduationCap, Clock, Award, Download, BarChart3, AlertCircle, Loader2 } from "lucide-react";
 import { useStudentStore } from "@/store/student.store";
 import { getStudents } from "@/api/student.api";
@@ -14,8 +13,6 @@ export default function StaffStudentsPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
-  const [selectedStudentForReset, setSelectedStudentForReset] = useState<any>(null);
   const { students, setStudents } = useStudentStore();
   const [stats, setStats] = useState({
     totalStudents: 0,
@@ -58,24 +55,6 @@ export default function StaffStudentsPage() {
     navigate("/staff/analytics");
   };
 
-  const handleResetPassword = (student: any) => {
-    setSelectedStudentForReset(student);
-    setIsResetPasswordOpen(true);
-  };
-
-  const handleResetPasswordSubmit = async (email: string) => {
-    // Simulate API call for password reset
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Here you would typically call an API endpoint
-    console.log("Reset password for student:", selectedStudentForReset?.fullName, "with email:", email);
-    
-    // For demo purposes, we'll just simulate success
-    // In real implementation, this would call something like:
-    // await resetStudentPassword(selectedStudentForReset.accountId, email);
-    
-    setSelectedStudentForReset(null);
-  };
 
   // Load students and compute stats
   useEffect(() => {
@@ -273,21 +252,9 @@ export default function StaffStudentsPage() {
 
       {/* Students List Component */}
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
-        <StudentsList onResetPassword={handleResetPassword} />
+        <StudentsList />
       </div>
 
-      {/* Reset Password Dialog */}
-      <ResetPasswordDialog
-        open={isResetPasswordOpen}
-        onOpenChange={(open) => {
-          setIsResetPasswordOpen(open);
-          if (!open) setSelectedStudentForReset(null);
-        }}
-        onResetPassword={handleResetPasswordSubmit}
-        title="Reset Student Password"
-        description={`Send password reset instructions${selectedStudentForReset ? ` to ${selectedStudentForReset.fullName}` : ''}.`}
-        defaultEmail={selectedStudentForReset?.email || ''}
-      />
     </div>
   );
 }

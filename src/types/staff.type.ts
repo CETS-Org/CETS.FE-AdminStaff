@@ -1,5 +1,7 @@
     export interface UpdateStaffProfile{
         fullName: string | null;
+        email: string | null;
+        phoneNumber: string | null;
         dateOfBirth: string | null;
         address: string | null;
         cid: string | null;

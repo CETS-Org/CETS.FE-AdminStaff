@@ -6,8 +6,8 @@ import Loader from "@/components/ui/Loader";
 import { 
   ChevronRight, 
   Edit, 
-  Trash2, 
   User, 
+  UserX,
   Calendar, 
   Star,
   Clock,
@@ -18,6 +18,9 @@ import {
 } from "lucide-react";
 import { formatDate, getStatusColor, getStatusDisplay } from "@/helper/helper.service";
 import { getStaffById } from "@/api/staff.api";
+import { setIsDelete, setIsActive } from "@/api/account.api";
+import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
+import AddEditStaffDialog from "./components/AddEditStaffDialog";
 import type { Account } from "@/types/account.type";
 
 interface Note {
@@ -34,15 +37,30 @@ export default function StaffDetailPage() {
   const [newNote, setNewNote] = useState("");
   const [staff, setStaff] = useState<Account | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [banDialogOpen, setBanDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   // Fetch staff data
   useEffect(() => {
-    if (location.state && (location.state as any).updateStatus === "success") {
+    const locationState = location.state as any;
+    
+    if (locationState && locationState.updateStatus === "success") {
       setShowSuccessToast(true);
       const timer = setTimeout(() => setShowSuccessToast(false), 5000);
+      
+      // If we have preloaded data, use it immediately
+      if (locationState.preloadedStaff) {
+        setStaff(locationState.preloadedStaff);
+        setLoading(false);
+        setIsInitialLoad(false);
+        navigate(location.pathname, { replace: true, state: {} });
+        return () => clearTimeout(timer);
+      }
+      
       navigate(location.pathname, { replace: true, state: {} });
       return () => clearTimeout(timer);
     }
@@ -71,6 +89,7 @@ export default function StaffDetailPage() {
         setError(`Failed to load staff data: ${err instanceof Error ? err.message : 'Unknown error'}`);
       } finally {
         setLoading(false);
+        setIsInitialLoad(false);
       }
     };
 
@@ -95,13 +114,44 @@ export default function StaffDetailPage() {
   ];
 
   const handleEdit = () => {
-    // Navigate to edit page
-    console.log("Edit staff");
+    setEditDialogOpen(true);
   };
 
-  const handleDelete = () => {
-    // Show delete confirmation
-    console.log("Delete staff");
+  const handleEditSuccess = async () => {
+    // Refresh staff data after successful edit
+    if (staff?.accountId) {
+      try {
+        const refreshedStaff = await getStaffById(staff.accountId);
+        setStaff(refreshedStaff);
+        setShowSuccessToast(true);
+        const timer = setTimeout(() => setShowSuccessToast(false), 5000);
+        return () => clearTimeout(timer);
+      } catch (error) {
+        console.error("Error refreshing staff data:", error);
+      }
+    }
+  };
+
+  const handleBan = () => {
+    setBanDialogOpen(true);
+  };
+
+  const confirmBanStaff = async () => {
+    if (!staff?.accountId) return;
+    try {
+      const isBanned = (staff as any)?.isDeleted || staff.statusName === 'Blocked' || staff.statusName === 'Locked';
+      if (isBanned) {
+        await setIsActive(staff.accountId);
+      } else {
+        await setIsDelete(staff.accountId);
+      }
+      const refreshed = await getStaffById(staff.accountId);
+      setStaff(refreshed);
+    } catch (err) {
+      console.error("Error updating staff status:", err);
+    } finally {
+      setBanDialogOpen(false);
+    }
   };
 
   const handleAddNote = () => {
@@ -112,8 +162,8 @@ export default function StaffDetailPage() {
     }
   };
 
-  // Loading state
-  if (loading) {
+  // Loading state - only show full loading on initial load
+  if (loading && isInitialLoad) {
     return (
       <div className="p-6 mx-auto mt-16 lg:pl-70">
         <div className="flex items-center justify-center h-64">
@@ -181,25 +231,36 @@ export default function StaffDetailPage() {
             <Button
               onClick={handleEdit}
               variant="secondary"
-              size="sm"
-              className="rounded-full border border-gray-300 bg-white hover:bg-gray-50"
             >
-                <div className ="flex item-center">
-              <Edit className="w-4 h-4 mr-2" />
-              Edit
+              <div className="flex items-center">
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Profile
               </div>
             </Button>
-            <Button
-              onClick={handleDelete}
-              variant="secondary"
-              size="sm"
-              className="rounded-full border border-gray-300 bg-white hover:bg-gray-50 text-red-600 hover:text-red-700"
-            >
-                <div className ="flex item-center">
-              <Trash2 className="w-4 h-4 mr-2" />
-              Delete
-              </div>
-            </Button>
+            {(() => {
+              const isBanned = (staff as any)?.isDeleted || staff?.statusName === 'Blocked' || staff?.statusName === 'Locked';
+              return isBanned ? (
+                <Button
+                  onClick={handleBan}
+                  className="border-emerald-200 bg-emerald-500 hover:bg-emerald-100 hover:border-emerald-300 text-emerald-700 hover:text-emerald-800 shadow-sm hover:shadow-md transition-all duration-200"
+                >
+                  <div className="flex items-center">
+                    <UserX className="w-4 h-4 mr-2" />
+                    Unban Staff
+                  </div>
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleBan}
+                  className="border-red-200 bg-red-500 hover:bg-red-100 hover:border-red-300 text-red-600 hover:text-red-700 shadow-sm hover:shadow-md transition-all duration-200"
+                >
+                  <div className="flex items-center">
+                    <UserX className="w-4 h-4 mr-2" />
+                    Ban Staff
+                  </div>
+                </Button>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -332,6 +393,24 @@ export default function StaffDetailPage() {
          
         </div>
       </div>
+
+      <AddEditStaffDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onUpdateSuccess={handleEditSuccess}
+        staff={staff}
+        mode="edit"
+      />
+
+      <DeleteConfirmDialog
+        open={banDialogOpen}
+        onOpenChange={setBanDialogOpen}
+        onConfirm={confirmBanStaff}
+        title={((staff as any)?.isDeleted || staff?.statusName === 'Blocked' || staff?.statusName === 'Locked') ? "Unban Staff" : "Ban Staff"}
+        message={((staff as any)?.isDeleted || staff?.statusName === 'Blocked' || staff?.statusName === 'Locked')
+          ? `Are you sure you want to unban "${staff?.fullName}"? This will reactivate their account.`
+          : `Are you sure you want to ban "${staff?.fullName}"? This will deactivate their account.`}
+      />
     </div>
   );
 }

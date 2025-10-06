@@ -139,36 +139,85 @@ export default function AddEditTeacherPage() {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
+    // Validate required fields
     if (!formData.fullName.trim()) {
       newErrors.fullName = "Full name is required";
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email";
-    }
-
-    if (!formData.phoneNumber.trim()) {
-      newErrors.phoneNumber = "Phone number is required";
+    } else if (formData.fullName.trim().length < 2) {
+      newErrors.fullName = "Full name must be at least 2 characters";
     }
 
     if (!formData.dateOfBirth) {
       newErrors.dateOfBirth = "Date of birth is required";
+    } else {
+      // Validate date is not in the future
+      const birthDate = new Date(formData.dateOfBirth);
+      const today = new Date();
+      if (birthDate > today) {
+        newErrors.dateOfBirth = "Date of birth cannot be in the future";
+      }
     }
 
-    if (!formData.cid.trim()) {
-      newErrors.cid = "CID is required";
+    // Validate email
+    if (!formData.email || !formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email.trim())) {
+        newErrors.email = "Please enter a valid email";
+      }
+    }
+
+    // Validate phone (required)
+    if (!formData.phoneNumber.trim()) {
+      newErrors.phoneNumber = "Phone number is required";
+    } else {
+      const phoneRegex = /^0\d{9}$/;
+      if (!phoneRegex.test(formData.phoneNumber.replace(/\s/g, ''))) {
+        newErrors.phoneNumber = "Phone number must start with 0 and have 10 digits";
+      }
     }
 
     if (formData.yearsExperience < 0) {
       newErrors.yearsExperience = "Years of experience must be a positive number";
+    } else if (formData.yearsExperience > 50) {
+      newErrors.yearsExperience = "Years of experience seems unrealistic (max 50)";
+    }
+
+    // Validate CID (required)
+    if (!formData.cid.trim()) {
+      newErrors.cid = "CID is required";
+    } else {
+      const cidRegex = /^[0-9]{9,12}$/;
+      if (!cidRegex.test(formData.cid.trim())) {
+        newErrors.cid = "CID must be 9-12 digits";
+      }
+    }
+
+    // Validate address if provided
+    if (formData.address && formData.address.trim().length < 5) {
+      newErrors.address = "Address must be at least 5 characters";
     }
 
     // Validate credentials
     formData.credentials.forEach((cred, index) => {
       if (!cred.credentialTypeId) {
         newErrors[`credential_${index}_type`] = "Credential type is required";
+      }
+      if (!cred.name || !cred.name.trim()) {
+        newErrors[`credential_${index}_name`] = "Credential name is required";
+      } else if (cred.name.trim().length < 2) {
+        newErrors[`credential_${index}_name`] = "Credential name must be at least 2 characters";
+      }
+      if (!cred.level || !cred.level.trim()) {
+        newErrors[`credential_${index}_level`] = "Credential level is required";
+      } else if (cred.level.trim().length < 2) {
+        newErrors[`credential_${index}_level`] = "Credential level must be at least 2 characters";
+      }
+      if (cred.pictureUrl && cred.pictureUrl.trim()) {
+        const urlRegex = /^https?:\/\//i;
+        if (!urlRegex.test(cred.pictureUrl.trim())) {
+          newErrors[`credential_${index}_pictureUrl`] = "Picture URL must start with http or https";
+        }
       }
     });
 
@@ -184,9 +233,13 @@ export default function AddEditTeacherPage() {
   };
 
   const addCredential = () => {
+    // Find certificate type ID to set as default
+    const certificateType = credentialTypes.find(type => type.name === 'Certificate');
+    const defaultCredentialTypeId = certificateType?.id || "";
+    
     const newCredential: CredentialFormData = {
       id: Date.now().toString(),
-      credentialTypeId: "",
+      credentialTypeId: defaultCredentialTypeId,
       pictureUrl: null,
       name: "",
       level: ""
@@ -198,19 +251,52 @@ export default function AddEditTeacherPage() {
   };
 
   const updateCredential = (id: string, field: keyof CredentialFormData, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      credentials: prev.credentials.map(cred =>
+    setFormData(prev => {
+      const updatedCredentials = prev.credentials.map(cred =>
         cred.id === id ? { ...cred, [field]: value } : cred
-      )
-    }));
+      );
+      
+      // Clear error for this credential field when user starts typing
+      const credentialIndex = prev.credentials.findIndex(cred => cred.id === id);
+      if (credentialIndex !== -1) {
+        const errorKey = `credential_${credentialIndex}_${field}`;
+        if (errors[errorKey]) {
+          setErrors(prevErrors => ({ ...prevErrors, [errorKey]: "" }));
+        }
+      }
+      
+      return {
+        ...prev,
+        credentials: updatedCredentials
+      };
+    });
   };
 
   const removeCredential = (id: string) => {
-    setFormData(prev => ({
-      ...prev,
-      credentials: prev.credentials.filter(cred => cred.id !== id)
-    }));
+    setFormData(prev => {
+      const credentialIndex = prev.credentials.findIndex(cred => cred.id === id);
+      const updatedCredentials = prev.credentials.filter(cred => cred.id !== id);
+      
+      // Clear errors for the removed credential
+      if (credentialIndex !== -1) {
+        const errorsToRemove: Record<string, string> = {};
+        ['type', 'name', 'level', 'pictureUrl'].forEach(field => {
+          const errorKey = `credential_${credentialIndex}_${field}`;
+          if (errors[errorKey]) {
+            errorsToRemove[errorKey] = "";
+          }
+        });
+        
+        if (Object.keys(errorsToRemove).length > 0) {
+          setErrors(prevErrors => ({ ...prevErrors, ...errorsToRemove }));
+        }
+      }
+      
+      return {
+        ...prev,
+        credentials: updatedCredentials
+      };
+    });
   };
 
   const handleSave = async () => {
@@ -238,10 +324,15 @@ export default function AddEditTeacherPage() {
         }))
       };
       
-      await createTeacher(teacherData);
+      const createdTeacher = await createTeacher(teacherData);
       
-      // Navigate back to teachers list
-      navigate("admin/teachers");
+      // Navigate to teacher detail page using accountId from response
+      if (createdTeacher.accountId) {
+        navigate(`/admin/teachers/${createdTeacher.accountId}`);
+      } else {
+        // Fallback to teachers list if no accountId
+        navigate("/admin/teachers");
+      }
     } catch (error) {
       console.error("Error saving teacher:", error);
       // You can add more specific error handling here
@@ -492,7 +583,7 @@ export default function AddEditTeacherPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Input
                   label="Phone Number *"
-                  placeholder="0912345678"
+                  placeholder="0123456789"
                   value={formData.phoneNumber}
                   onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                   error={errors.phoneNumber}
@@ -519,6 +610,7 @@ export default function AddEditTeacherPage() {
                   placeholder="Enter home address"
                   value={formData.address || ""}
                   onChange={(e) => handleInputChange('address', e.target.value)}
+                  error={errors.address}
                 />
               </div>
             </div>
@@ -628,25 +720,28 @@ export default function AddEditTeacherPage() {
                         )}
                       </div>
                       <Input
-                        label="Name"
+                        label="Name *"
                         placeholder="e.g., IELTS Certificate"
                         value={cred.name || ""}
                         onChange={(e) => updateCredential(cred.id, 'name', e.target.value)}
+                        error={errors[`credential_${index}_name`]}
                       />
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Input
-                        label="Level"
+                        label="Level *"
                         placeholder="e.g., Advanced"
                         value={cred.level || ""}
                         onChange={(e) => updateCredential(cred.id, 'level', e.target.value)}
+                        error={errors[`credential_${index}_level`]}
                       />
                       <Input
                         label="Picture URL"
                         placeholder="e.g., https://example.com/certificate.jpg"
                         value={cred.pictureUrl || ""}
                         onChange={(e) => updateCredential(cred.id, 'pictureUrl', e.target.value)}
+                        error={errors[`credential_${index}_pictureUrl`]}
                       />
                     </div>
                   </div>

@@ -166,6 +166,8 @@ export default function EditStudentPage() {
     // Required fields validation
     if (!formData.fullName.trim()) {
       newErrors.fullName = "Full name is required";
+    } else if (formData.fullName.trim().length < 2) {
+      newErrors.fullName = "Full name must be at least 2 characters";
     }
 
     if (!formData.email.trim()) {
@@ -177,25 +179,58 @@ export default function EditStudentPage() {
       }
     }
 
-   // Validate phone number format if provided
-    if (formData.phoneNumber && formData.phoneNumber.trim()) {
-      const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+    // Required phone number validation
+    if (!formData.phoneNumber.trim()) {
+      newErrors.phoneNumber = "Phone number is required";
+    } else {
+      const phoneRegex = /^0\d{9}$/;
       if (!phoneRegex.test(formData.phoneNumber.replace(/\s/g, ''))) {
-        newErrors.phoneNumber = "Please enter a valid phone number";
+        newErrors.phoneNumber = "Phone number must start with 0 and have 10 digits";
       }
+    }
+
+    if (!formData.dateOfBirth) {
+      newErrors.dateOfBirth = "Date of birth is required";
+    } else {
+      const birthDate = new Date(formData.dateOfBirth);
+      const today = new Date();
+      if (birthDate > today) {
+        newErrors.dateOfBirth = "Date of birth cannot be in the future";
+      }
+    }
+
+    // Required CID validation
+    if (!formData.cid.trim()) {
+      newErrors.cid = "CID is required";
+    } else {
+      const cidRegex = /^[0-9]{9,12}$/;
+      if (!cidRegex.test(formData.cid.trim())) {
+        newErrors.cid = "CID must be 9-12 digits";
+      }
+    }
+
+    // Validate address if provided
+    if (formData.address && formData.address.trim().length < 5) {
+      newErrors.address = "Address must be at least 5 characters";
     }
 
     // Validate guardian phone format if provided
     if (formData.guardianPhone && formData.guardianPhone.trim()) {
-      const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+      const phoneRegex = /^0\d{9}$/;
       if (!phoneRegex.test(formData.guardianPhone.replace(/\s/g, ''))) {
-        newErrors.guardianPhone = "Please enter a valid guardian phone number";
+        newErrors.guardianPhone = "Guardian phone must start with 0 and have 10 digits";
       }
+    }
+
+    // Validate academic note if provided
+    if (formData.academicNote && formData.academicNote.trim().length < 10) {
+      newErrors.academicNote = "Academic note must be at least 10 characters";
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
 
   const performUpdate = async () => {
     if (!validateForm() || !id) {
@@ -447,7 +482,7 @@ export default function EditStudentPage() {
               </div>
               <div>
                 <Input
-                  label="Date of Birth"
+                  label="Date of Birth *"
                   type="date"
                   value={formData.dateOfBirth}
                   onChange={(e) => handleInputChange("dateOfBirth", e.target.value)}
@@ -456,7 +491,7 @@ export default function EditStudentPage() {
               </div>
               <div>
                 <Input
-                  label="Citizen ID (CID)"
+                  label="Citizen ID (CID) *"
                   placeholder="Enter citizen ID"
                   value={formData.cid}
                   onChange={(e) => handleInputChange("cid", e.target.value)}
@@ -490,8 +525,8 @@ export default function EditStudentPage() {
               </div> 
               <div>
                 <Input
-                  label="Phone Number"
-                  placeholder="Enter phone number"
+                  label="Phone Number *"
+                  placeholder="0123456789"
                   value={formData.phoneNumber}
                   onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
                   error={errors.phoneNumber}
@@ -525,7 +560,7 @@ export default function EditStudentPage() {
               <div>
                 <Input
                   label="Guardian Phone"
-                  placeholder="Enter guardian's phone"
+                  placeholder="0123456789"
                   value={formData.guardianPhone || ""}
                   onChange={(e) => handleInputChange("guardianPhone", e.target.value)}
                   error={errors.guardianPhone}

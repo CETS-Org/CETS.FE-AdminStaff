@@ -5,8 +5,8 @@ import Table, { type TableColumn } from "@/components/ui/Table";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import { 
-  Eye, Edit, UserX, Plus, User, Download, KeyRound,
-  GraduationCap, Award, Search, Filter, X, 
+  Eye, Edit, UserX, Plus, User, Download,
+  GraduationCap, Search, Filter, X, 
   Loader2, RefreshCw, CheckSquare, Square
 } from "lucide-react";
 import { getTeachers, filterTeacher } from "@/api/teacher.api";
@@ -16,11 +16,7 @@ import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
 import { setIsDelete, setIsActive } from "@/api/account.api";
 
 
-type Props = {
-  onResetPassword?: (teacher: Teacher) => void;
-};
-
-export default function TeacherList({ onResetPassword }: Props) {
+export default function TeacherList() {
   const navigate = useNavigate();
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; teacher: Teacher | null; action?: 'ban' | 'unban' }>({ open: false, teacher: null });
   const [selectedTeachers, setSelectedTeachers] = useState<string[]>([]);
@@ -271,16 +267,7 @@ export default function TeacherList({ onResetPassword }: Props) {
           >
             <Edit className="w-4 h-4" />
           </Button>
-          {onResetPassword && (
-            <Button
-              size="sm"
-              onClick={() => onResetPassword(row)}
-              className="!p-2 !bg-orange-50 !text-orange-600 !border !border-orange-200 hover:!bg-orange-100 hover:!text-orange-700 hover:!border-orange-300 !transition-colors !rounded-md"
-              title="Reset Password"
-            >
-              <KeyRound className="w-4 h-4" />
-            </Button>
-          )}
+        
           {row.statusName === 'Blocked' || row.statusName === 'Locked' ? (
             <Button
               size="sm"

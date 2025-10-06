@@ -112,6 +112,9 @@ export default function TeacherDetailPage() {
         const teacherData = await getTeacherById(id);
         console.log("Teacher data received:", teacherData);
         setTeacher(teacherData);
+        
+        // Load credentials after teacher data is loaded
+        void loadCredentials(id);
       } catch (err) {
         console.error("Error fetching teacher:", err);
         console.error("Error details:", {
@@ -588,7 +591,7 @@ export default function TeacherDetailPage() {
                   </div>
                   
                   <div className="md:col-span-2 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200">
-                    <label className="block text-sm font-medium text-gray-900 mb-2 flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-2">
                       <MessageSquare className="w-4 h-4" />
                       Bio
                     </label>
@@ -634,9 +637,6 @@ export default function TeacherDetailPage() {
                                 Certificate
                               </span>
                             </div>
-                            <p className="text-sm text-gray-500 truncate">
-                              Created: {formatDate(credential.createdAt)}
-                            </p>
                           </div>
                           {credential.pictureUrl && (
                             <div className="w-12 h-12 rounded-lg overflow-hidden border border-blue-200 flex-shrink-0 ml-2">
@@ -691,9 +691,6 @@ export default function TeacherDetailPage() {
                                 Qualification
                               </span>
                             </div>
-                            <p className="text-sm text-gray-500 truncate">
-                              Created: {formatDate(credential.createdAt)}
-                            </p>
                           </div>
                           {credential.pictureUrl && (
                             <div className="w-12 h-12 rounded-lg overflow-hidden border border-green-200 flex-shrink-0 ml-2">

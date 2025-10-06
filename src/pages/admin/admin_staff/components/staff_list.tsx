@@ -98,6 +98,7 @@ export default function StaffList() {
     fetchStaffs();
   }, []);
 
+
   // Reset page when filters change
   useEffect(() => {
     // Reset any pagination if needed

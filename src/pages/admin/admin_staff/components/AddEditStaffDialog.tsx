@@ -50,11 +50,11 @@ export default function AddEditStaffDialog({
   const isFormValid = (() => {
     const hasFullName = formData.fullName.trim().length > 0;
     const hasEmail = formData.email.trim().length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email);
-    const validPhone = !formData.phoneNumber || formData.phoneNumber.trim() === "" || /^[+]?\d{7,15}$/.test(formData.phoneNumber.replace(/\s/g, ''));
+    const hasPhone = formData.phoneNumber.trim().length > 0 && /^0\d{9}$/.test(formData.phoneNumber.replace(/\s/g, ''));
     const hasDob = !!formData.dateOfBirth && new Date(formData.dateOfBirth) <= new Date();
-    const validCid = /^\d{9,12}$/.test(formData.cid.trim());
+    const validCid = formData.cid.trim().length > 0 && /^\d{9,12}$/.test(formData.cid.trim());
     const roleOk = mode === "edit" ? true : !!formData.roleID;
-    return hasFullName && hasEmail && validPhone && hasDob && validCid && roleOk;
+    return hasFullName && hasEmail && hasPhone && hasDob && validCid && roleOk;
   })();
 
   // Fetch roles when dialog opens
@@ -125,11 +125,13 @@ export default function AddEditStaffDialog({
       newErrors.email = "Please enter a valid email";
     }
 
-    // Optional phone validation if provided
-    if (formData.phoneNumber && formData.phoneNumber.trim()) {
-      const phoneRegex = /^[+]?\d{7,15}$/;
+    // Required phone validation
+    if (!formData.phoneNumber.trim()) {
+      newErrors.phoneNumber = "Phone number is required";
+    } else {
+      const phoneRegex = /^0\d{9}$/;
       if (!phoneRegex.test(formData.phoneNumber.replace(/\s/g, ''))) {
-        newErrors.phoneNumber = "Please enter a valid phone number";
+        newErrors.phoneNumber = "Phone number must start with 0 and have 10 digits";
       }
     }
 
@@ -207,6 +209,8 @@ export default function AddEditStaffDialog({
           // For edit mode, use the updateStaffProfile API
           const updateData: UpdateStaffProfile = {
             fullName: formData.fullName.trim() || null,
+            email: formData.email.trim() || null,
+            phoneNumber: formData.phoneNumber.trim() || null,
             dateOfBirth: formData.dateOfBirth || null,
             address: formData.address.trim() || null,
             cid: formData.cid.trim() || null,
@@ -217,7 +221,25 @@ export default function AddEditStaffDialog({
           
           if (onUpdateSuccess) onUpdateSuccess();
           onOpenChange(false);
-          navigate(`/admin/staffs/${staff.accountId}`, { state: { updateStatus: "success" } });
+          
+          // Create preloaded staff data to avoid refetching
+          const preloadedStaff = {
+            ...staff,
+            fullName: updateData.fullName ?? staff.fullName,
+            email: updateData.email ?? staff.email,
+            phoneNumber: updateData.phoneNumber ?? staff.phoneNumber,
+            dateOfBirth: updateData.dateOfBirth ?? staff.dateOfBirth,
+            address: updateData.address ?? staff.address,
+            cid: updateData.cid ?? staff.cid,
+            avatarUrl: updateData.avatarUrl ?? staff.avatarUrl,
+          };
+          
+          navigate(`/admin/staffs/${staff.accountId}`, { 
+            state: { 
+              updateStatus: "success", 
+              preloadedStaff 
+            } 
+          });
         } else {
           // For add mode, use the addStaff API
           const staffData: AddStaffProfile = {
@@ -237,7 +259,27 @@ export default function AddEditStaffDialog({
           onOpenChange(false);
           const newId = (created as any)?.accountId || (created as any)?.id || (created as any)?.accountID;
           if (newId) {
-            navigate(`/admin/staffs/${newId}`, { state: { updateStatus: "success" } });
+            // Create preloaded staff data for new staff
+            const preloadedStaff = {
+              accountId: newId,
+              fullName: staffData.fullName,
+              email: staffData.email,
+              phoneNumber: staffData.phoneNumber,
+              dateOfBirth: staffData.dateOfBirth,
+              address: staffData.address,
+              cid: staffData.cid,
+              avatarUrl: staffData.avatarUrl,
+              roleNames: [], // Will be populated by API
+              statusName: "Active", // Default status
+              createdAt: new Date().toISOString(),
+            };
+            
+            navigate(`/admin/staffs/${newId}`, { 
+              state: { 
+                updateStatus: "success", 
+                preloadedStaff 
+              } 
+            });
           }
         }
       } catch (error) {
@@ -389,25 +431,23 @@ export default function AddEditStaffDialog({
                   }}
                   error={errors.email}
                   placeholder="Enter email address"
-                  disabled={mode === "edit"}
                 />
                 
                 <Input
-                  label="Phone Number"
+                  label="Phone Number *"
                   value={formData.phoneNumber}
                   onChange={(e) => {
                     const value = e.target.value;
                     setFormData(prev => ({ ...prev, phoneNumber: value }));
                     setErrors(prev => ({
                       ...prev,
-                      phoneNumber: !value || value.trim() === "" || /^[+]?\d{7,15}$/.test(value.replace(/\s/g, ''))
-                        ? ""
-                        : "Please enter a valid phone number",
+                      phoneNumber: !value.trim()
+                        ? "Phone number is required"
+                        : (/^0\d{9}$/.test(value.replace(/\s/g, '')) ? "" : "Phone number must start with 0 and have 10 digits"),
                     }));
                   }}
                   error={errors.phoneNumber}
-                  placeholder="Enter phone number"    
-                  disabled={mode === "edit"}
+                  placeholder="0123456789"    
                 />
                 
                 <Input
@@ -483,7 +523,7 @@ export default function AddEditStaffDialog({
                   />
                 )}
                 
-                <Select
+                {/* <Select
                   label="Status"
                   value={formData.statusName}
                   onChange={(e) => setFormData(prev => ({ ...prev, statusName: e.target.value }))}
@@ -491,7 +531,7 @@ export default function AddEditStaffDialog({
                     { label: "Active", value: "Active" },
                     { label: "Inactive", value: "Inactive" }
                   ]}
-                />
+                /> */}
               </div>
             </div>
             )}
