@@ -187,10 +187,14 @@ export default function EditTeacherPage() {
       if (!cred.credentialTypeId) {
         newErrors[`credential_${index}_type`] = "Credential type is required";
       }
-      if (cred.name && cred.name.trim().length < 2) {
+      if (!cred.name || !cred.name.trim()) {
+        newErrors[`credential_${index}_name`] = "Credential name is required";
+      } else if (cred.name.trim().length < 2) {
         newErrors[`credential_${index}_name`] = "Credential name must be at least 2 characters";
       }
-      if (cred.level && cred.level.trim().length < 2) {
+      if (!cred.level || !cred.level.trim()) {
+        newErrors[`credential_${index}_level`] = "Credential level is required";
+      } else if (cred.level.trim().length < 2) {
         newErrors[`credential_${index}_level`] = "Credential level must be at least 2 characters";
       }
       if (cred.pictureUrl && cred.pictureUrl.trim()) {
@@ -825,28 +829,24 @@ export default function EditTeacherPage() {
                       </div>
                       <div>
                         <Input
-                          label="Name"
+                          label="Name *"
                           placeholder="e.g., IELTS Certificate"
                           value={cred.name || ""}
                           onChange={(e) => updateCredential(cred.id, 'name', e.target.value)}
+                          error={errors[`credential_${index}_name`]}
                         />
-                        {errors[`credential_${index}_name`] && (
-                          <p className="text-sm text-red-600 mt-1">{errors[`credential_${index}_name`]}</p>
-                        )}
                       </div>
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Input
-                          label="Level"
+                          label="Level *"
                           placeholder="e.g., Advanced"
                           value={cred.level || ""}
                           onChange={(e) => updateCredential(cred.id, 'level', e.target.value)}
+                          error={errors[`credential_${index}_level`]}
                         />
-                        {errors[`credential_${index}_level`] && (
-                          <p className="text-sm text-red-600 mt-1">{errors[`credential_${index}_level`]}</p>
-                        )}
                       </div>
                       <div>
                         <Input
@@ -854,10 +854,8 @@ export default function EditTeacherPage() {
                           placeholder="e.g., https://example.com/certificate.jpg"
                           value={cred.pictureUrl || ""}
                           onChange={(e) => updateCredential(cred.id, 'pictureUrl', e.target.value)}
+                          error={errors[`credential_${index}_pictureUrl`]}
                         />
-                        {errors[`credential_${index}_pictureUrl`] && (
-                          <p className="text-sm text-red-600 mt-1">{errors[`credential_${index}_pictureUrl`]}</p>
-                        )}
                       </div>
                     </div>
                   </div>
