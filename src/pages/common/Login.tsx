@@ -8,7 +8,7 @@ import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
 import AccountVerificationDialog from "../../components/ui/AccountVerificationDialog";
 import { Eye, EyeOff, CheckCircle, AlertCircle, BookOpen, Shield, Calculator } from "lucide-react";
-import { api } from "@/lib/config";
+import { api } from "@/api";
 import { resendVerificationEmail } from "@/api/account.api";
 import "../../styles/login-animations.css";
 import GenericNavbar from "../../shared/GenericNavbar";

@@ -1,6 +1,6 @@
  // src/components/schedule/StaffSessionCard.tsx
 import { Edit, Trash2 } from "lucide-react";
-import { getStaffSessionStyles } from "@/components/schedule";
+import { getStaffSessionStyles, getAttendanceStyles } from "@/components/schedule";
 import type { StaffSession } from "@/components/schedule";
 
 type ScheduleDisplayMode = 'full' | 'classOnly' | 'roomOnly';
@@ -24,7 +24,10 @@ export default function StaffSessionCard({
   onDelete,
   displayMode = 'full',
 }: StaffSessionCardProps) {
-  const styles = getStaffSessionStyles(session.type);
+  // Prefer attendance-based styling if status is present; fallback to type-based
+  const styles = session.attendanceStatus
+    ? getAttendanceStyles(session.attendanceStatus)
+    : getStaffSessionStyles(session.type);
 
   return (
     <div className="group relative">
