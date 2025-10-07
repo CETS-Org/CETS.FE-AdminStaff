@@ -29,6 +29,7 @@ import ComplaintResponsePage from "@/shared/ComplaintResponsePage";
 import EditStudentPage from "./staff_students/EditStudentPage";
 import AddStudentPage from "./staff_students/AddStudentPage";
 import StaffPromotionsPage from "./staff_promotions";
+import StaffTimetablePage from "./staff_timetable";
 import StaffClassesPage from "./staff_classes";
 
 export default function StaffHome() {
@@ -115,6 +116,7 @@ export default function StaffHome() {
             <Route path="students/edit/:id" element={<EditStudentPage />} />
             <Route path="students/add" element={<AddStudentPage />} /> */}            
             <Route path="schedule" element={<StaffSchedulePage />} />
+            <Route path="timetable" element={<StaffTimetablePage />} />
             <Route path="courses" element={<StaffCoursesPage />} />
             <Route path="courses/add" element={<AddEditCoursePage />} />
             <Route path="courses/edit/:id" element={<AddEditCoursePage />} />
