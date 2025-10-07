@@ -12,9 +12,9 @@ import StaffCoursesPage from "./staff_courses";
 import TeacherManagement from "./staff_teachers";
 import StaffAnalytics from "./staff_analys";
 import CourseDetailPage from "./staff_courses/CourseDetailPage";
-import ClassDetailPage from "./staff_courses/ClassDetailPage";
 import AddEditCoursePage from "./staff_courses/AddEditCoursePage";
-import AddEditClassPage from "./staff_courses/AddEditClassPage";
+import AddEditClassPage from "./staff_classes/AddEditClassPage";
+import ClassDetailPage from "./staff_classes/ClassDetailPage";
 import AssignTeacherPage from "./staff_assign_teacher";
 import StaffRequestPage from "./staff_request";
 import StaffEventsPage from "./staff_events";
@@ -29,6 +29,7 @@ import ComplaintResponsePage from "@/shared/ComplaintResponsePage";
 import EditStudentPage from "./staff_students/EditStudentPage";
 import AddStudentPage from "./staff_students/AddStudentPage";
 import StaffPromotionsPage from "./staff_promotions";
+import StaffClassesPage from "./staff_classes";
 
 export default function StaffHome() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -121,6 +122,9 @@ export default function StaffHome() {
             <Route path="courses/:courseId/classes/add" element={<AddEditClassPage />} />
             <Route path="courses/:courseId/classes/:classId" element={<ClassDetailPage />} />
             <Route path="courses/:courseId/classes/:classId/edit" element={<AddEditClassPage />} />
+            <Route path="classes" element={<StaffClassesPage />} />
+            <Route path="classes/:id" element={<ClassDetailPage />} />
+            <Route path="classes/:id/edit" element={<AddEditClassPage />} />
             <Route path="assign-teacher" element={<AssignTeacherPage />} />
             <Route path="promotions" element={<StaffPromotionsPage />} />
             <Route path="events" element={<StaffEventsPage />} />

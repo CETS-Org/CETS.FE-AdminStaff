@@ -64,8 +64,13 @@ const mockCourses = [
 ];
 
 export default function AddEditClassPage() {
-  const { courseId, classId } = useParams<{ courseId: string; classId: string }>();
+  const params = useParams<{ courseId?: string; classId?: string; id?: string }>();
   const navigate = useNavigate();
+  
+  // Handle both route patterns: /staff/classes/:id/edit and /staff/courses/:courseId/classes/:classId/edit
+  const classId = params.id || params.classId;
+  const courseId = params.courseId;
+  const isStandaloneRoute = !courseId; // True if accessed from /staff/classes
   const isEdit = !!classId;
   
   const [formData, setFormData] = useState<Class>({
@@ -198,8 +203,12 @@ export default function AddEditClassPage() {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Navigate back to course detail page
-      navigate(`/staff/courses/${courseId}`);
+      // Navigate back to appropriate page
+      if (isStandaloneRoute) {
+        navigate(`/staff/classes`);
+      } else {
+        navigate(`/staff/courses/${courseId}`);
+      }
     } catch (error) {
       console.error("Error saving class:", error);
     } finally {
@@ -208,18 +217,23 @@ export default function AddEditClassPage() {
   };
 
   const handleCancel = () => {
-    if (courseId) {
-      navigate(`/staff/courses`);
+    if (isStandaloneRoute) {
+      navigate('/staff/classes');
     } else {
-      navigate('/staff/courses');
+      navigate(`/staff/courses`);
     }
   };
 
-  const breadcrumbItems = [
-    { label: "Courses", to: "/staff/courses" },
-    { label: formData.courseName || "Course", to: `/staff/courses/${courseId}` },
-    { label: isEdit ? "Edit Class" : "Add Class" }
-  ];
+  const breadcrumbItems = isStandaloneRoute 
+    ? [
+        { label: "Classes", to: "/staff/classes" },
+        { label: isEdit ? "Edit Class" : "Add Class" }
+      ]
+    : [
+        { label: "Courses", to: "/staff/courses" },
+        { label: formData.courseName || "Course", to: `/staff/courses/${courseId}` },
+        { label: isEdit ? "Edit Class" : "Add Class" }
+      ];
 
   if (isLoading) {
     return (
@@ -246,7 +260,7 @@ export default function AddEditClassPage() {
               controls={[
                 {
                   type: 'button',
-                  label: 'Back to Courses',
+                  label: 'Back to Classes',
                   variant: 'secondary',
                   icon: <ArrowLeft className="w-4 h-4" />,
                   onClick: handleCancel

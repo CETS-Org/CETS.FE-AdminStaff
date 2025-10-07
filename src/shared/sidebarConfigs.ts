@@ -2,7 +2,7 @@
 import {
   BarChart3, BookOpenText, Users, GraduationCap, CalendarDays,
   UserPlus, Mail, MessageSquare, FileText, UserCheck, Percent,
-  Receipt, CreditCard, TrendingUp, PieChart
+  Receipt, CreditCard, TrendingUp, PieChart, School
 } from "lucide-react";
 import type { SidebarConfig } from "./GenericSidebar";
 
@@ -13,6 +13,7 @@ export const academicStaffSidebarConfig: SidebarConfig = {
   items: [
     { id: "analytics", label: "Analytics", icon: BarChart3, path: "/staff/analytics" },
     { id: "courses", label: "Courses", icon: BookOpenText, path: "/staff/courses" },
+    { id: "classes", label: "Classes", icon: School, path: "/staff/classes" },
     { id: "schedule", label: "Schedule", icon: CalendarDays, path: "/staff/schedule" },
     { id: "assign-teacher", label: "Assign Teacher", icon: UserPlus, path: "/staff/assign-teacher" },
     { id: "complaints", label: "Complaints", icon: MessageSquare, path: "/staff/complaints" },

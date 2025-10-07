@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Trash2, Users, Clock, Calendar, MapPin, User, BookOpen, Award } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import DeleteClassDialog from './components/DeleteClassDialog';
+import DeleteClassDialog from '../staff_classes/components/DeleteClassDialog';
 
 // Types
 interface Class {
@@ -87,12 +87,17 @@ const mockStudents: Student[] = [
 ];
 
 export default function ClassDetailPage() {
-  const { courseId, classId } = useParams<{ courseId: string; classId: string }>();
+  const params = useParams<{ courseId?: string; classId?: string; id?: string }>();
   const navigate = useNavigate();
   const [classData] = useState<Class>(mockClass);
   const [students] = useState<Student[]>(mockStudents);
   const [loading] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
+
+  // Handle both route patterns: /staff/classes/:id and /staff/courses/:courseId/classes/:classId
+  const classId = params.id || params.classId;
+  const courseId = params.courseId;
+  const isStandaloneRoute = !courseId; // True if accessed from /staff/classes
 
   useEffect(() => {
     // Fetch class data here
@@ -100,7 +105,11 @@ export default function ClassDetailPage() {
   }, [courseId, classId]);
 
   const handleEdit = () => {
-    navigate(`/staff/courses/${courseId}/classes/${classId}/edit`);
+    if (isStandaloneRoute) {
+      navigate(`/staff/classes/${classId}/edit`);
+    } else {
+      navigate(`/staff/courses/${courseId}/classes/${classId}/edit`);
+    }
   };
 
   const handleDelete = () => {
@@ -109,12 +118,20 @@ export default function ClassDetailPage() {
 
   const handleConfirmDelete = () => {
     console.log("Delete class:", classId);
-    navigate(`/staff/courses/${courseId}`);
+    if (isStandaloneRoute) {
+      navigate(`/staff/classes`);
+    } else {
+      navigate(`/staff/courses/${courseId}`);
+    }
     setDeleteDialog(false);
   };
 
   const handleBackToCourse = () => {
-    navigate(`/staff/courses`);
+    if (isStandaloneRoute) {
+      navigate(`/staff/classes`);
+    } else {
+      navigate(`/staff/courses`);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -159,26 +176,39 @@ export default function ClassDetailPage() {
     <div className="min-h-screen bg-gray-50/50 pt-16">
       <div className="p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4">
             <Button
-              variant="secondary"
+              variant="primary"
               onClick={handleBackToCourse}
               iconLeft={<ArrowLeft className="w-4 h-4" />}
+              className="!bg-blue-500 hover:!bg-blue-600"
             >
-              Back to Course
+              {isStandaloneRoute ? "Back to Classes" : "Back to Course"}
             </Button>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{classData.name}</h1>
-              <p className="text-gray-600">{classData.courseName}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <BookOpen className="w-4 h-4 text-gray-500" />
+                <p className="text-gray-600">Course: {classData.courseName}</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate(`/staff/courses/${classData.courseId}`)}
+                  className="!text-blue-600 hover:!text-blue-700 !p-1 !h-auto underline"
+                >
+                  View Course
+                </Button>
+              </div>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Button
-              variant="secondary"
+              variant="primary"
               onClick={handleEdit}
               iconLeft={<Edit className="w-4 h-4" />}
+              className="!bg-blue-500 hover:!bg-blue-600"
             >
               Edit Class
             </Button>
@@ -186,6 +216,7 @@ export default function ClassDetailPage() {
               variant="danger"
               onClick={handleDelete}
               iconLeft={<Trash2 className="w-4 h-4" />}
+              className="!bg-red-500 hover:!bg-red-600 !text-white"
             >
               Delete Class
             </Button>
@@ -196,101 +227,103 @@ export default function ClassDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <Card className="p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <BookOpen className="w-6 h-6 text-blue-600" />
-                <h2 className="text-xl font-semibold">Class Information</h2>
-                <span className={`ml-auto px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(classData.status)}`}>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <BookOpen className="w-6 h-6 text-blue-600" />
+                  <h2 className="text-xl font-semibold">Class Information</h2>
+                </div>
+                <span className={`px-3 py-1 rounded-md text-sm font-medium ${getStatusColor(classData.status)}`}>
                   {classData.status.charAt(0).toUpperCase() + classData.status.slice(1)}
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <User className="w-5 h-5 text-gray-500" />
-                    <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                <div className="space-y-5">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <User className="w-5 h-5 text-gray-400" />
                       <p className="text-sm text-gray-500">Teacher</p>
-                      <p className="font-medium">{classData.teacher}</p>
                     </div>
+                    <p className="font-semibold text-gray-900 ml-7">{classData.teacher}</p>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <Clock className="w-5 h-5 text-gray-500" />
-                    <div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Clock className="w-5 h-5 text-gray-400" />
                       <p className="text-sm text-gray-500">Schedule</p>
-                      <p className="font-medium">{classData.schedule}</p>
                     </div>
+                    <p className="font-semibold text-gray-900 ml-7">{classData.schedule}</p>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <MapPin className="w-5 h-5 text-gray-500" />
-                    <div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <MapPin className="w-5 h-5 text-gray-400" />
                       <p className="text-sm text-gray-500">Room</p>
-                      <p className="font-medium">{classData.room}</p>
                     </div>
+                    <p className="font-semibold text-gray-900 ml-7">{classData.room}</p>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Users className="w-5 h-5 text-gray-500" />
-                    <div>
+                <div className="space-y-5">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Users className="w-5 h-5 text-gray-400" />
                       <p className="text-sm text-gray-500">Students</p>
-                      <p className="font-medium">{classData.currentStudents}/{classData.maxStudents}</p>
                     </div>
+                    <p className="font-semibold text-gray-900 ml-7">{classData.currentStudents}/{classData.maxStudents}</p>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <Calendar className="w-5 h-5 text-gray-500" />
-                    <div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Calendar className="w-5 h-5 text-gray-400" />
                       <p className="text-sm text-gray-500">Duration</p>
-                      <p className="font-medium">{classData.startDate} - {classData.endDate}</p>
                     </div>
+                    <p className="font-semibold text-gray-900 ml-7">{classData.startDate} - {classData.endDate}</p>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <Award className="w-5 h-5 text-gray-500" />
-                    <div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Award className="w-5 h-5 text-gray-400" />
                       <p className="text-sm text-gray-500">Progress</p>
-                      <p className="font-medium">{classData.completedSessions}/{classData.sessions} sessions</p>
                     </div>
+                    <p className="font-semibold text-gray-900 ml-7">{classData.completedSessions}/{classData.sessions} sessions</p>
                   </div>
                 </div>
               </div>
 
               {classData.description && (
-                <div className="mt-6 pt-6 border-t">
-                  <h3 className="font-medium mb-2">Description</h3>
-                  <p className="text-gray-600">{classData.description}</p>
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <h3 className="font-semibold mb-3 text-gray-900">Description</h3>
+                  <p className="text-gray-600 leading-relaxed">{classData.description}</p>
                 </div>
               )}
             </Card>
           </div>
 
-          {/* Statistics */}
+          {/* Course & Statistics */}
           <div className="space-y-4">
-            <Card className="p-4">
+            <Card className="p-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600">{classData.currentStudents}</div>
-                <div className="text-sm text-gray-500">Enrolled Students</div>
+                <div className="text-4xl font-bold text-blue-600 mb-2">{classData.currentStudents}</div>
+                <div className="text-sm text-gray-600 font-medium">Enrolled Students</div>
               </div>
             </Card>
 
-            <Card className="p-4">
+            <Card className="p-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-green-600">
+                <div className="text-4xl font-bold text-green-600 mb-2">
                   {Math.round((classData.completedSessions / classData.sessions) * 100)}%
                 </div>
-                <div className="text-sm text-gray-500">Course Progress</div>
+                <div className="text-sm text-gray-600 font-medium">Course Progress</div>
               </div>
             </Card>
 
-            <Card className="p-4">
+            <Card className="p-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600">
+                <div className="text-4xl font-bold text-purple-600 mb-2">
                   {Math.round(students.reduce((acc, s) => acc + s.attendance, 0) / students.length)}%
                 </div>
-                <div className="text-sm text-gray-500">Average Attendance</div>
+                <div className="text-sm text-gray-600 font-medium">Average Attendance</div>
               </div>
             </Card>
           </div>

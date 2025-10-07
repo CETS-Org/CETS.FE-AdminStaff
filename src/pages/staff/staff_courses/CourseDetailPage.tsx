@@ -20,7 +20,7 @@ interface Student {
   enrolledCourses: string[];
 }
 import { Calendar,dateFnsLocalizer } from "react-big-calendar";
-import DeleteClassDialog from "./components/DeleteClassDialog";
+import DeleteClassDialog from "../staff_classes/components/DeleteClassDialog";
 import DeleteConfirmDialog from "./components/DeleteConfirmDialog";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { enUS } from "date-fns/locale";
@@ -427,12 +427,13 @@ const studentColumns:  TableColumn<Student>[] = [
         <div className="mb-6">
           <Breadcrumbs items={breadcrumbItems}/>
           
-          <div className="flex items-center justify-between mt-4">
+          <div className="flex items-center justify-between flex-wrap gap-4 mt-4">
             <div className="flex items-center gap-4">
               <Button
-                variant="secondary"
+                variant="primary"
                 onClick={() => navigate('/staff/courses')}
                 iconLeft={<ArrowLeft className="w-4 h-4" />}
+                className="!bg-blue-500 hover:!bg-blue-600"
               >
                 Back to Courses
               </Button>
@@ -442,11 +443,12 @@ const studentColumns:  TableColumn<Student>[] = [
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Button
-                variant="secondary"
+                variant="primary"
                 onClick={handleEdit}
                 iconLeft={<Pencil className="w-4 h-4" />}
+                className="!bg-blue-500 hover:!bg-blue-600"
               >
                 Edit Course
               </Button>
@@ -454,6 +456,7 @@ const studentColumns:  TableColumn<Student>[] = [
                 variant="danger"
                 onClick={handleDelete}
                 iconLeft={<Trash2 className="w-4 h-4" />}
+                className="!bg-red-500 hover:!bg-red-600 !text-white"
               >
                 Delete Course
               </Button>
@@ -468,10 +471,12 @@ const studentColumns:  TableColumn<Student>[] = [
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <Card className="p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <BookOpen className="w-6 h-6 text-blue-600" />
-                <h2 className="text-xl font-semibold">Course Information</h2>
-                <span className={`ml-auto px-2 py-1 rounded-full text-xs font-medium border ${
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <BookOpen className="w-6 h-6 text-blue-600" />
+                  <h2 className="text-xl font-semibold">Course Information</h2>
+                </div>
+                <span className={`px-3 py-1 rounded-md text-sm font-medium ${
                   course.status === 'active' 
                     ? 'bg-green-100 text-green-700 border-green-200' 
                     : 'bg-gray-100 text-gray-700 border-gray-200'
@@ -489,97 +494,97 @@ const studentColumns:  TableColumn<Student>[] = [
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <BookOpen className="w-5 h-5 text-gray-500" />
-                    <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                <div className="space-y-5">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <BookOpen className="w-5 h-5 text-gray-400" />
                       <p className="text-sm text-gray-500">Course Name</p>
-                      <p className="font-medium">{course.name}</p>
                     </div>
+                    <p className="font-semibold text-gray-900 ml-7">{course.name}</p>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <User className="w-5 h-5 text-gray-500" />
-                    <div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <User className="w-5 h-5 text-gray-400" />
                       <p className="text-sm text-gray-500">Instructor</p>
-                      <p className="font-medium">{course.teacher}</p>
                     </div>
+                    <p className="font-semibold text-gray-900 ml-7">{course.teacher}</p>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <Clock className="w-5 h-5 text-gray-500" />
-                    <div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Clock className="w-5 h-5 text-gray-400" />
                       <p className="text-sm text-gray-500">Duration</p>
-                      <p className="font-medium">{course.duration}</p>
                     </div>
+                    <p className="font-semibold text-gray-900 ml-7">{course.duration}</p>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Award className="w-5 h-5 text-gray-500" />
-                    <div>
+                <div className="space-y-5">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Award className="w-5 h-5 text-gray-400" />
                       <p className="text-sm text-gray-500">Level</p>
-                      <p className="font-medium">{course.level}</p>
                     </div>
+                    <p className="font-semibold text-gray-900 ml-7">{course.level}</p>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <Users className="w-5 h-5 text-gray-500" />
-                    <div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Users className="w-5 h-5 text-gray-400" />
                       <p className="text-sm text-gray-500">Students</p>
-                      <p className="font-medium">
-                        {course.currentStudents || 0}/{course.maxStudents || 0}
-                      </p>
                     </div>
+                    <p className="font-semibold text-gray-900 ml-7">
+                      {course.currentStudents || 0}/{course.maxStudents || 0}
+                    </p>
                   </div>
 
                   {course.price && (
-                    <div className="flex items-center gap-3">
-                      <Award className="w-5 h-5 text-gray-500" />
-                      <div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Award className="w-5 h-5 text-gray-400" />
                         <p className="text-sm text-gray-500">Price</p>
-                        <p className="font-medium">{course.price.toLocaleString()} VND</p>
                       </div>
+                      <p className="font-semibold text-gray-900 ml-7">{course.price.toLocaleString()} VND</p>
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="mt-6 pt-6 border-t">
-                <h3 className="font-medium mb-2">Description</h3>
-                <p className="text-gray-600">{course.description}</p>
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <h3 className="font-semibold mb-3 text-gray-900">Description</h3>
+                <p className="text-gray-600 leading-relaxed">{course.description}</p>
               </div>
             </Card>
           </div>
 
           {/* Statistics */}
           <div className="space-y-4">
-            <Card className="p-4">
+            <Card className="p-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600">
+                <div className="text-4xl font-bold text-blue-600 mb-2">
                   {course.currentStudents || 0}
                 </div>
-                <div className="text-sm text-gray-500">Enrolled Students</div>
+                <div className="text-sm text-gray-600 font-medium">Enrolled Students</div>
               </div>
             </Card>
 
-            <Card className="p-4">
+            <Card className="p-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-green-600">
+                <div className="text-4xl font-bold text-green-600 mb-2">
                   {classes.length}
                 </div>
-                <div className="text-sm text-gray-500">Active Classes</div>
+                <div className="text-sm text-gray-600 font-medium">Active Classes</div>
               </div>
             </Card>
 
-            <Card className="p-4">
+            <Card className="p-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600">
+                <div className="text-4xl font-bold text-purple-600 mb-2">
                   {course.price ? `${(course.price / 1000000).toFixed(1)}M` : 'N/A'}
                 </div>
-                <div className="text-sm text-gray-500">Price (VND)</div>
+                <div className="text-sm text-gray-600 font-medium">Price (VND)</div>
               </div>
             </Card>
           </div>
@@ -607,7 +612,7 @@ const studentColumns:  TableColumn<Student>[] = [
               }`}
               onClick={() => setActiveTab("class")}
             >
-              Classes ({filteredClasses.length})
+              Classes ({classes.length})
             </button>
           </div>
         </div>
@@ -756,170 +761,120 @@ const studentColumns:  TableColumn<Student>[] = [
           </div>
         )}
 
+        {/* Classes Tab */}
         {activeTab === "class" && (
           <Card className="p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <BookOpen className="w-6 h-6 text-blue-600" />
-              <h2 className="text-xl font-semibold">Classes</h2>
-              <span className="ml-auto text-sm text-gray-500">{filteredClasses.length} classes</span>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <BookOpen className="w-6 h-6 text-blue-600" />
+                <h2 className="text-xl font-semibold">Classes</h2>
+                <span className="text-sm text-gray-500">{classes.length} classes</span>
+              </div>
+              <Button
+                variant="primary"
+                onClick={handleAddClass}
+                iconLeft={<Plus className="w-4 h-4" />}
+              >
+                Add Class
+              </Button>
             </div>
 
-            <div className="mb-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-medium text-gray-700">View:</span>
-                  <div className="flex bg-gray-100 rounded-lg p-1">
-                    <button 
-                      className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                        subTab === "schedule" 
-                          ? "bg-white text-blue-600 shadow-sm" 
-                          : "text-gray-600 hover:text-gray-900"
-                      }`} 
-                      onClick={() => setSubTab("schedule")}
-                    >      
-                      <CalendarCheck2 className="w-4 h-4" />
-                      Schedule
-                    </button>
-                    <button 
-                      className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                        subTab === "table" 
-                          ? "bg-white text-blue-600 shadow-sm" 
-                          : "text-gray-600 hover:text-gray-900"
-                      }`} 
-                      onClick={() => setSubTab("table")}
-                    >
-                      <TableIcon className="w-4 h-4" />
-                      Table
-                    </button>
+            {/* Classes Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {classes.map((classItem) => (
+                <Card key={classItem.id} className="p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">{classItem.name}</h3>
+                      <p className="text-sm text-gray-500 mt-1">ID: {classItem.id}</p>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${
+                      classItem.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' :
+                      classItem.status === 'full' ? 'bg-red-50 text-red-700 border-red-200' :
+                      'bg-gray-50 text-gray-700 border-gray-200'
+                    }`}>
+                      {classItem.status}
+                    </span>
                   </div>
-                </div>
+
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center gap-2 text-sm">
+                      <User className="w-4 h-4 text-gray-400" />
+                      <span className="text-gray-600">{classItem.teacher}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Clock className="w-4 h-4 text-gray-400" />
+                      <span className="text-gray-600">{classItem.schedule}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Users className="w-4 h-4 text-gray-400" />
+                      <span className="text-gray-600">{classItem.currentStudents}/{classItem.maxStudents} students</span>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                      <span>Enrollment</span>
+                      <span>{Math.round((classItem.currentStudents / classItem.maxStudents) * 100)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all"
+                        style={{ width: `${(classItem.currentStudents / classItem.maxStudents) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handleViewClass(classItem)}
+                      className="!flex-1 !bg-blue-50 !text-blue-600 !border !border-blue-200 hover:!bg-blue-100"
+                      iconLeft={<Eye className="w-4 h-4 mr-1" />}
+                    >
+                      View
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleEditClass(classItem)}
+                      className="!flex-1 !bg-green-50 !text-green-600 !border !border-green-200 hover:!bg-green-100"
+                      iconLeft={<Pencil className="w-4 h-4 mr-1" />}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleDeleteClass(classItem)}
+                      className="!p-2 !bg-red-50 !text-red-600 !border !border-red-200 hover:!bg-red-100"
+                      iconLeft={<Trash2 className="w-4 h-4" />}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+
+            {/* Empty State */}
+            {classes.length === 0 && (
+              <div className="text-center py-12">
+                <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No classes yet</h3>
+                <p className="text-gray-500 mb-4">Get started by creating your first class for this course.</p>
                 <Button
+                  variant="primary"
                   onClick={handleAddClass}
                   iconLeft={<Plus className="w-4 h-4" />}
                 >
-                  Add Class
+                  Add First Class
                 </Button>
-              </div>
-            </div>
-            {subTab === "schedule" ? (
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <Calendar
-                  localizer={localizer}
-                  events={events}
-                  startAccessor="start"
-                  endAccessor="end"
-                  style={{ height: 500 }}
-                  date={currentDate}
-                  onNavigate={(newDate: Date) => setCurrentDate(newDate)}
-                  views={["month", "week", "day"]}
-                  defaultView="week"
-                  className="rounded-lg"
-                />
-              </div>
-            ) : (
-              <div>
-                {/* Search and Filter Section */}
-                <div className="space-y-4 mb-6">
-                  {/* Search Bar */}
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1 relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      <Input
-                        placeholder="Search classes by name, teacher, or room..."
-                        value={classSearch}
-                        onChange={(e) => setClassSearch(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-                    <Button
-                      onClick={() => setShowClassFilters(!showClassFilters)}
-                      variant="secondary"
-                      className="flex items-center gap-2 text-primary-500"
-                    >
-                      <span className="flex items-center gap-2">
-                        <Filter className="w-4 h-4" />
-                        {showClassFilters ? 'Hide Filters' : 'Show Filters'}
-                        {(classSearch || classStatusFilter || classTeacherFilter) && (
-                          <span className="bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                            {[classSearch, classStatusFilter, classTeacherFilter].filter(f => f !== "").length}
-                          </span>
-                        )}
-                      </span>
-                    </Button>
-                    <Button
-                      onClick={clearClassFilters}
-                      variant="secondary"
-                      className="whitespace-nowrap text-red-500"
-                    >
-                      <span className="flex items-center gap-2">
-                        <X className="w-4 h-4" />
-                        Clear Filters
-                      </span>
-                    </Button>
-                  </div>
-
-                  {/* Filter Options */}
-                  {showClassFilters && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
-                      <Select
-                        label="Status"
-                        value={classStatusFilter}
-                        onChange={(e) => setClassStatusFilter(e.target.value)}
-                        options={[
-                          { label: "All Status", value: "" },
-                          { label: "Active", value: "active" },
-                          { label: "Inactive", value: "inactive" },
-                          { label: "Full", value: "full" }
-                        ]}
-                      />
-                      <Select
-                        label="Teacher"
-                        value={classTeacherFilter}
-                        onChange={(e) => setClassTeacherFilter(e.target.value)}
-                        options={[
-                          { label: "All Teachers", value: "" },
-                          ...classes.map(classItem => ({
-                            label: classItem.teacher,
-                            value: classItem.teacher
-                          })).filter((teacher, index, self) => 
-                            index === self.findIndex(t => t.value === teacher.value)
-                          )
-                        ]}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Table */}
-                <Table 
-                  columns={classColumns} 
-                  data={filteredClasses}
-                  emptyState={
-                    <div className="text-center py-12">
-                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Search className="w-8 h-8 text-gray-400" />
-                      </div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">
-                        {(classSearch || classStatusFilter || classTeacherFilter) ? "No classes match your filters" : "No classes found"}
-                      </h3>
-                      <p className="text-gray-500 mb-4">
-                        {(classSearch || classStatusFilter || classTeacherFilter) 
-                          ? "Try adjusting your search criteria or clear the filters."
-                          : "No classes are created for this course yet."
-                        }
-                      </p>
-                      {(classSearch || classStatusFilter || classTeacherFilter) && (
-                        <Button onClick={clearClassFilters} variant="secondary">
-                          Clear Filters
-                        </Button>
-                      )}
-                    </div>
-                  }
-                />
               </div>
             )}
           </Card>
         )}
+
         </div>
 
         {/* Dialogs */}

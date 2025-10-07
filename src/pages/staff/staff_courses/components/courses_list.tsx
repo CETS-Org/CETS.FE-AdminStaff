@@ -1,17 +1,16 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "@/components/ui/Button";
 import { type TableColumn } from "@/components/ui/Table";
 import DataTable, { type FilterConfig, type BulkAction } from "@/components/ui/DataTable";
 import { 
-  Plus, Users, Clock, Eye, Edit, Trash2, 
-  Star, TrendingUp, AlertCircle, 
+  Plus, Clock, Eye, Edit, Trash2, 
+  Star, 
   CheckSquare, Square, Download
 } from "lucide-react";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
-import DeleteClassDialog from "./DeleteClassDialog";
-import CourseSelectionModal from "./CourseSelectionModal";
-import type { Course, Class } from "@/types/course.types";
+// Removed class management components
+import type { Course } from "@/types/course.types";
 
 
 const mockCourses: Course[] = [
@@ -97,65 +96,15 @@ const mockCourses: Course[] = [
   },
 ];
 
-const mockClasses: Class[] = [
-  {
-    id: "1",
-    name: "React Class A",
-    courseId: "1",
-    courseName: "React Fundamentals",
-    teacher: "John Doe",
-    schedule: "Mon, Wed, Fri 9:00-11:00",
-    room: "Room 101",
-    currentStudents: 15,
-    maxStudents: 20,
-    status: "active",
-    startDate: "2024-01-15",
-    endDate: "2024-03-15",
-  },
-  {
-    id: "2",
-    name: "React Class B",
-    courseId: "1",
-    courseName: "React Fundamentals",
-    teacher: "Jane Smith",
-    schedule: "Tue, Thu 14:00-16:00",
-    room: "Room 102",
-    currentStudents: 20,
-    maxStudents: 20,
-    status: "full",
-    startDate: "2024-01-15",
-    endDate: "2024-03-15",
-  },
-  {
-    id: "3",
-    name: "JavaScript Advanced",
-    courseId: "2",
-    courseName: "Vue.js Advanced",
-    teacher: "Mike Johnson",
-    schedule: "Mon, Wed 18:00-20:00",
-    room: "Room 103",
-    currentStudents: 12,
-    maxStudents: 25,
-    status: "active",
-    startDate: "2024-02-01",
-    endDate: "2024-04-15",
-  },
-];
+// Class management removed for staff courses list
 
 export default function CoursesList() {
   const navigate = useNavigate();
-  const [showClassList, setShowClassList] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; course: Course | null }>({ open: false, course: null });
-  const [deleteClassDialog, setDeleteClassDialog] = useState<{ open: boolean; classData: Class | null }>({ open: false, classData: null });
   const [loading, setLoading] = useState(false);
   const [error] = useState<string | null>(null);
-  const [showCourseSelection, setShowCourseSelection] = useState(false);
 
   const itemsPerPage = 8;
-
-  const filteredClasses = useMemo(() => {
-    return mockClasses;
-  }, []);
 
   // Simulate loading
   useEffect(() => {
@@ -358,158 +307,6 @@ export default function CoursesList() {
     }
   ];
 
-  // Class filter configurations
-  const classFilterConfigs: FilterConfig[] = [
-    {
-      key: "status",
-      label: "Status",
-      options: [
-        { label: "All Status", value: "all" },
-        { label: "Active", value: "active" },
-        { label: "Inactive", value: "inactive" },
-        { label: "Full", value: "full" },
-      ],
-    },
-    {
-      key: "courseName",
-      label: "Course",
-      options: [
-        { label: "All Courses", value: "all" },
-        { label: "React Fundamentals", value: "React Fundamentals" },
-        { label: "Vue.js Advanced", value: "Vue.js Advanced" },
-      ],
-    },
-  ];
-
-  // Class bulk actions
-  const classBulkActions: BulkAction<Class>[] = [
-    {
-      id: "export",
-      label: "Export",
-      icon: <Download className="w-4 h-4" />,
-      onClick: (classes) => console.log("Export classes:", classes),
-      variant: "secondary",
-      className: "text-blue-600 border-blue-300 hover:bg-blue-100",
-    },
-    {
-      id: "delete",
-      label: "Delete",
-      icon: <Trash2 className="w-4 h-4" />,
-      onClick: (classes) => console.log("Delete classes:", classes),
-      variant: "secondary",
-      className: "text-red-600 border-red-300 hover:bg-red-100",
-    },
-  ];
-
-  const classColumns: TableColumn<Class>[] = [
-    { 
-      header: "Class", 
-      className: "w-1/4",
-      accessor: (row) => (
-        <div className="space-y-1">
-          <div className="font-semibold text-gray-900">{row.name}</div>
-          <div className="text-sm text-gray-600">{row.courseName}</div>
-        </div>
-      )
-    },
-    { 
-      header: "Teacher", 
-      className: "w-1/5",
-      accessor: (row) => (
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-full flex items-center justify-center text-indigo-700 font-bold text-sm">
-            {row.teacher.charAt(0)}
-          </div>
-          <span className="font-medium text-gray-900">{row.teacher}</span>
-        </div>
-      )
-    },
-    { 
-      header: "Schedule & Room", 
-      className: "w-1/4",
-      accessor: (row) => (
-        <div className="space-y-1">
-          <div className="text-sm font-medium text-gray-900">{row.schedule}</div>
-          <div className="text-sm text-gray-600 flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            {row.room}
-          </div>
-        </div>
-      )
-    },
-    { 
-      header: "Students", 
-      className: "w-32",
-      accessor: (row) => (
-        <div className="space-y-1">
-          <div className="flex items-center justify-between text-sm">
-            <span className="font-medium">{row.currentStudents}/{row.maxStudents}</span>
-            <span className="text-gray-500">
-              {Math.round((row.currentStudents / row.maxStudents) * 100)}%
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-1.5">
-            <div 
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                row.status === 'full' 
-                  ? 'bg-gradient-to-r from-red-500 to-red-600' 
-                  : 'bg-gradient-to-r from-blue-500 to-blue-600'
-              }`}
-              style={{ width: `${(row.currentStudents / row.maxStudents) * 100}%` }}
-            />
-          </div>
-        </div>
-      )
-    },
-    { 
-      header: "Status", 
-      className: "w-32",
-      accessor: (row) => (
-        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border
-          ${row.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : ''}
-          ${row.status === 'inactive' ? 'bg-gray-50 text-gray-700 border-gray-200' : ''}
-          ${row.status === 'full' ? 'bg-red-50 text-red-700 border-red-200' : ''}
-        `}>
-          <div className={`w-1.5 h-1.5 rounded-full mr-1.5
-            ${row.status === 'active' ? 'bg-green-500' : ''}
-            ${row.status === 'inactive' ? 'bg-gray-400' : ''}
-            ${row.status === 'full' ? 'bg-red-500' : ''}
-          `} />
-          {row.status}
-        </span>
-      )
-    },
-    {
-      header: "Actions",
-      className: "w-32",
-      accessor: (row) => (
-        <div className="flex items-center gap-1">
-          <Button 
-            size="sm" 
-            onClick={() => handleViewClass(row)}
-            className="!p-2 !bg-blue-50 !text-blue-600 !border !border-blue-200 hover:!bg-blue-100 hover:!text-blue-700 hover:!border-blue-300 !transition-colors !rounded-md"
-          >
-            <Eye className="w-4 h-4" />
-          </Button>
-          <Button 
-            size="sm" 
-            onClick={() => handleEditClass(row)}
-            className="!p-2 !bg-green-50 !text-green-600 !border !border-green-200 hover:!bg-green-100 hover:!text-green-700 hover:!border-green-300 !transition-colors !rounded-md"
-          >
-            <Edit className="w-4 h-4" />
-          </Button>
-          <Button 
-            size="sm" 
-            onClick={() => handleDeleteClass(row)}
-            className="!p-2 !bg-red-50 !text-red-600 !border !border-red-200 hover:!bg-red-100 hover:!text-red-700 hover:!border-red-300 !transition-colors !rounded-md"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        </div>
-      ),
-    },
-  ];
-
   const handleView = (course: Course) => {
     navigate(`/staff/courses/${course.id}`);
   };
@@ -529,35 +326,7 @@ export default function CoursesList() {
     }
   };
 
-  // Class action handlers
-  const handleViewClass = (classData: Class) => {
-    navigate(`/staff/courses/${classData.courseId}/classes/${classData.id}`);
-  };
-
-  const handleEditClass = (classData: Class) => {
-    navigate(`/staff/courses/${classData.courseId}/classes/${classData.id}/edit`);
-  };
-
-  const handleDeleteClass = (classData: Class) => {
-    setDeleteClassDialog({ open: true, classData });
-  };
-
-  const handleConfirmDeleteClass = () => {
-    if (deleteClassDialog.classData) {
-      console.log("Delete class:", deleteClassDialog.classData.id);
-      // Add delete logic here
-      setDeleteClassDialog({ open: false, classData: null });
-    }
-  };
-
-  const handleAddClass = () => {
-    setShowCourseSelection(true);
-  };
-
-  const handleSelectCourse = (courseId: string) => {
-    setShowCourseSelection(false);
-    navigate(`/staff/courses/${courseId}/classes/add`);
-  };
+  // Class management removed
 
   // Card render function for DataTable
   const renderCourseCard = (course: Course, isSelected: boolean, onToggleSelect: () => void) => (
@@ -705,125 +474,7 @@ export default function CoursesList() {
         headerClassName=""
       />
 
-      {/* Enhanced Class List Section */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-4 border-b border-gray-200">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">Class Management</h2>
-              <p className="text-gray-600 mt-1">Manage individual class sessions and schedules</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button
-                variant="secondary"
-                onClick={() => setShowClassList(!showClassList)}
-                className={`transition-colors ${showClassList ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : ''}`}
-              >
-                {showClassList ? "Hide" : "Show"} Classes
-                <span className="bg-indigo-500 text-white text-xs rounded-full px-2 py-1 ml-2">
-                  {mockClasses.length}
-                </span>
-              </Button>
-              <Button 
-                onClick={handleAddClass}
-                iconLeft={<Plus className="w-4 h-4" />}
-              >
-                Add Class
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-6">
-          {showClassList && (
-            <div className="space-y-6">
-              {/* Enhanced Class Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                      <Users className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-blue-900">{mockClasses.length}</div>
-                      <div className="text-sm text-blue-700">Total Classes</div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
-                      <TrendingUp className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-green-900">
-                        {mockClasses.filter(c => c.status === "active").length}
-                      </div>
-                      <div className="text-sm text-green-700">Active Classes</div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-4 border border-red-200">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center">
-                      <AlertCircle className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-red-900">
-                        {mockClasses.filter(c => c.status === "full").length}
-                      </div>
-                      <div className="text-sm text-red-700">Full Classes</div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
-                      <Users className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-purple-900">
-                        {mockClasses.reduce((sum, c) => sum + c.currentStudents, 0)}
-                      </div>
-                      <div className="text-sm text-purple-700">Total Students</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Classes DataTable */}
-              <DataTable<Class>
-                title=""
-                data={filteredClasses}
-                columns={classColumns}
-                searchFields={['name', 'teacher', 'schedule', 'room', 'courseName']}
-                filterConfigs={classFilterConfigs}
-                bulkActions={classBulkActions}
-                onAdd={handleAddClass}
-                addButtonLabel="Add Class"
-                addButtonIcon={<Plus className="w-4 h-4" />}
-                viewModes={["table"]}
-                defaultViewMode="table"
-                itemsPerPage={itemsPerPage}
-                loading={false}
-                emptyStateTitle="No classes found"
-                emptyStateDescription="Create your first class to get started"
-                emptyStateAction={{
-                  label: "Add Class",
-                  onClick: handleAddClass
-                }}
-                getItemId={(classItem) => classItem.id}
-                enableSelection={true}
-                className="bg-transparent shadow-none border-none"
-                headerClassName="hidden"
-              />
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Class management section removed */}
 
       <DeleteConfirmDialog
         open={deleteDialog.open}
@@ -833,19 +484,7 @@ export default function CoursesList() {
         message={deleteDialog.course ? `Are you sure you want to delete the course "${deleteDialog.course.name}"? This action cannot be undone.` : ""}
       />
 
-      <DeleteClassDialog
-        open={deleteClassDialog.open}
-        onOpenChange={(open) => setDeleteClassDialog({ open, classData: deleteClassDialog.classData })}
-        onConfirm={handleConfirmDeleteClass}
-        classData={deleteClassDialog.classData}
-      />
-
-      <CourseSelectionModal
-        isOpen={showCourseSelection}
-        onClose={() => setShowCourseSelection(false)}
-        onSelectCourse={handleSelectCourse}
-        courses={mockCourses}
-      />
+      {/* Removed DeleteClassDialog and CourseSelectionModal */}
     </div>
   );
 }

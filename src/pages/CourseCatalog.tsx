@@ -585,7 +585,6 @@ export default function CourseCatalog({ onCourseSelect }: CourseCatalogProps) {
                   </Button>
                 </div>
               )}
-              </div>
             </Card>
           )}
         </div>

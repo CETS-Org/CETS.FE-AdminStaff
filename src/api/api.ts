@@ -11,6 +11,7 @@ export const api = axios.create({
   
 export const endpoint ={
   account: '/api/IDN_Account',
+  course: '/api/ACAD_Course',
   student: '/api/IDN_Student',
   teacher: '/api/IDN_Teacher',
   role: '/api/IDN_Role',
