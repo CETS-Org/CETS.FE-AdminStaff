@@ -5,6 +5,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
+import Label from "@/components/ui/Label";
 import PageHeader from "@/components/ui/PageHeader";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { ArrowLeft, Save, Calendar, Users, BookOpen, Loader2 } from "lucide-react";
@@ -165,6 +166,9 @@ export default function AddEditClassPage() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
+    if (isStandaloneRoute && !formData.courseId) {
+      newErrors.courseId = "Course is required";
+    }
     if (!formData.name.trim()) {
       newErrors.name = "Class name is required";
     }
@@ -270,9 +274,9 @@ export default function AddEditClassPage() {
         </div>
 
         {/* Form */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className={`grid grid-cols-1 gap-6 ${isEdit ? 'lg:grid-cols-3' : 'max-w-4xl mx-auto'}`}>
           {/* Main Form */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className={`space-y-6 ${isEdit ? 'lg:col-span-2' : ''}`}>
             {/* Basic Information */}
             <Card className="p-6">
               <div className="flex items-center gap-3 mb-6">
@@ -281,21 +285,38 @@ export default function AddEditClassPage() {
               </div>
               
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Course
-                  </label>
-                  <Input
-                    value={formData.courseName}
-                    disabled
-                    className="bg-gray-50"
-                  />
-                </div>
+                {isStandaloneRoute && !isEdit ? (
+                  <div>
+                    <Label required>Course</Label>
+                    <Select
+                      value={formData.courseId}
+                      onChange={(e) => {
+                        const selectedCourse = mockCourses.find(c => c.id === e.target.value);
+                        handleInputChange("courseId", e.target.value);
+                        if (selectedCourse) {
+                          handleInputChange("courseName", selectedCourse.name);
+                        }
+                      }}
+                      options={[
+                        { label: "Select a course", value: "" },
+                        ...mockCourses.map(course => ({ label: course.name, value: course.id }))
+                      ]}
+                      error={errors.courseId}
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <Label>Course</Label>
+                    <Input
+                      value={formData.courseName}
+                      disabled
+                      className="bg-gray-50"
+                    />
+                  </div>
+                )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Class Name *
-                  </label>
+                  <Label required>Class Name</Label>
                   <Input
                     value={formData.name}
                     onChange={(e) => handleInputChange("name", e.target.value)}
@@ -305,9 +326,7 @@ export default function AddEditClassPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description
-                  </label>
+                  <Label>Description</Label>
                   <textarea
                     value={formData.description || ""}
                     onChange={(e) => handleInputChange("description", e.target.value)}
@@ -328,31 +347,33 @@ export default function AddEditClassPage() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Teacher *
-                  </label>
+                  <Label required>Teacher</Label>
                   <Select
                     value={formData.teacher}
                     onChange={(e) => handleInputChange("teacher", e.target.value)}
-                    options={teacherOptions.map(teacher => ({ label: teacher, value: teacher }))}
+                    options={[
+                      { label: "Select a teacher", value: "" },
+                      ...teacherOptions.map(teacher => ({ label: teacher, value: teacher }))
+                    ]}
+                    error={errors.teacher}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Room *
-                  </label>
+                  <Label required>Room</Label>
                   <Select
                     value={formData.room}
                     onChange={(e) => handleInputChange("room", e.target.value)}
-                    options={roomOptions.map(room => ({ label: room, value: room }))}
+                    options={[
+                      { label: "Select a room", value: "" },
+                      ...roomOptions.map(room => ({ label: room, value: room }))
+                    ]}
+                    error={errors.room}
                   />
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Schedule *
-                  </label>
+                  <Label required>Schedule</Label>
                   <Input
                     value={formData.schedule}
                     onChange={(e) => handleInputChange("schedule", e.target.value)}
@@ -362,9 +383,7 @@ export default function AddEditClassPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Start Date *
-                  </label>
+                  <Label required>Start Date</Label>
                   <Input
                     type="date"
                     value={formData.startDate}
@@ -374,9 +393,7 @@ export default function AddEditClassPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    End Date *
-                  </label>
+                  <Label required>End Date</Label>
                   <Input
                     type="date"
                     value={formData.endDate}
@@ -396,9 +413,7 @@ export default function AddEditClassPage() {
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Max Students *
-                  </label>
+                  <Label required>Max Students</Label>
                   <Input
                     type="number"
                     value={formData.maxStudents}
@@ -409,9 +424,7 @@ export default function AddEditClassPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Current Students
-                  </label>
+                  <Label>Current Students</Label>
                   <Input
                     type="number"
                     value={formData.currentStudents}
@@ -423,9 +436,7 @@ export default function AddEditClassPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Status
-                  </label>
+                  <Label>Status</Label>
                   <Select
                     value={formData.status}
                     onChange={(e) => handleInputChange("status", e.target.value)}

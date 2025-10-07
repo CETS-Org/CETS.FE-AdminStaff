@@ -125,6 +125,7 @@ export default function StaffHome() {
             <Route path="courses/:courseId/classes/:classId" element={<ClassDetailPage />} />
             <Route path="courses/:courseId/classes/:classId/edit" element={<AddEditClassPage />} />
             <Route path="classes" element={<StaffClassesPage />} />
+            <Route path="classes/add" element={<AddEditClassPage />} />
             <Route path="classes/:id" element={<ClassDetailPage />} />
             <Route path="classes/:id/edit" element={<AddEditClassPage />} />
             <Route path="assign-teacher" element={<AssignTeacherPage />} />
