@@ -11,6 +11,7 @@ import PageHeader from '@/components/ui/PageHeader';
 import TimetableGrid from './components/TimetableGrid';
 import AddEditTimeslotDialog from './components/AddEditTimeslotDialog';
 import DeleteTimeslotDialog from './components/DeleteTimeslotDialog';
+import TimeslotDetailDialog from './components/TimeslotDetailDialog';
 import { 
   type Timeslot, 
   type CreateTimeslotDto, 
@@ -31,6 +32,7 @@ export default function StaffTimetablePage() {
   // Dialog states
   const [addEditDialogOpen, setAddEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedTimeslot, setSelectedTimeslot] = useState<Timeslot | null>(null);
 
   // Load timeslots on mount
@@ -135,6 +137,11 @@ export default function StaffTimetablePage() {
     }
   };
 
+  const handleView = (timeslot: Timeslot) => {
+    setSelectedTimeslot(timeslot);
+    setDetailDialogOpen(true);
+  };
+
   const handleEdit = (timeslot: Timeslot) => {
     setSelectedTimeslot(timeslot);
     setAddEditDialogOpen(true);
@@ -226,6 +233,7 @@ export default function StaffTimetablePage() {
       {/* Timeslots Table */}
       <TimetableGrid
         timeslots={timeslots}
+        onView={handleView}
         onEdit={handleEdit}
         onDelete={handleDelete}
         onAdd={handleAddNew}
@@ -233,6 +241,12 @@ export default function StaffTimetablePage() {
       />
 
       {/* Dialogs */}
+      <TimeslotDetailDialog
+        open={detailDialogOpen}
+        onOpenChange={setDetailDialogOpen}
+        timeslot={selectedTimeslot}
+      />
+
       <AddEditTimeslotDialog
         open={addEditDialogOpen}
         onOpenChange={setAddEditDialogOpen}

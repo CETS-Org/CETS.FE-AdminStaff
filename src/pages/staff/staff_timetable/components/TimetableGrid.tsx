@@ -1,11 +1,13 @@
 import React, { useMemo } from 'react';
 import type { Timeslot } from '@/types/timetable.type';
-import { Clock, Edit, Trash2 } from 'lucide-react';
+import { Clock, Edit, Trash2, Eye } from 'lucide-react';
 import DataTable, { type FilterConfig } from '@/components/ui/DataTable';
 import type { TableColumn } from '@/components/ui/Table';
+import Button from '@/components/ui/Button';
 
 interface TimetableGridProps {
   timeslots: Timeslot[];
+  onView?: (timeslot: Timeslot) => void;
   onEdit?: (timeslot: Timeslot) => void;
   onDelete?: (timeslot: Timeslot) => void;
   onAdd?: () => void;
@@ -14,6 +16,7 @@ interface TimetableGridProps {
 
 export default function TimetableGrid({
   timeslots,
+  onView,
   onEdit,
   onDelete,
   onAdd,
@@ -70,39 +73,52 @@ export default function TimetableGrid({
       header: 'Status',
       className: 'w-1/6',
       accessor: (slot) => (
-        <span
-          className={`px-2 py-1 text-xs font-medium rounded-full ${
-            slot.isActive
-              ? 'bg-green-100 text-green-700'
-              : 'bg-gray-100 text-gray-600'
-          }`}
-        >
+        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${
+          slot.isActive 
+            ? 'bg-green-100 text-green-800 border-green-200' 
+            : 'bg-gray-100 text-gray-800 border-gray-200'
+        }`}>
+          <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+            slot.isActive ? 'bg-green-500' : 'bg-gray-400'
+          }`} />
           {slot.isActive ? 'Active' : 'Inactive'}
         </span>
       ),
     },
     {
       header: 'Actions',
-      className: 'w-24',
+      className: 'w-40',
       accessor: (slot) => (
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex items-center gap-1">
+          {onView && (
+            <Button
+              size="sm"
+              onClick={() => onView(slot)}
+              className="!p-2 !bg-blue-50 !text-blue-600 !border !border-blue-200 hover:!bg-blue-100 hover:!text-blue-700 hover:!border-blue-300 !transition-colors !rounded-md"
+              title="View timeslot details"
+            >
+              <Eye className="w-4 h-4" />
+            </Button>
+          )}
           {onEdit && (
-            <button
+            <Button
+              size="sm"
               onClick={() => onEdit(slot)}
-              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              className="!p-2 !bg-green-50 !text-green-600 !border !border-green-200 hover:!bg-green-100 hover:!text-green-700 hover:!border-green-300 !transition-colors !rounded-md"
               title="Edit timeslot"
             >
               <Edit className="w-4 h-4" />
-            </button>
+            </Button>
           )}
           {onDelete && (
-            <button
+            <Button
+              size="sm"
               onClick={() => onDelete(slot)}
-              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              className="!p-2 !bg-red-50 !text-red-600 !border !border-red-200 hover:!bg-red-100 hover:!text-red-700 hover:!border-red-300 !transition-colors !rounded-md"
               title="Delete timeslot"
             >
               <Trash2 className="w-4 h-4" />
-            </button>
+            </Button>
           )}
         </div>
       ),
