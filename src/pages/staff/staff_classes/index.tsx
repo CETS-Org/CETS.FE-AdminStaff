@@ -8,13 +8,16 @@ import { type TableColumn } from "@/components/ui/Table";
 import DataTable, { type FilterConfig, type BulkAction } from "@/components/ui/DataTable";
 import { Eye, Pencil, Users, TrendingUp, AlertCircle, BookOpen, Download, BarChart3, Loader2, Plus, Trash2, CheckSquare, Square } from "lucide-react";
 import { mockClasses, getClassStatistics, type ClassRow } from "./data/mockClassesData";
+import DeleteClassDialog from "./components/DeleteClassDialog";
 
 export default function StaffClassesPage() {
   const navigate = useNavigate();
 
-  const [rows] = useState<ClassRow[]>(mockClasses);
+  const [rows, setRows] = useState<ClassRow[]>(mockClasses);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedClass, setSelectedClass] = useState<ClassRow | null>(null);
   const [stats, setStats] = useState({
     totalClasses: 0,
     activeClasses: 0,
@@ -61,6 +64,18 @@ export default function StaffClassesPage() {
       setStats(calculatedStats);
       setLoading(false);
     }, 800);
+  };
+
+  const handleDelete = (classRow: ClassRow) => {
+    setSelectedClass(classRow);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!selectedClass) return;
+    setRows(prev => prev.filter(c => c.id !== selectedClass.id));
+    setDeleteDialogOpen(false);
+    setSelectedClass(null);
   };
 
   const breadcrumbItems = [
@@ -172,7 +187,7 @@ export default function StaffClassesPage() {
     },
     {
       header: "Actions",
-      className: "w-32",
+      className: "w-40",
       accessor: (r) => (
         <div className="flex items-center gap-1">
           <Button
@@ -188,6 +203,13 @@ export default function StaffClassesPage() {
             className="!p-2 !bg-green-50 !text-green-600 !border !border-green-200 hover:!bg-green-100 hover:!text-green-700 hover:!border-green-300 !transition-colors !rounded-md"
           >
             <Pencil className="w-4 h-4" />
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => handleDelete(r)}
+            className="!p-2 !bg-red-50 !text-red-600 !border !border-red-200 hover:!bg-red-100 hover:!text-red-700 hover:!border-red-300 !transition-colors !rounded-md"
+          >
+            <Trash2 className="w-4 h-4" />
           </Button>
         </div>
       ),
@@ -281,6 +303,14 @@ export default function StaffClassesPage() {
           >
             <Pencil className="w-4 h-4 mr-2" />
             Edit
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => handleDelete(classRow)}
+            className="!flex-1 !bg-red-50 !text-red-600 !border !border-red-200 hover:!bg-red-100 hover:!text-red-700 hover:!border-red-300 !transition-colors !rounded-md"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Delete
           </Button>
         </div>
       </div>
@@ -432,6 +462,12 @@ export default function StaffClassesPage() {
         enableSelection={true}
         className=""
         headerClassName=""
+      />
+      <DeleteClassDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleConfirmDelete}
+        classData={selectedClass as any}
       />
     </div>
   );
