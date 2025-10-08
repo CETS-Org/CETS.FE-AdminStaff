@@ -1,6 +1,6 @@
 // src/pages/staff/StaffHome.tsx
 import { useState, useEffect } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import GenericNavbar from "@/shared/GenericNavbar";
 import { createAcademicStaffNavbarConfig, createAccountantStaffNavbarConfig } from "@/shared/navbarConfigs";
 import { academicStaffSidebarConfig, accountantStaffSidebarConfig } from "@/shared/sidebarConfigs";
@@ -120,7 +120,10 @@ export default function StaffHome() {
             <Route path="schedule" element={<StaffSchedulePage />} />
             <Route path="timetable" element={<StaffTimetablePage />} />
             <Route path="rooms" element={<StaffRoomsPage />} />
-            <Route path="contracts" element={<StaffContractsPage />} />
+            <Route
+              path="contracts"
+              element={userRole === 'AccountantStaff' ? <StaffContractsPage /> : <Navigate to="/staff/analytics" replace />}
+            />
             <Route path="courses" element={<StaffCoursesPage />} />
             <Route path="courses/add" element={<AddEditCoursePage />} />
             <Route path="courses/edit/:id" element={<AddEditCoursePage />} />
