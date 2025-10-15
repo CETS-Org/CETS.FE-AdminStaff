@@ -6,112 +6,47 @@ import DataTable, { type FilterConfig, type BulkAction } from "@/components/ui/D
 import { 
   Plus, Clock, Eye, Edit, Trash2, 
   Star, 
-  CheckSquare, Square, Download
+  CheckSquare, Square, Download,
+  DollarSign
 } from "lucide-react";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
-// Removed class management components
 import type { Course } from "@/types/course.types";
-
-
-const mockCourses: Course[] = [
-  {
-    id: "1",
-    name: "React Fundamentals",
-    description: "Learn the basics of React development with modern hooks and patterns",
-    duration: "8 weeks",
-    level: "beginner",
-    status: "active",
-    enrolledStudents: 25,
-    maxStudents: 30,
-    startDate: "2024-01-15",
-    endDate: "2024-03-15",
-    instructor: "Sarah Johnson",
-    category: "Web Development",
-    rating: 4.8,
-    featured: true,
-  },
-  {
-    id: "2",
-    name: "Advanced JavaScript",
-    description: "Master advanced JavaScript concepts including async/await, closures, and design patterns",
-    duration: "10 weeks",
-    level: "advanced",
-    status: "active",
-    enrolledStudents: 18,
-    maxStudents: 25,
-    startDate: "2024-02-01",
-    endDate: "2024-04-15",
-    instructor: "Mike Chen",
-    category: "Programming",
-    rating: 4.9,
-    featured: false,
-  },
-  {
-    id: "3",
-    name: "UI/UX Design Principles",
-    description: "Create beautiful user interfaces and exceptional user experiences",
-    duration: "6 weeks",
-    level: "intermediate",
-    status: "inactive",
-    enrolledStudents: 0,
-    maxStudents: 20,
-    startDate: "2024-03-01",
-    endDate: "2024-04-15",
-    instructor: "Emily Rodriguez",
-    category: "Design",
-    rating: 4.7,
-    featured: false,
-  },
-  {
-    id: "4",
-    name: "Python for Data Science",
-    description: "Learn Python programming with focus on data analysis and machine learning",
-    duration: "12 weeks",
-    level: "intermediate",
-    status: "active",
-    enrolledStudents: 22,
-    maxStudents: 25,
-    startDate: "2024-01-20",
-    endDate: "2024-04-20",
-    instructor: "Dr. Alex Kumar",
-    category: "Data Science",
-    rating: 4.6,
-    featured: true,
-  },
-  {
-    id: "5",
-    name: "Mobile App Development",
-    description: "Build cross-platform mobile applications using React Native",
-    duration: "14 weeks",
-    level: "advanced",
-    status: "active",
-    enrolledStudents: 15,
-    maxStudents: 20,
-    startDate: "2024-02-15",
-    endDate: "2024-05-15",
-    instructor: "James Wilson",
-    category: "Mobile Development",
-    rating: 4.5,
-    featured: false,
-  },
-];
-
-// Class management removed for staff courses list
+import { getCoursesList, deleteCourse } from "@/api/course.api";
 
 export default function CoursesList() {
   const navigate = useNavigate();
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; course: Course | null }>({ open: false, course: null });
-  const [loading, setLoading] = useState(false);
-  const [error] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const itemsPerPage = 8;
 
-  // Simulate loading
+  // Format Vietnamese currency
+  const formatVND = (amount: number) => {
+    return new Intl.NumberFormat('vi-VN').format(amount);
+  };
+
+  // Fetch courses from API
   useEffect(() => {
-    setLoading(true);
-    const timer = setTimeout(() => setLoading(false), 800);
-    return () => clearTimeout(timer);
-  }, []);
+    const fetchCourses = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await getCoursesList();
+        const coursesData: Course[] = response.data.value || response.data || [];
+        setCourses(coursesData);
+      } catch (err: any) {
+        console.error("Error fetching courses:", err);
+        setError(err.response?.data?.message || "Failed to load courses. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, [refreshTrigger]);
 
   const handleBulkDelete = (selectedCourses: Course[]) => {
     console.log("Bulk delete:", selectedCourses);
@@ -122,37 +57,35 @@ export default function CoursesList() {
   };
 
 
+  // Extract unique categories and levels from actual data
+  const uniqueCategories = Array.from(new Set(courses.map(c => c.categoryName).filter(Boolean)));
+  const uniqueLevels = Array.from(new Set(courses.map(c => c.courseLevel).filter(Boolean)));
+
   // Filter configurations for DataTable
   const filterConfigs: FilterConfig[] = [
     {
-      key: "status",
+      key: "isActive",
       label: "Status",
       options: [
         { label: "All Status", value: "all" },
-        { label: "Active", value: "active" },
-        { label: "Inactive", value: "inactive" },
+        { label: "Active", value: "true" },
+        { label: "Inactive", value: "false" },
       ],
     },
     {
-      key: "level",
+      key: "courseLevel",
       label: "Level",
       options: [
         { label: "All Levels", value: "all" },
-        { label: "Beginner", value: "beginner" },
-        { label: "Intermediate", value: "intermediate" },
-        { label: "Advanced", value: "advanced" },
+        ...uniqueLevels.map(level => ({ label: level, value: level })),
       ],
     },
     {
-      key: "category",
+      key: "categoryName",
       label: "Category",
       options: [
         { label: "All Categories", value: "all" },
-        { label: "Web Development", value: "Web Development" },
-        { label: "Programming", value: "Programming" },
-        { label: "Design", value: "Design" },
-        { label: "Data Science", value: "Data Science" },
-        { label: "Mobile Development", value: "Mobile Development" },
+        ...uniqueCategories.map(category => ({ label: category, value: category })),
       ],
     },
   ];
@@ -183,29 +116,29 @@ export default function CoursesList() {
       className: "w-2/5", 
       accessor: (row) => (
         <div className="flex items-center gap-3">
-          <div className="relative w-12 h-12 bg-gradient-to-br from-primary-100 to-primary-200 rounded-xl flex items-center justify-center text-primary-700 font-bold text-lg shadow-sm">
-            {row.name.charAt(0)}
-            {row.featured && (
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center">
-                <Star className="w-2.5 h-2.5 text-white fill-current" />
-              </div>
-            )}
-          </div>
+          {row.courseImageUrl ? (
+            <img 
+              src={row.courseImageUrl} 
+              alt={row.courseName}
+              className="w-12 h-12 rounded-xl object-cover shadow-sm"
+            />
+          ) : (
+            <div className="relative w-12 h-12 bg-gradient-to-br from-primary-100 to-primary-200 rounded-xl flex items-center justify-center text-primary-700 font-bold text-lg shadow-sm">
+              {row.courseName?.charAt(0) || 'C'}
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <div className="font-semibold text-gray-900 truncate">{row.name}</div>
-              {row.featured && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                  Featured
-                </span>
-              )}
+              <div className="font-semibold text-gray-900 truncate">{row.courseName}</div>
             </div>
-            <div className="text-sm text-gray-600 line-clamp-2 leading-relaxed">{row.description}</div>
+            <div className="text-sm text-gray-600 line-clamp-2 leading-relaxed">{row.description || 'No description'}</div>
             <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
-              <span>By {row.instructor}</span>
+              {row.teacherDetails && row.teacherDetails.length > 0 && (
+                <span>By {row.teacherDetails.map(t => t.fullName).join(', ')}</span>
+              )}
               <span className="flex items-center gap-1">
                 <Star className="w-3 h-3 fill-current text-yellow-400" />
-                {row.rating}
+                {row.rating?.toFixed(1) || '0.0'}
               </span>
             </div>
           </div>
@@ -217,45 +150,36 @@ export default function CoursesList() {
       className: "w-32",
       accessor: (row) => (
         <div className="space-y-1">
-          <div className="flex items-center justify-between text-sm">
-            <span className="font-medium">{row.enrolledStudents}/{row.maxStudents}</span>
-            <span className="text-gray-500">
-              {Math.round((row.enrolledStudents / row.maxStudents) * 100)}%
-            </span>
+          <div className="flex items-center justify-center text-sm">
+            <span className="font-medium">{row.studentsCount || 0}</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-1.5">
-            <div 
-              className="bg-gradient-to-r from-blue-500 to-blue-600 h-1.5 rounded-full transition-all duration-300"
-              style={{ width: `${(row.enrolledStudents / row.maxStudents) * 100}%` }}
-            />
+          <div className="text-xs text-gray-500 text-center">
+            Enrolled
           </div>
         </div>
       )
     },
     {
-      header: "Category & Level",
-      className: "w-38",
+      header: "Category",
+      className: "w-36",
       accessor: (row) => (
         <div className="space-y-1">
           <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
-            {row.category}
+            {row.categoryName || 'Uncategorized'}
           </span>
-          <div className="text-sm text-gray-600 capitalize">{row.level}</div>
+          <div className="text-sm text-gray-600">{row.courseLevel || 'N/A'}</div>
         </div>
       )
     },
     {
-      header: "Duration & Date",
-      className: "w-40",
+      header: "Price",
+      className: "w-36",
       accessor: (row) => (
         <div className="space-y-1 text-sm">
           <div className="flex items-center gap-1 text-gray-900">
-            <Clock className="w-3 h-3 text-gray-400" />
-            {row.duration}
+            {formatVND(row.standardPrice || 0)} ₫
           </div>
-          <div className="text-gray-600">
-            {new Date(row.startDate).toLocaleDateString()}
-          </div>
+          
         </div>
       )
     },
@@ -265,13 +189,12 @@ export default function CoursesList() {
       accessor: (row) => (
         <div className="flex items-center gap-2">
           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border
-            ${row.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : ''}
-            ${row.status === 'inactive' ? 'bg-gray-50 text-gray-700 border-gray-200' : ''}
+            ${row.isActive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-700 border-gray-200'}
           `}>
             <div className={`w-1.5 h-1.5 rounded-full mr-1.5
-              ${row.status === 'active' ? 'bg-green-500' : 'bg-gray-400'}
+              ${row.isActive ? 'bg-green-500' : 'bg-gray-400'}
             `} />
-            {row.status}
+            {row.isActive ? 'Active' : 'Inactive'}
           </span>
         </div>
       )
@@ -319,10 +242,17 @@ export default function CoursesList() {
     setDeleteDialog({ open: true, course });
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (deleteDialog.course) {
-      console.log("Delete course:", deleteDialog.course);
-      setDeleteDialog({ open: false, course: null });
+      try {
+        await deleteCourse(deleteDialog.course.id);
+        setDeleteDialog({ open: false, course: null });
+        // Refresh the courses list
+        setRefreshTrigger(prev => prev + 1);
+      } catch (err: any) {
+        console.error("Error deleting course:", err);
+        alert(err.response?.data?.message || "Failed to delete course. Please try again.");
+      }
     }
   };
 
@@ -333,15 +263,15 @@ export default function CoursesList() {
     <div className="group bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-300 hover:-translate-y-1">
       {/* Card Header */}
       <div className="relative aspect-video bg-gradient-to-br from-primary-50 via-primary-100 to-primary-200 flex items-center justify-center">
-        <div className="w-20 h-20 bg-white/90 backdrop-blur-sm rounded-2xl flex items-center justify-center text-primary-700 font-bold text-2xl shadow-lg">
-          {course.name.charAt(0)}
-        </div>
-        
-        {/* Featured Badge */}
-        {course.featured && (
-          <div className="absolute top-3 right-3 bg-yellow-400 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-            <Star className="w-3 h-3 fill-current" />
-            Featured
+        {course.courseImageUrl ? (
+          <img 
+            src={course.courseImageUrl} 
+            alt={course.courseName}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-20 h-20 bg-white/90 backdrop-blur-sm rounded-2xl flex items-center justify-center text-primary-700 font-bold text-2xl shadow-lg">
+            {course.courseName?.charAt(0) || 'C'}
           </div>
         )}
         
@@ -362,52 +292,54 @@ export default function CoursesList() {
         {/* Course Title and Rating */}
         <div className="flex items-start justify-between mb-2">
           <h3 className="font-bold text-lg text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-1">
-            {course.name}
+            {course.courseName}
           </h3>
           <div className="flex items-center gap-1 text-sm text-gray-600 ml-2">
             <Star className="w-3 h-3 fill-current text-yellow-400" />
-            {course.rating}
+            {course.rating?.toFixed(1) || '0.0'}
           </div>
         </div>
         
-        <p className="text-gray-600 text-sm mb-3 line-clamp-2">{course.description}</p>
+        <p className="text-gray-600 text-sm mb-3 line-clamp-2">{course.description || 'No description available'}</p>
         
         {/* Course Meta */}
         <div className="space-y-2 mb-4">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-500">Instructor:</span>
-            <span className="font-medium text-gray-900">{course.instructor}</span>
-          </div>
+          {course.teacherDetails && course.teacherDetails.length > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-500">Instructor:</span>
+              <span className="font-medium text-gray-900 truncate ml-2">{course.teacherDetails[0].fullName}</span>
+            </div>
+          )}
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-500">Duration:</span>
-            <span className="font-medium text-gray-900">{course.duration}</span>
+            <span className="font-medium text-gray-900">{course.duration || 'N/A'}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-500">Level:</span>
+            <span className="font-medium text-gray-900">{course.courseLevel || 'N/A'}</span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-500">Students:</span>
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-gray-900">{course.enrolledStudents}/{course.maxStudents}</span>
-              <div className="w-12 bg-gray-200 rounded-full h-1.5">
-                <div 
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-1.5 rounded-full transition-all duration-300"
-                  style={{ width: `${(course.enrolledStudents / course.maxStudents) * 100}%` }}
-                />
-              </div>
-            </div>
+            <span className="font-medium text-gray-900">{course.studentsCount || 0}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-500">Price:</span>
+            <span className="font-semibold text-primary-600">{formatVND(course.standardPrice || 0)} ₫</span>
           </div>
         </div>
 
         {/* Status and Category */}
         <div className="flex items-center justify-between mb-4">
           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border
-            ${course.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-700 border-gray-200'}
+            ${course.isActive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-700 border-gray-200'}
           `}>
             <div className={`w-1.5 h-1.5 rounded-full mr-1.5
-              ${course.status === 'active' ? 'bg-green-500' : 'bg-gray-400'}
+              ${course.isActive ? 'bg-green-500' : 'bg-gray-400'}
             `} />
-            {course.status}
+            {course.isActive ? 'Active' : 'Inactive'}
           </span>
           <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
-            {course.category}
+            {course.categoryName || 'Uncategorized'}
           </span>
         </div>
 
@@ -447,9 +379,9 @@ export default function CoursesList() {
       <DataTable<Course>
         title="Courses Management"
         description="Manage and organize your educational courses"
-        data={mockCourses}
+        data={courses}
         columns={columns}
-        searchFields={['name', 'description', 'instructor']}
+        searchFields={['courseName', 'description', 'categoryName']}
         filterConfigs={filterConfigs}
         bulkActions={bulkActions}
         onAdd={() => navigate("/staff/courses/add")}
@@ -460,7 +392,7 @@ export default function CoursesList() {
         itemsPerPage={itemsPerPage}
         loading={loading}
         error={error}
-        onRefresh={() => window.location.reload()}
+        onRefresh={() => setRefreshTrigger(prev => prev + 1)}
         emptyStateTitle="No courses found"
         emptyStateDescription="Get started by creating your first course"
         emptyStateAction={{
@@ -481,7 +413,7 @@ export default function CoursesList() {
         onOpenChange={(open) => setDeleteDialog({ open, course: deleteDialog.course })}
         onConfirm={handleConfirmDelete}
         title="Delete Course"
-        message={deleteDialog.course ? `Are you sure you want to delete the course "${deleteDialog.course.name}"? This action cannot be undone.` : ""}
+        message={deleteDialog.course ? `Are you sure you want to delete the course "${deleteDialog.course.courseName}"? This action cannot be undone.` : ""}
       />
 
       {/* Removed DeleteClassDialog and CourseSelectionModal */}

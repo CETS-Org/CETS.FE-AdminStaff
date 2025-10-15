@@ -5,86 +5,106 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import PageHeader from "@/components/ui/PageHeader";
-import { Trash2, BookOpen, ArrowLeft, Upload, Camera, Save, FileText, Link as LinkIcon, CheckCircle, AlertCircle, Users, Clock, DollarSign, Calendar, Loader2 } from "lucide-react";
-
-interface Course {
-  id?: string;
-  name: string;
-  description: string;
-  level: "beginner" | "intermediate" | "advanced";
-  duration: string;
-  teachers: string[];
-  status: "active" | "inactive";
-  image?: string;
-  price?: number;
-  maxStudents?: number;
-  startDate: string;
-  endDate: string;
-  syllabus?: string;
-  materials?: string;
-  assignments?: string;
-}
-
-const levelOptions = [
-  { label: "Beginner", value: "beginner" },
-  { label: "Intermediate", value: "intermediate" },
-  { label: "Advanced", value: "advanced" }
-];
-
-const durationOptions = [
-  "4 weeks",
-  "6 weeks", 
-  "8 weeks",
-  "10 weeks",
-  "12 weeks",
-  "16 weeks",
-  "20 weeks",
-  "24 weeks"
-];
-
-const teacherOptions = [
-  "Sarah Johnson",
-  "Michael Chen",
-  "Emily Davis",
-  "David Wilson",
-  "Lisa Brown",
-  "James Miller",
-  "Jennifer Taylor",
-  "Robert Anderson"
-];
+import Label from "@/components/ui/Label";
+import { Trash2, BookOpen, ArrowLeft, Upload, Camera, Save, FileText, Link as LinkIcon, CheckCircle, AlertCircle, Clock, DollarSign, Calendar, Loader2, PlusCircle, MinusCircle, Target, Zap, Gift, X } from "lucide-react";
+import { getCourseDetail, createCourse, updateCourse, getCourseCategories, getCourseSkills, getCourseBenefits, getCourseRequirements } from "@/api/course.api";
+import { getLookupsByTypeCode, createSyllabus, createSyllabusItem, getTimeslots } from "@/api";
+import type { CourseFormData } from "@/types/course.types";
 
 export default function AddEditCoursePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = Boolean(id);
 
-  const [formData, setFormData] = useState<Omit<Course, 'id'>>({
+  const [formData, setFormData] = useState<Omit<CourseFormData, 'id'>>({
     name: "",
     description: "",
     level: "beginner",
-    duration: "",
-    teachers: [],
     status: "active",
     image: "",
-    price: 0,
+    price: 50000,
     maxStudents: 20,
-    startDate: "",
-    endDate: "",
     syllabus: "",
-    materials: "",
-    assignments: ""
+    courseCode: "",
+    courseLevelID: "",
+    courseFormatID: "",
+    categoryID: ""
   });
+
+  // Lookup options from API
+  const [courseLevelOptions, setCourseLevelOptions] = useState<{ label: string; value: string }[]>([]);
+  const [courseFormatOptions, setCourseFormatOptions] = useState<{ label: string; value: string }[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<{ label: string; value: string }[]>([]);
+  const [skillOptions, setSkillOptions] = useState<{ label: string; value: string }[]>([]);
+  const [benefitOptions, setBenefitOptions] = useState<{ label: string; value: string }[]>([]);
+  const [requirementOptions, setRequirementOptions] = useState<{ label: string; value: string }[]>([]);
+  const [timeslotOptions, setTimeslotOptions] = useState<{ label: string; value: string }[]>([]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string>("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  
+  // Toast notifications
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [showErrorToast, setShowErrorToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const imageObjectUrlRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [syllabusFile, setSyllabusFile] = useState<File | null>(null);
-  const [materialsFile, setMaterialsFile] = useState<File | null>(null);
-  const [assignmentsFile, setAssignmentsFile] = useState<File | null>(null);
   const [syllabusUrl, setSyllabusUrl] = useState<string>("");
   const [materialsUrl, setMaterialsUrl] = useState<string>("");
   const [assignmentsUrl, setAssignmentsUrl] = useState<string>("");
+  // Syllabus & Syllabus Item UI state
+  const [syllabusTitle, setSyllabusTitle] = useState<string>("");
+  const [syllabusItem, setSyllabusItem] = useState<{
+    sessionNumber: number;
+    topicTitle: string;
+    totalSlots?: number;
+    required: boolean;
+    objectives?: string;
+    contentSummary?: string;
+    preReadingUrl?: string;
+  }>({
+    sessionNumber: 1,
+    topicTitle: "",
+    totalSlots: undefined,
+    required: true,
+    objectives: "",
+    contentSummary: "",
+    preReadingUrl: ""
+  });
+  // (Learning Material removed - requires classMeetingID not available here)
+
+  // Currency formatter for Vietnamese Dong
+  const formatVND = (amount?: number) => new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+    maximumFractionDigits: 0,
+  }).format(Number(amount || 0));
+
+  // Helpers to resolve labels for Live Preview
+  const getOptionLabel = (options: { label: string; value: string }[], v?: string) => {
+    if (!v) return 'Not set';
+    const found = options.find(o => String(o.value) === String(v));
+    return found?.label || 'Not set';
+  };
+  const getLabelsFromIds = (options: { label: string; value: string }[], ids: string[]) =>
+    options.filter(o => ids?.some(id => String(id) === String(o.value))).map(o => o.label);
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  // Toast helper functions
+  const showSuccessMessage = (message: string) => {
+    setToastMessage(message);
+    setShowSuccessToast(true);
+    setTimeout(() => setShowSuccessToast(false), 5000);
+  };
+
+  const showErrorMessage = (message: string) => {
+    setToastMessage(message);
+    setShowErrorToast(true);
+    setTimeout(() => setShowErrorToast(false), 5000);
+  };
 
   useEffect(() => {
     if (isEdit && id) {
@@ -96,44 +116,94 @@ export default function AddEditCoursePage() {
         name: "",
         description: "",
         level: "beginner",
-        duration: "",
-        teachers: [],
         status: "active",
         image: "",
-        price: 0,
+        price: 50000,
         maxStudents: 20,
-        startDate: "",
-        endDate: "",
         syllabus: "",
-        materials: "",
-        assignments: ""
+        courseCode: "",
+        courseLevelID: "",
+        courseFormatID: "",
+        categoryID: ""
       });
+      // Initialize other state variables for new course
+      setSyllabi([]);
+      setCourseObjectives([]);
+      setSelectedSkills([]);
+      setSelectedBenefits([]);
+      setSelectedRequirements([]);
+      setSchedules([]);
     }
   }, [isEdit, id]);
+
+  // Load lookup options (CourseLevel, CourseFormat, Skills, Benefits, Requirements, Timeslots)
+  useEffect(() => {
+    const loadLookups = async () => {
+      try {
+        const [levelsRes, formatsRes, categoriesRes, skillsRes, benefitsRes, requirementsRes, timeslotsRes] = await Promise.all([
+          getLookupsByTypeCode('CourseLevel'),
+          getLookupsByTypeCode('CourseFormat'),
+          getCourseCategories(),
+          getCourseSkills(),
+          getCourseBenefits(),
+          getCourseRequirements(),
+          getTimeslots()
+        ]);
+        const toOptions = (items: any[]) => (items || []).map((x: any) => ({ label: x.name || x.Name, value: x.lookUpId || x.LookUpId }));
+        const levelOpts = toOptions(levelsRes.data);
+        const formatOpts = toOptions(formatsRes.data);
+        const catOptions = (categoriesRes.data || []).map((c: any) => ({ label: c.name || c.Name, value: c.id || c.Id }));
+        
+        setCourseLevelOptions(levelOpts);
+        setCourseFormatOptions(formatOpts);
+        setCategoryOptions(catOptions);
+        
+        const skillOpts = (skillsRes.data || []).map((s: any) => ({ label: s.name || s.Name || s.description || 'Unnamed', value: s.lookUpId || s.LookUpId }));
+        setSkillOptions(skillOpts);
+        
+        const benefitOpts = (benefitsRes.data || []).map((b: any) => ({ label: b.name || b.Name || b.description || b.Description || 'Unnamed', value: b.lookUpId || b.LookUpId }));
+        setBenefitOptions(benefitOpts);
+        
+        const reqOpts = (requirementsRes.data || []).map((r: any) => ({ label: r.name || r.Name || r.description || r.Description || 'Unnamed', value: r.lookUpId || r.LookUpId }));
+        setRequirementOptions(reqOpts);
+        
+        // Timeslots
+        const timeslotOpts = (timeslotsRes.data || []).map((t: any) => ({ label: t.name || t.Name || t.timeSlotName || t.TimeSlotName || `${t.startTime || ''} - ${t.endTime || ''}`, value: t.id || t.Id || t.lookUpId || t.LookUpId }));
+        setTimeslotOptions(timeslotOpts);
+
+        // Set default values for new course (only if not editing)
+        if (!isEdit) {
+          setFormData(prev => ({
+            ...prev,
+            courseLevelID: levelOpts[0]?.value || '',
+            courseFormatID: formatOpts[0]?.value || '',
+            categoryID: catOptions[0]?.value || ''
+          }));
+        }
+      } catch (err) {
+        console.error('Failed to load lookup options', err);
+      }
+    };
+    loadLookups();
+  }, [isEdit]);
 
   const loadCourseData = async (_courseId: string) => {
     try {
       setIsLoading(true);
-             // Mock data - replace with actual API call
-       const mockCourseData = {
-         name: "React Fundamentals",
-         description: "Learn the basics of React development with hands-on projects",
-         level: "beginner" as const,
-         duration: "8 weeks",
-         teachers: ["Sarah Johnson", "Michael Chen"],
-         status: "active" as const,
-         image: "https://via.placeholder.com/400x200?text=Course+Image",
-         price: 12000000,
-         maxStudents: 25,
-         startDate: "2024-01-15",
-         endDate: "2024-03-15",
-         syllabus: "Week 1: Introduction to React\nWeek 2: Components and Props\nWeek 3: State and Lifecycle\nWeek 4: Event Handling\nWeek 5: Forms and Controlled Components\nWeek 6: Hooks Introduction\nWeek 7: Advanced Hooks\nWeek 8: Project Work",
-         materials: "React Documentation\nOnline Resources\nPractice Exercises\nVideo Tutorials",
-         assignments: "Assignment 1: Create a Todo App\nAssignment 2: Build a Weather Widget\nAssignment 3: Final Project - E-commerce Site"
-       };
-
-      setFormData(mockCourseData);
-      setImagePreview(mockCourseData.image || "");
+      const res = await getCourseDetail(_courseId);
+      const d = res.data;
+      setFormData(prev => ({
+        ...prev,
+        name: d.courseName || "",
+        description: d.description || "",
+        price: d.standardPrice || 0,
+        image: d.courseImageUrl || "",
+        courseCode: d.courseCode || ""
+      }));
+      setImagePreview(d.courseImageUrl || "");
+      // Suggest syllabus title when editing existing
+      const suggestedTitle = `${d.courseCode || d.courseName || ""} Syllabus`.trim();
+      setSyllabusTitle(suggestedTitle);
     } catch (error) {
       console.error("Error loading course data:", error);
     } finally {
@@ -141,7 +211,7 @@ export default function AddEditCoursePage() {
     }
   };
 
-  const handleInputChange = (field: keyof Course, value: string | number) => {
+  const handleInputChange = (field: keyof CourseFormData, value: string | number) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -156,32 +226,40 @@ export default function AddEditCoursePage() {
     }
   };
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        alert('Please select an image file');
-        return;
-      }
-
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        alert('Image size should be less than 5MB');
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setImagePreview(result);
-        setFormData(prev => ({
-          ...prev,
-          image: result
-        }));
-      };
-      reader.readAsDataURL(file);
+  const processImageFile = (file?: File | null) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
     }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size should be less than 5MB');
+      return;
+    }
+    // Show preview immediately via object URL
+    const newUrl = URL.createObjectURL(file);
+    if (imageObjectUrlRef.current) {
+      URL.revokeObjectURL(imageObjectUrlRef.current);
+    }
+    imageObjectUrlRef.current = newUrl;
+    setImagePreview(newUrl);
+
+    // Store the file for later upload
+    setImageFile(file);
+  };
+
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    processImageFile(event.target.files?.[0] || null);
+  };
+
+  const onImageDrop: React.DragEventHandler<HTMLDivElement> = (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    processImageFile(file || null);
+  };
+
+  const onImageDragOver: React.DragEventHandler<HTMLDivElement> = (e) => {
+    e.preventDefault();
   };
 
   const handleImageClick = () => {
@@ -189,7 +267,12 @@ export default function AddEditCoursePage() {
   };
 
   const removeImage = () => {
+    if (imageObjectUrlRef.current) {
+      URL.revokeObjectURL(imageObjectUrlRef.current);
+      imageObjectUrlRef.current = null;
+    }
     setImagePreview("");
+    setImageFile(null);
     setFormData(prev => ({
       ...prev,
       image: ""
@@ -199,23 +282,7 @@ export default function AddEditCoursePage() {
     }
   };
 
-  const addTeacher = (teacher: string) => {
-    if (teacher && !formData.teachers.includes(teacher)) {
-      setFormData(prev => ({
-        ...prev,
-        teachers: [...prev.teachers, teacher]
-      }));
-    }
-  };
-
-  const removeTeacher = (teacherToRemove: string) => {
-    setFormData(prev => ({
-      ...prev,
-      teachers: prev.teachers.filter(teacher => teacher !== teacherToRemove)
-    }));
-  };
-
-  const handleFileUpload = (type: 'syllabus' | 'materials' | 'assignments', event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (type: 'syllabus', event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       // Validate file type
@@ -241,14 +308,7 @@ export default function AddEditCoursePage() {
             setSyllabusFile(file);
             setFormData(prev => ({ ...prev, syllabus: content }));
             break;
-          case 'materials':
-            setMaterialsFile(file);
-            setFormData(prev => ({ ...prev, materials: content }));
-            break;
-          case 'assignments':
-            setAssignmentsFile(file);
-            setFormData(prev => ({ ...prev, assignments: content }));
-            break;
+          
         }
       };
       reader.readAsText(file);
@@ -285,17 +345,134 @@ export default function AddEditCoursePage() {
         setSyllabusUrl("");
         setFormData(prev => ({ ...prev, syllabus: "" }));
         break;
-      case 'materials':
-        setMaterialsFile(null);
-        setMaterialsUrl("");
-        setFormData(prev => ({ ...prev, materials: "" }));
-        break;
-      case 'assignments':
-        setAssignmentsFile(null);
-        setAssignmentsUrl("");
-        setFormData(prev => ({ ...prev, assignments: "" }));
-        break;
+     
     }
+  };
+
+  // Multi-syllabus helpers
+  type SyllabusItemUI = {
+    sessionNumber: number;
+    topicTitle: string;
+    totalSlots?: number;
+    required: boolean;
+    objectives: string[];
+    contentSummary?: string;
+    preReadingUrl?: string;
+  };
+
+  type SyllabusUI = {
+    title: string;
+    description: string;
+    items: SyllabusItemUI[];
+  };
+
+  const [syllabi, setSyllabi] = useState<SyllabusUI[]>([]);
+
+  // Course Objectives (for the course itself)
+  const [courseObjectives, setCourseObjectives] = useState<string[]>([]);
+  const addCourseObjective = () => setCourseObjectives(prev => [...prev, ""]);
+  const removeCourseObjective = (idx: number) => setCourseObjectives(prev => prev.filter((_, i) => i !== idx));
+  const updateCourseObjective = (idx: number, val: string) => setCourseObjectives(prev => prev.map((o, i) => i === idx ? val : o));
+
+          // Skills, Benefits, Requirements (using checkboxes to prevent duplicates)
+          const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+          const [selectedBenefits, setSelectedBenefits] = useState<string[]>([]);
+          const [selectedRequirements, setSelectedRequirements] = useState<string[]>([]);
+
+          const toggleSkill = (skillId: string) => {
+            setSelectedSkills(prev => 
+              prev.includes(skillId) 
+                ? prev.filter(id => id !== skillId)
+                : [...prev, skillId]
+            );
+          };
+
+          const toggleBenefit = (benefitId: string) => {
+            setSelectedBenefits(prev => 
+              prev.includes(benefitId) 
+                ? prev.filter(id => id !== benefitId)
+                : [...prev, benefitId]
+            );
+          };
+
+          const toggleRequirement = (requirementId: string) => {
+            setSelectedRequirements(prev => 
+              prev.includes(requirementId) 
+                ? prev.filter(id => id !== requirementId)
+                : [...prev, requirementId]
+            );
+          };
+
+  // Schedules
+  type ScheduleUI = { timeSlotID: string; dayOfWeek: number };
+  const [schedules, setSchedules] = useState<ScheduleUI[]>([]);
+  const addSchedule = () => setSchedules(prev => [...prev, { timeSlotID: "", dayOfWeek: 0 }]);
+  const removeSchedule = (idx: number) => setSchedules(prev => prev.filter((_, i) => i !== idx));
+  const updateScheduleField = (idx: number, field: keyof ScheduleUI, val: string | number) => {
+    setSchedules(prev => prev.map((s, i) => i === idx ? { ...s, [field]: val } : s));
+  };
+
+  const addSyllabus = () => {
+    setSyllabi(prev => ([...prev, { title: '', description: '', items: [] }]));
+  };
+
+  const removeSyllabus = (index: number) => {
+    setSyllabi(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateSyllabusField = (index: number, field: keyof SyllabusUI, value: string) => {
+    setSyllabi(prev => prev.map((s, i) => i === index ? { ...s, [field]: value } : s));
+  };
+
+  const addItemToSyllabus = (syllabusIndex: number) => {
+    setSyllabi(prev => prev.map((s, i) => i === syllabusIndex ? {
+      ...s,
+      items: [...s.items, { sessionNumber: (s.items.length + 1), topicTitle: '', totalSlots: undefined, required: true, objectives: [], contentSummary: '', preReadingUrl: '' }]
+    } : s));
+  };
+
+  const removeItemFromSyllabus = (syllabusIndex: number, itemIndex: number) => {
+    setSyllabi(prev => prev.map((s, i) => i === syllabusIndex ? {
+      ...s,
+      items: s.items.filter((_, j) => j !== itemIndex)
+    } : s));
+  };
+
+  const updateSyllabusItemField = (syllabusIndex: number, itemIndex: number, field: keyof SyllabusItemUI, value: string | number | boolean) => {
+    setSyllabi(prev => prev.map((s, i) => i === syllabusIndex ? {
+      ...s,
+      items: s.items.map((it, j) => j === itemIndex ? { ...it, [field]: value as any } : it)
+    } : s));
+  };
+
+  const addObjectiveToItem = (syllabusIndex: number, itemIndex: number) => {
+    setSyllabi(prev => prev.map((s, i) => i === syllabusIndex ? {
+      ...s,
+      items: s.items.map((it, j) => j === itemIndex ? { ...it, objectives: [...(it.objectives || []), ""] } : it)
+    } : s));
+  };
+
+  const updateObjectiveInItem = (syllabusIndex: number, itemIndex: number, objectiveIndex: number, value: string) => {
+    setSyllabi(prev => prev.map((s, i) => i === syllabusIndex ? {
+      ...s,
+      items: s.items.map((it, j) => {
+        if (j !== itemIndex) return it;
+        const next = [...(it.objectives || [])];
+        next[objectiveIndex] = value;
+        return { ...it, objectives: next };
+      })
+    } : s));
+  };
+
+  const removeObjectiveFromItem = (syllabusIndex: number, itemIndex: number, objectiveIndex: number) => {
+    setSyllabi(prev => prev.map((s, i) => i === syllabusIndex ? {
+      ...s,
+      items: s.items.map((it, j) => {
+        if (j !== itemIndex) return it;
+        const next = (it.objectives || []).filter((_, idx) => idx !== objectiveIndex);
+        return { ...it, objectives: next };
+      })
+    } : s));
   };
 
   const validateForm = () => {
@@ -309,25 +486,7 @@ export default function AddEditCoursePage() {
       newErrors.description = "Course description is required";
     }
 
-    if (!formData.duration) {
-      newErrors.duration = "Duration is required";
-    }
-
-    if (!formData.teachers.length) {
-      newErrors.teachers = "At least one teacher is required";
-    }
-
-    if (!formData.startDate) {
-      newErrors.startDate = "Start date is required";
-    }
-
-    if (!formData.endDate) {
-      newErrors.endDate = "End date is required";
-    }
-
-    if (formData.startDate && formData.endDate && new Date(formData.startDate) >= new Date(formData.endDate)) {
-      newErrors.endDate = "End date must be after start date";
-    }
+    // Teacher validation removed
 
     if (formData.price && formData.price < 0) {
       newErrors.price = "Price cannot be negative";
@@ -349,15 +508,189 @@ export default function AddEditCoursePage() {
     try {
       setIsLoading(true);
       
-      // Mock API call - replace with actual API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      let courseImageUrl = formData.image; // Use existing URL for edit mode
       
-      console.log("Saving course:", formData);
+      // Upload image to R2 if a new file is selected
+      if (imageFile) {
+        try {
+          // Step 1: Get presigned URL from backend
+          const uploadUrlResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/ACAD_Course/image-upload-url`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              fileName: imageFile.name,
+              contentType: imageFile.type,
+            }),
+          });
+
+          if (!uploadUrlResponse.ok) {
+            throw new Error('Failed to get upload URL');
+          }
+
+          const { uploadUrl, publicUrl } = await uploadUrlResponse.json();
+
+          // Step 2: Upload directly to R2 using presigned URL
+          const uploadResponse = await fetch(uploadUrl, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': imageFile.type,
+            },
+            body: imageFile,
+          });
+
+          if (!uploadResponse.ok) {
+            throw new Error('Failed to upload image to storage');
+          }
+
+          courseImageUrl = publicUrl;
+         } catch (error) {
+           console.error('Error uploading image:', error);
+           showErrorMessage('Failed to upload image. Please try again.');
+           setIsLoading(false);
+           return;
+         }
+      }
       
-      // Navigate back to courses list
-      navigate('/staff/courses');
+      const payload: any = {
+        courseCode: formData.courseCode,
+        courseName: formData.name,
+        courseLevelID: formData.courseLevelID,
+        courseFormatID: formData.courseFormatID,
+        courseImageUrl: courseImageUrl || undefined,
+        courseObjective: courseObjectives.filter(o => o.trim()),
+        categoryID: formData.categoryID,
+        description: formData.description,
+        standardPrice: formData.price || 0,
+                 benefitIDs: selectedBenefits,
+                 requirementIDs: selectedRequirements,
+                 skillIDs: selectedSkills,
+        schedules: schedules.filter(sc => sc.timeSlotID && sc.timeSlotID.trim()).map(sc => ({
+          timeSlotID: sc.timeSlotID,
+          dayOfWeek: Number(sc.dayOfWeek) || 0
+        }))
+      };
+
+      // Save or update course first
+      let savedCourseId = id;
+      if (isEdit && id) {
+        await updateCourse(id, { id, ...payload });
+      } else {
+        const createRes = await createCourse(payload);
+        savedCourseId = (createRes?.data?.Id || createRes?.data?.id || '').toString();
+      }
+
+      // Create multiple syllabi and their items if provided
+      const userDataStr = localStorage.getItem('userInfo');
+      const currentUserId = userDataStr ? (JSON.parse(userDataStr)?.id || JSON.parse(userDataStr)?.Id || JSON.parse(userDataStr)?.accountId || JSON.parse(userDataStr)?.AccountId) : undefined;
+
+      if (savedCourseId && currentUserId) {
+        try {
+          // If no syllabi provided via new UI, fallback to single from formData.syllabus
+          const list = syllabi && syllabi.length ? syllabi : (formData.syllabus ? [{ 
+            title: `${formData.courseCode || formData.name} Syllabus`, 
+            description: formData.syllabus, 
+            items: [{
+              sessionNumber: 1,
+              topicTitle: 'Course Overview',
+              totalSlots: 1,
+              required: true,
+              objectives: ['Understand course objectives', 'Get familiar with course structure'],
+              contentSummary: 'Introduction to the course and overview of topics',
+              preReadingUrl: ''
+            }]
+          }] : []);
+
+          // If no syllabi are provided, create a default one with a default item
+          if (list.length === 0) {
+            const defaultSyllabus = {
+              title: `${formData.courseCode || formData.name || 'Course'} Syllabus`,
+              description: formData.description || 'Course syllabus',
+              items: [{
+                sessionNumber: 1,
+                topicTitle: 'Course Overview',
+                totalSlots: 1,
+                required: true,
+                objectives: ['Understand course objectives', 'Get familiar with course structure'],
+                contentSummary: 'Introduction to the course and overview of topics',
+                preReadingUrl: ''
+              }]
+            };
+            list.push(defaultSyllabus);
+          }
+
+          let syllabusCount = 0;
+          let itemCount = 0;
+
+          for (const s of list) {
+            try {
+              const syllabusPayload = {
+                courseID: savedCourseId,
+                title: s.title || `${formData.courseCode || formData.name} Syllabus`,
+                description: s.description || '',
+                createdBy: currentUserId,
+              };
+
+              const createSyllabusRes = await createSyllabus(syllabusPayload);
+
+              // Handle the response structure from our new API
+              const syllabusId = createSyllabusRes?.data?.syllabusID || createSyllabusRes?.data?.SyllabusID || createSyllabusRes?.data?.id || createSyllabusRes?.data?.Id;
+              if (!syllabusId) {
+                continue;
+              }
+
+              syllabusCount++;
+
+              // Create items if any
+              if (s.items && s.items.length > 0) {
+                for (const it of s.items) {
+                  try {
+                    await createSyllabusItem({
+                      syllabusID: syllabusId,
+                      sessionNumber: Number(it.sessionNumber) || 1,
+                      topicTitle: it.topicTitle || 'Overview',
+                      totalSlots: it.totalSlots,
+                      required: !!it.required,
+                      objectives: (it.objectives && it.objectives.length) ? it.objectives.join('\n') : undefined,
+                      contentSummary: it.contentSummary || undefined,
+                      preReadingUrl: it.preReadingUrl || undefined,
+                      createdBy: currentUserId,
+                    });
+                    itemCount++;
+                  } catch (itemError: any) {
+                    console.error('Failed to create syllabus item:', itemError);
+                    // Continue with other items even if one fails
+                  }
+                }
+              }
+            } catch (syllabusError) {
+              console.error('Failed to create syllabus:', syllabusError);
+              // Continue with other syllabi even if one fails
+            }
+          }
+        } catch (e) {
+          // Non-blocking: log and continue navigation
+          console.error('Failed to create syllabus or item', e);
+        }
+      }
+
+      // Learning material creation removed (requires classMeetingID)
+
+      // Show success message
+      if (isEdit) {
+        showSuccessMessage("Course updated successfully!");
+      } else {
+        showSuccessMessage("Course created successfully!");
+      }
+
+      // Navigate after a short delay to allow toast to be seen
+      setTimeout(() => {
+        navigate('/staff/courses');
+      }, 1000);
     } catch (error) {
       console.error("Error saving course:", error);
+      showErrorMessage(isEdit ? "Failed to update course. Please try again." : "Failed to create course. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -372,19 +705,15 @@ export default function AddEditCoursePage() {
       formData.name,
       formData.description,
       formData.level,
-      formData.duration,
-      formData.teachers.length > 0,
-      formData.startDate,
-      formData.endDate
+      true
     ];
     
     const optionalFields = [
       formData.image || imagePreview,
       formData.price,
       formData.maxStudents,
-      formData.syllabus || syllabusFile || syllabusUrl,
-      formData.materials || materialsFile || materialsUrl,
-      formData.assignments || assignmentsFile || assignmentsUrl
+      formData.syllabus || syllabusFile || syllabusUrl
+     
     ];
     
     const completedRequired = requiredFields.filter(Boolean).length;
@@ -412,6 +741,50 @@ export default function AddEditCoursePage() {
 
   return (
     <div className="pt-20 pb-6 space-y-8">
+      {/* Success Toast */}
+      {showSuccessToast && (
+        <div className="fixed top-4 right-4 z-50">
+          <div className="flex items-start gap-3 p-4 rounded-lg border border-green-200 bg-green-50 text-green-800 shadow-lg min-w-[280px]">
+            <div className="w-6 h-6 mt-0.5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+              <CheckCircle className="w-4 h-4 text-green-600" />
+            </div>
+            <div className="flex-1">
+              <p className="font-medium">Success</p>
+              <p className="text-sm">{toastMessage}</p>
+            </div>
+            <button
+              onClick={() => setShowSuccessToast(false)}
+              className="ml-2 text-green-700 hover:text-green-900"
+              aria-label="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Error Toast */}
+      {showErrorToast && (
+        <div className="fixed top-4 right-4 z-50">
+          <div className="flex items-start gap-3 p-4 rounded-lg border border-red-200 bg-red-50 text-red-800 shadow-lg min-w-[280px]">
+            <div className="w-6 h-6 mt-0.5 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+              <AlertCircle className="w-4 h-4 text-red-600" />
+            </div>
+            <div className="flex-1">
+              <p className="font-medium">Error</p>
+              <p className="text-sm">{toastMessage}</p>
+            </div>
+            <button
+              onClick={() => setShowErrorToast(false)}
+              className="ml-2 text-red-700 hover:text-red-900"
+              aria-label="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Enhanced Page Header */}
       <PageHeader
         title={isEdit ? "Edit Course" : "Create New Course"}
@@ -449,13 +822,13 @@ export default function AddEditCoursePage() {
               }
               Basic Info
             </div>
-            <div className="flex items-center gap-1">
-              {formData.teachers.length > 0 && formData.startDate && formData.endDate ? 
-                <CheckCircle className="w-3 h-3 text-green-500" /> : 
-                <AlertCircle className="w-3 h-3 text-amber-500" />
-              }
-              Schedule & Staff
-            </div>
+             <div className="flex items-center gap-1">
+               {formData.categoryID ? 
+                 <CheckCircle className="w-3 h-3 text-green-500" /> : 
+                 <AlertCircle className="w-3 h-3 text-amber-500" />
+               }
+               Category
+             </div>
             <div className="flex items-center gap-1">
               {(formData.syllabus || syllabusFile || syllabusUrl) ? 
                 <CheckCircle className="w-3 h-3 text-green-500" /> : 
@@ -482,20 +855,19 @@ export default function AddEditCoursePage() {
                 <div className="flex flex-col lg:flex-row items-start gap-6">
                   <div className="relative group">
                     <div 
-                      className="w-48 h-32 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-primary-400 hover:bg-gradient-to-br hover:from-blue-100 hover:to-indigo-200 transition-all duration-300 group-hover:scale-105"
+                      className={`w-48 h-32 rounded-xl border-2 ${imagePreview ? 'border-solid border-gray-300' : 'border-dashed border-gray-300 bg-gradient-to-br from-blue-50 to-indigo-100'} cursor-pointer hover:border-primary-400 ${!imagePreview ? 'hover:bg-gradient-to-br hover:from-blue-100 hover:to-indigo-200 flex items-center justify-center' : 'relative'} transition-all duration-300 group-hover:scale-105 overflow-hidden z-10`}
                       onClick={handleImageClick}
+                      onDrop={onImageDrop}
+                      onDragOver={onImageDragOver}
                     >
                       {imagePreview ? (
-                        <div className="relative w-full h-full">
+                        <>
                           <img 
                             src={imagePreview} 
                             alt="Course preview" 
-                            className="w-full h-full object-cover rounded-xl"
+                            className="absolute inset-0 w-full h-full object-cover"
                           />
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-xl transition-all duration-300 flex items-center justify-center">
-                            <Camera className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                          </div>
-                        </div>
+                        </>
                       ) : (
                         <div className="text-center">
                           <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -551,7 +923,7 @@ export default function AddEditCoursePage() {
                             size="sm"
                             onClick={removeImage}
                             iconLeft={<Trash2 className="w-4 h-4" />}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="!bg-red-500 text-white hover:text-white hover:!bg-red-600"
                           >
                             Remove
                           </Button>
@@ -572,9 +944,19 @@ export default function AddEditCoursePage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Course Name *
-                    </label>
+                    <Label required>
+                      Course Code
+                    </Label>
+                    <Input
+                      value={formData.courseCode || ''}
+                      onChange={(e) => handleInputChange('courseCode', e.target.value)}
+                      placeholder="Enter course code"
+                    />
+                  </div>
+                  <div>
+                    <Label required>
+                      Course Name
+                    </Label>
                     <Input
                       value={formData.name}
                       onChange={(e) => handleInputChange('name', e.target.value)}
@@ -584,84 +966,38 @@ export default function AddEditCoursePage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Level *
-                    </label>
+                    <Label required>
+                      Level
+                    </Label>
                     <Select
-                      value={formData.level}
-                      onChange={(e) => handleInputChange('level', e.target.value)}
-                      options={levelOptions}
-                      error={errors.level}
+                      value={formData.courseLevelID || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, courseLevelID: e.target.value }))}
+                      options={courseLevelOptions}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Duration *
-                    </label>
+                    <Label required>
+                      Course Format
+                    </Label>
                     <Select
-                      value={formData.duration}
-                      onChange={(e) => handleInputChange('duration', e.target.value)}
-                      options={durationOptions.map(d => ({ label: d, value: d }))}
-                      error={errors.duration}
+                      value={formData.courseFormatID || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, courseFormatID: e.target.value }))}
+                      options={courseFormatOptions}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Teachers *
-                    </label>
-                    <div className="space-y-3">
-                                             <Select
-                         value=""
-                         onChange={(e) => addTeacher(e.target.value)}
-                         options={teacherOptions.map(t => ({ label: t, value: t }))}
-                       />
-                      {formData.teachers.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {formData.teachers.map((teacher, index) => (
-                            <div key={index} className="flex items-center gap-2 bg-blue-100 text-blue-700 px-3 py-1 rounded-full">
-                              <span className="text-sm">{teacher}</span>
-                              <button
-                                type="button"
-                                onClick={() => removeTeacher(teacher)}
-                                className="text-blue-500 hover:text-blue-700"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {errors.teachers && (
-                        <p className="text-sm text-red-600">{errors.teachers}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Start Date *
-                    </label>
-                    <Input
-                      type="date"
-                      value={formData.startDate}
-                      onChange={(e) => handleInputChange('startDate', e.target.value)}
-                      error={errors.startDate}
+                    <Label required>
+                      Category
+                    </Label>
+                    <Select
+                      value={formData.categoryID || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, categoryID: e.target.value }))}
+                      options={categoryOptions}
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      End Date *
-                    </label>
-                    <Input
-                      type="date"
-                      value={formData.endDate}
-                      onChange={(e) => handleInputChange('endDate', e.target.value)}
-                      error={errors.endDate}
-                    />
-                  </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -673,33 +1009,22 @@ export default function AddEditCoursePage() {
                       onChange={(e) => handleInputChange('price', Number(e.target.value))}
                       placeholder="Enter course price"
                       error={errors.price}
+                      min={50000}
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Maximum Students
-                    </label>
-                    <Input
-                      type="number"
-                      value={formData.maxStudents}
-                      onChange={(e) => handleInputChange('maxStudents', Number(e.target.value))}
-                      placeholder="Enter max students"
-                      error={errors.maxStudents}
-                    />
-                  </div>
                 </div>
 
-                                 <div className="mt-6">
-                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                     Course Description *
-                   </label>
+                <div className="mt-6">
+                  <Label required>
+                    Course Description
+                  </Label>
                    <textarea
                      value={formData.description}
                      onChange={(e) => handleInputChange('description', e.target.value)}
                      placeholder="Enter detailed course description..."
                      rows={4}
-                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 ${
                        errors.description ? 'border-red-500' : 'border-gray-300'
                      }`}
                    />
@@ -707,6 +1032,340 @@ export default function AddEditCoursePage() {
                      <p className="mt-1 text-sm text-red-600">{errors.description}</p>
                    )}
                  </div>
+
+                          {/* Course Objectives */}
+                          <div className="mt-8">
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                                  <Target className="w-4 h-4 text-white" />
+                                </div>
+                                <div>
+                                  <h3 className="text-lg font-semibold text-gray-800">Course Objectives</h3>
+                                  <p className="text-sm text-gray-500">Define what students will achieve</p>
+                                </div>
+                              </div>
+                              <Button 
+                                size="sm" 
+                                onClick={addCourseObjective}
+                                className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white border-0"
+                                iconLeft={<PlusCircle className="w-4 h-4" />}
+                              >
+                                Add Objective
+                              </Button>
+                            </div>
+                            
+                            {courseObjectives.length === 0 && (
+                              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 text-center">
+                                <Target className="w-12 h-12 text-blue-400 mx-auto mb-3" />
+                                <p className="text-gray-600 font-medium">No objectives defined yet</p>
+                                <p className="text-sm text-gray-500 mt-1">Add clear, measurable objectives to help students understand course outcomes</p>
+                              </div>
+                            )}
+                            
+                            <div className="space-y-3">
+                              {courseObjectives.map((obj, idx) => (
+                                <div key={idx} className="group bg-white border border-gray-200 rounded-xl p-4 hover:border-blue-300 hover:shadow-md transition-all duration-200">
+                                  <div className="flex items-start gap-3">
+                                    <div className="w-6 h-6 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mt-1 flex-shrink-0">
+                                      <span className="text-xs font-semibold text-blue-600">{idx + 1}</span>
+                                    </div>
+                                    <div className="flex-1">
+                                      <Input 
+                                        value={obj} 
+                                        onChange={(e) => updateCourseObjective(idx, e.target.value)} 
+                                        placeholder={`Objective #${idx + 1} - What will students learn?`}
+                                        className="border-0 bg-transparent p-0 text-gray-700 placeholder-gray-400 focus:ring-0"
+                                      />
+                                    </div>
+                                    <Button 
+                                      size="sm" 
+                                      variant="secondary" 
+                                      className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                                      onClick={() => removeCourseObjective(idx)}
+                                      iconLeft={<Trash2 className="w-3 h-3" />}
+                                    >
+                                      Remove
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Skills */}
+                          <div className="mt-8">
+                            <div className="flex items-center gap-3 mb-4">
+                              <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
+                                <Zap className="w-4 h-4 text-white" />
+                              </div>
+                              <div>
+                                <h3 className="text-lg font-semibold text-gray-800">Skills</h3>
+                                <p className="text-sm text-gray-500">Select skills students will develop</p>
+                              </div>
+                            </div>
+                            
+                            {skillOptions.length === 0 && (
+                              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6 text-center">
+                                <Zap className="w-12 h-12 text-green-400 mx-auto mb-3" />
+                                <p className="text-gray-600 font-medium">No skills available</p>
+                                <p className="text-sm text-gray-500 mt-1">Skills will appear here once loaded from the system</p>
+                              </div>
+                            )}
+                            
+                            {skillOptions.length > 0 && (
+                              <div className="bg-white border border-gray-200 rounded-xl p-4">
+                                <div className="max-h-[180px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pr-2">
+                                  {skillOptions.map((skill) => (
+                                    <label key={skill.value} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-green-300 hover:bg-green-50 cursor-pointer transition-all duration-200 group">
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedSkills.includes(skill.value)}
+                                        onChange={() => toggleSkill(skill.value)}
+                                        className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                                      />
+                                      <span className="text-sm font-medium text-gray-700 group-hover:text-green-700">{skill.label}</span>
+                                    </label>
+                                  ))}
+                                  </div>
+                                </div>
+                                {selectedSkills.length > 0 && (
+                                  <div className="mt-4 pt-4 border-t border-gray-200">
+                                    <p className="text-sm text-gray-600 mb-2">Selected skills ({selectedSkills.length}):</p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {selectedSkills.map((skillId) => {
+                                        const skill = skillOptions.find(s => s.value === skillId);
+                                        return (
+                                          <span key={skillId} className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+                                            {skill?.label}
+                                            <button
+                                              type="button"
+                                              onClick={() => toggleSkill(skillId)}
+                                              className="ml-1 text-green-600 hover:text-green-800"
+                                            >
+                                              ×
+                                            </button>
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Benefits */}
+                          <div className="mt-8">
+                            <div className="flex items-center gap-3 mb-4">
+                              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-violet-600 rounded-lg flex items-center justify-center">
+                                <Gift className="w-4 h-4 text-white" />
+                              </div>
+                              <div>
+                                <h3 className="text-lg font-semibold text-gray-800">Benefits</h3>
+                                <p className="text-sm text-gray-500">Highlight course advantages</p>
+                              </div>
+                            </div>
+                            
+                            {benefitOptions.length === 0 && (
+                              <div className="bg-gradient-to-r from-purple-50 to-violet-50 border border-purple-200 rounded-xl p-6 text-center">
+                                <Gift className="w-12 h-12 text-purple-400 mx-auto mb-3" />
+                                <p className="text-gray-600 font-medium">No benefits available</p>
+                                <p className="text-sm text-gray-500 mt-1">Benefits will appear here once loaded from the system</p>
+                              </div>
+                            )}
+                            
+                            {benefitOptions.length > 0 && (
+                              <div className="bg-white border border-gray-200 rounded-xl p-4">
+                                <div className="max-h-[180px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pr-2">
+                                  {benefitOptions.map((benefit) => (
+                                    <label key={benefit.value} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-purple-300 hover:bg-purple-50 cursor-pointer transition-all duration-200 group">
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedBenefits.includes(benefit.value)}
+                                        onChange={() => toggleBenefit(benefit.value)}
+                                        className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                                      />
+                                      <span className="text-sm font-medium text-gray-700 group-hover:text-purple-700">{benefit.label}</span>
+                                    </label>
+                                  ))}
+                                  </div>
+                                </div>
+                                {selectedBenefits.length > 0 && (
+                                  <div className="mt-4 pt-4 border-t border-gray-200">
+                                    <p className="text-sm text-gray-600 mb-2">Selected benefits ({selectedBenefits.length}):</p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {selectedBenefits.map((benefitId) => {
+                                        const benefit = benefitOptions.find(b => b.value === benefitId);
+                                        return (
+                                          <span key={benefitId} className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
+                                            {benefit?.label}
+                                            <button
+                                              type="button"
+                                              onClick={() => toggleBenefit(benefitId)}
+                                              className="ml-1 text-purple-600 hover:text-purple-800"
+                                            >
+                                              ×
+                                            </button>
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Requirements */}
+                          <div className="mt-8">
+                            <div className="flex items-center gap-3 mb-4">
+                              <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
+                                <CheckCircle className="w-4 h-4 text-white" />
+                              </div>
+                              <div>
+                                <h3 className="text-lg font-semibold text-gray-800">Requirements</h3>
+                                <p className="text-sm text-gray-500">Prerequisites for enrollment</p>
+                              </div>
+                            </div>
+                            
+                            {requirementOptions.length === 0 && (
+                              <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-xl p-6 text-center">
+                                <CheckCircle className="w-12 h-12 text-orange-400 mx-auto mb-3" />
+                                <p className="text-gray-600 font-medium">No requirements available</p>
+                                <p className="text-sm text-gray-500 mt-1">Requirements will appear here once loaded from the system</p>
+                              </div>
+                            )}
+                            
+                            {requirementOptions.length > 0 && (
+                              <div className="bg-white border border-gray-200 rounded-xl p-4">
+                                <div className="max-h-[180px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pr-2">
+                                  {requirementOptions.map((requirement) => (
+                                    <label key={requirement.value} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-orange-300 hover:bg-orange-50 cursor-pointer transition-all duration-200 group">
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedRequirements.includes(requirement.value)}
+                                        onChange={() => toggleRequirement(requirement.value)}
+                                        className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                                      />
+                                      <span className="text-sm font-medium text-gray-700 group-hover:text-orange-700">{requirement.label}</span>
+                                    </label>
+                                  ))}
+                                  </div>
+                                </div>
+                                {selectedRequirements.length > 0 && (
+                                  <div className="mt-4 pt-4 border-t border-gray-200">
+                                    <p className="text-sm text-gray-600 mb-2">Selected requirements ({selectedRequirements.length}):</p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {selectedRequirements.map((requirementId) => {
+                                        const requirement = requirementOptions.find(r => r.value === requirementId);
+                                        return (
+                                          <span key={requirementId} className="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-700 text-xs rounded-full font-medium">
+                                            {requirement?.label}
+                                            <button
+                                              type="button"
+                                              onClick={() => toggleRequirement(requirementId)}
+                                              className="ml-1 text-orange-600 hover:text-orange-800"
+                                            >
+                                              ×
+                                            </button>
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Schedules */}
+                          <div className="mt-8">
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-lg flex items-center justify-center">
+                                  <Calendar className="w-4 h-4 text-white" />
+                                </div>
+                                <div>
+                                  <h3 className="text-lg font-semibold text-gray-800">Schedules</h3>
+                                  <p className="text-sm text-gray-500">Define class timing and days</p>
+                                </div>
+                              </div>
+                              <Button 
+                                size="sm" 
+                                onClick={addSchedule}
+                                className="bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white border-0"
+                                iconLeft={<PlusCircle className="w-4 h-4" />}
+                              >
+                                Add Schedule
+                              </Button>
+                            </div>
+                            
+                            {schedules.length === 0 && (
+                              <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-6 text-center">
+                                <Calendar className="w-12 h-12 text-indigo-400 mx-auto mb-3" />
+                                <p className="text-gray-600 font-medium">No schedules defined</p>
+                                <p className="text-sm text-gray-500 mt-1">Set up class times and days for better organization</p>
+                              </div>
+                            )}
+                            
+                            <div className="space-y-4">
+                              {schedules.map((sch, idx) => (
+                                <div key={idx} className="group bg-white border border-gray-200 rounded-xl p-5 hover:border-indigo-300 hover:shadow-md transition-all duration-200">
+                                  <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-8 h-8 bg-gradient-to-br from-indigo-100 to-blue-100 rounded-lg flex items-center justify-center">
+                                        <span className="text-sm font-semibold text-indigo-600">{idx + 1}</span>
+                                      </div>
+                                      <h4 className="font-medium text-gray-700">Schedule #{idx + 1}</h4>
+                                    </div>
+                                    <Button 
+                                      size="sm" 
+                                      variant="secondary" 
+                                      className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                                      onClick={() => removeSchedule(idx)}
+                                      iconLeft={<Trash2 className="w-3 h-3" />}
+                                    >
+                                      Remove
+                                    </Button>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                      <Label className="text-sm font-medium text-gray-600 mb-2">Time Slot</Label>
+                                      <Select 
+                                        value={sch.timeSlotID} 
+                                        onChange={(e) => updateScheduleField(idx, 'timeSlotID', e.target.value)} 
+                                        options={timeslotOptions}
+                                        className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label className="text-sm font-medium text-gray-600 mb-2">Day of Week</Label>
+                                      <Select 
+                                        value={String(sch.dayOfWeek)} 
+                                        onChange={(e) => updateScheduleField(idx, 'dayOfWeek', Number(e.target.value))} 
+                                        options={[
+                                          { label: 'Sunday', value: '0' },
+                                          { label: 'Monday', value: '1' },
+                                          { label: 'Tuesday', value: '2' },
+                                          { label: 'Wednesday', value: '3' },
+                                          { label: 'Thursday', value: '4' },
+                                          { label: 'Friday', value: '5' },
+                                          { label: 'Saturday', value: '6' }
+                                        ]}
+                                        className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
                </div>
              </Card>
              {/* Course Content */}
@@ -717,184 +1376,99 @@ export default function AddEditCoursePage() {
                   <h2 className="text-xl font-semibold"> Course Content & Materials</h2>
                 </div>
                   <div className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Syllabus
-                      </label>
-                      <div className="space-y-3">
-                        <textarea
-                          value={formData.syllabus}
-                          onChange={(e) => handleInputChange('syllabus', e.target.value)}
-                          placeholder="Enter course syllabus (weekly breakdown)..."
-                          rows={6}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                        />
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="file"
-                            accept=".pdf,.xlsx,.xls,.txt"
-                            onChange={(e) => handleFileUpload('syllabus', e)}
-                            className="hidden"
-                            id="syllabus-file"
-                          />
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => document.getElementById('syllabus-file')?.click()}
-                            iconLeft={<FileText className="w-4 h-4" />}
-                          >
-                            Upload File
-                          </Button>
-                          <div className="flex items-center gap-2">
-                            <LinkIcon className="w-4 h-4 text-gray-400" />
-                            <Input
-                              type="url"
-                              placeholder="Or enter URL"
-                              value={syllabusUrl}
-                              onChange={(e) => handleUrlInput('syllabus', e.target.value)}
-                              className="w-64"
-                            />
-                          </div>
-                          {(syllabusFile || syllabusUrl) && (
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => removeFile('syllabus')}
-                              iconLeft={<Trash2 className="w-4 h-4" />}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              Clear
-                            </Button>
-                          )}
-                        </div>
-                        {syllabusFile && (
-                          <p className="text-xs text-green-600">✓ File uploaded: {syllabusFile.name}</p>
-                        )}
-                        {syllabusUrl && (
-                          <p className="text-xs text-green-600">✓ URL added: {syllabusUrl}</p>
-                        )}
-                        <p className="text-xs text-gray-500">Enter weekly topics and learning objectives, or upload PDF/Excel file, or provide URL</p>
+                    {/* Multiple Syllabi & Items */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-semibold text-gray-800">Syllabi</h4>
+                        <Button size="sm" variant="secondary" onClick={addSyllabus}>Add Syllabus</Button>
                       </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Course Materials
-                      </label>
-                      <div className="space-y-3">
-                        <textarea
-                          value={formData.materials}
-                          onChange={(e) => handleInputChange('materials', e.target.value)}
-                          placeholder="List required materials, textbooks, resources..."
-                          rows={4}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                        />
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="file"
-                            accept=".pdf,.xlsx,.xls,.txt"
-                            onChange={(e) => handleFileUpload('materials', e)}
-                            className="hidden"
-                            id="materials-file"
-                          />
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => document.getElementById('materials-file')?.click()}
-                            iconLeft={<FileText className="w-4 h-4" />}
-                          >
-                            Upload File
-                          </Button>
-                          <div className="flex items-center gap-2">
-                            <LinkIcon className="w-4 h-4 text-gray-400" />
-                            <Input
-                              type="url"
-                              placeholder="Or enter URL"
-                              value={materialsUrl}
-                              onChange={(e) => handleUrlInput('materials', e.target.value)}
-                              className="w-64"
-                            />
+                      {syllabi.length === 0 && (
+                        <p className="text-xs text-gray-500">No syllabus added yet. Add one or keep the description only.</p>
+                      )}
+                      {syllabi.map((s, sIdx) => (
+                        <div key={sIdx} className="border rounded-md p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h5 className="font-medium">Syllabus #{sIdx + 1}</h5>
+                            <Button size="sm" variant="secondary" className="text-red-600 hover:text-red-700" onClick={() => removeSyllabus(sIdx)}>Remove</Button>
                           </div>
-                          {(materialsFile || materialsUrl) && (
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => removeFile('materials')}
-                              iconLeft={<Trash2 className="w-4 h-4" />}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              Clear
-                            </Button>
-                          )}
-                        </div>
-                        {materialsFile && (
-                          <p className="text-xs text-green-600">✓ File uploaded: {materialsFile.name}</p>
-                        )}
-                        {materialsUrl && (
-                          <p className="text-xs text-green-600">✓ URL added: {materialsUrl}</p>
-                        )}
-                        <p className="text-xs text-gray-500">List textbooks, online resources, and required materials, or upload file, or provide URL</p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Assignments & Projects
-                      </label>
-                      <div className="space-y-3">
-                        <textarea
-                          value={formData.assignments}
-                          onChange={(e) => handleInputChange('assignments', e.target.value)}
-                          placeholder="Describe assignments, projects, and assessments..."
-                          rows={4}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                        />
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="file"
-                            accept=".pdf,.xlsx,.xls,.txt"
-                            onChange={(e) => handleFileUpload('assignments', e)}
-                            className="hidden"
-                            id="assignments-file"
-                          />
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => document.getElementById('assignments-file')?.click()}
-                            iconLeft={<FileText className="w-4 h-4" />}
-                          >
-                            Upload File
-                          </Button>
-                          <div className="flex items-center gap-2">
-                            <LinkIcon className="w-4 h-4 text-gray-400" />
-                            <Input
-                              type="url"
-                              placeholder="Or enter URL"
-                              value={assignmentsUrl}
-                              onChange={(e) => handleUrlInput('assignments', e.target.value)}
-                              className="w-64"
-                            />
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label>Title</Label>
+                              <Input value={s.title} onChange={(e) => updateSyllabusField(sIdx, 'title', e.target.value)} placeholder="e.g., IELTS Writing Syllabus" />
+                            </div>
+                            <div className="md:col-span-2">
+                              <Label>Description</Label>
+                              <textarea
+                                value={s.description}
+                                onChange={(e) => updateSyllabusField(sIdx, 'description', e.target.value)}
+                                rows={3}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500"
+                                placeholder="High-level description"
+                              />
+                            </div>
                           </div>
-                          {(assignmentsFile || assignmentsUrl) && (
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => removeFile('assignments')}
-                              iconLeft={<Trash2 className="w-4 h-4" />}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              Clear
-                            </Button>
+                          <div className="flex items-center justify-between mt-2">
+                            <h6 className="text-sm font-semibold">Items</h6>
+                            <Button size="sm" variant="secondary" onClick={() => addItemToSyllabus(sIdx)}>Add Item</Button>
+                          </div>
+                          {s.items.length === 0 && (
+                            <p className="text-xs text-gray-500">No items yet. Add items or leave empty.</p>
                           )}
+                          <div className="space-y-3">
+                            {s.items.map((it, iIdx) => (
+                              <div key={iIdx} className="border rounded p-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <Label>Session Number</Label>
+                                  <Input type="number" min={1} value={it.sessionNumber} onChange={(e) => updateSyllabusItemField(sIdx, iIdx, 'sessionNumber', Number(e.target.value))} />
+                                </div>
+                                <div>
+                                  <Label>Topic Title</Label>
+                                  <Input value={it.topicTitle} onChange={(e) => updateSyllabusItemField(sIdx, iIdx, 'topicTitle', e.target.value)} />
+                                </div>
+                                <div>
+                                  <Label>Total Slots</Label>
+                                  <Input type="number" min={1} value={it.totalSlots ?? ''} onChange={(e) => updateSyllabusItemField(sIdx, iIdx, 'totalSlots', e.target.value ? Number(e.target.value) : 0)} />
+                                </div>
+                                <div className="flex items-end">
+                                  <label className="inline-flex items-center gap-2">
+                                    <input type="checkbox" checked={it.required} onChange={(e) => updateSyllabusItemField(sIdx, iIdx, 'required', e.target.checked)} />
+                                    <span className="text-sm">Required</span>
+                                  </label>
+                                </div>
+                                <div className="md:col-span-2 space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <Label>Objectives</Label>
+                                    <Button size="sm" variant="secondary" onClick={() => addObjectiveToItem(sIdx, iIdx)}>Add Objective</Button>
+                                  </div>
+                                  {(it.objectives && it.objectives.length > 0) ? (
+                                    <div className="space-y-2">
+                                      {it.objectives.map((obj, oIdx) => (
+                                        <div key={oIdx} className="flex items-center gap-2">
+                                          <Input className="flex-1" value={obj} onChange={(e) => updateObjectiveInItem(sIdx, iIdx, oIdx, e.target.value)} placeholder={`Objective #${oIdx + 1}`} />
+                                          <Button size="sm" variant="secondary" className="text-red-600 hover:text-red-700" onClick={() => removeObjectiveFromItem(sIdx, iIdx, oIdx)}>Remove</Button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="text-xs text-gray-500">No objectives. Add one.</p>
+                                  )}
+                                </div>
+                                <div className="md:col-span-2">
+                                  <Label>Content Summary</Label>
+                                  <textarea rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500" value={it.contentSummary} onChange={(e) => updateSyllabusItemField(sIdx, iIdx, 'contentSummary', e.target.value)} />
+                                </div>
+                                <div className="md:col-span-2">
+                                  <Label>Pre-reading URL</Label>
+                                  <Input type="url" value={it.preReadingUrl} onChange={(e) => updateSyllabusItemField(sIdx, iIdx, 'preReadingUrl', e.target.value)} />
+                                </div>
+                                <div className="md:col-span-2">
+                                  <Button size="sm" variant="secondary" className="text-red-600 hover:text-red-700" onClick={() => removeItemFromSyllabus(sIdx, iIdx)}>Remove Item</Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                        {assignmentsFile && (
-                          <p className="text-xs text-green-600">✓ File uploaded: {assignmentsFile.name}</p>
-                        )}
-                        {assignmentsUrl && (
-                          <p className="text-xs text-green-600">✓ URL added: {assignmentsUrl}</p>
-                        )}
-                        <p className="text-xs text-gray-500">List homework assignments, projects, and assessment methods, or upload file, or provide URL</p>
-                      </div>
+                      ))}
                     </div>
                   </div>
               </div>
@@ -946,7 +1520,7 @@ export default function AddEditCoursePage() {
                 </div>
                 <div className="space-y-4 text-sm">
                   <div className="flex items-start gap-3">
-                    <BookOpen className="w-4 h-4 text-indigo-500 mt-0.5" />
+                    <BookOpen className="w-4 h-4 text-indigo-500 mt-1" />
                     <div>
                       <span className="text-gray-500 text-xs uppercase tracking-wide">Course Name</span>
                       <p className="font-semibold text-gray-800">{formData.name || 'Not set'}</p>
@@ -954,73 +1528,45 @@ export default function AddEditCoursePage() {
                   </div>
                   
                   <div className="flex items-start gap-3">
-                    <AlertCircle className="w-4 h-4 text-green-500 mt-0.5" />
+                    <AlertCircle className="w-4 h-4 text-green-500 mt-1" />
                     <div>
                       <span className="text-gray-500 text-xs uppercase tracking-wide">Level</span>
                       <p className="font-semibold text-gray-800 capitalize">{formData.level || 'Not set'}</p>
                     </div>
                   </div>
                   
-                  <div className="flex items-start gap-3">
-                    <Clock className="w-4 h-4 text-blue-500 mt-0.5" />
-                    <div>
-                      <span className="text-gray-500 text-xs uppercase tracking-wide">Duration</span>
-                      <p className="font-semibold text-gray-800">{formData.duration || 'Not set'}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3">
-                    <Users className="w-4 h-4 text-purple-500 mt-0.5" />
-                    <div>
-                      <span className="text-gray-500 text-xs uppercase tracking-wide">Teachers</span>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {formData.teachers.length > 0 ? (
-                          formData.teachers.map((teacher, index) => (
-                            <span key={index} className="inline-flex px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
-                              {teacher}
-                            </span>
-                          ))
-                        ) : (
-                          <p className="font-medium text-gray-400">Not assigned</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  
                   {formData.price && (
                     <div className="flex items-start gap-3">
-                      <DollarSign className="w-4 h-4 text-green-500 mt-0.5" />
+                      <DollarSign className="w-4 h-4 text-green-500 mt-1" />
                       <div>
                         <span className="text-gray-500 text-xs uppercase tracking-wide">Price</span>
-                        <p className="font-semibold text-gray-800">{formData.price.toLocaleString()} VND</p>
+                        <p className="font-semibold text-gray-800">{formatVND(formData.price)}</p>
                       </div>
                     </div>
                   )}
+
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-4 h-4 text-blue-500 mt-1" />
+                    <div>
+                      <span className="text-gray-500 text-xs uppercase tracking-wide">Category</span>
+                      <p className="font-semibold text-gray-800">{getOptionLabel(categoryOptions, formData.categoryID)}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <Clock className="w-4 h-4 text-indigo-500 mt-1" />
+                    <div>
+                      <span className="text-gray-500 text-xs uppercase tracking-wide">Format</span>
+                      <p className="font-semibold text-gray-800">{getOptionLabel(courseFormatOptions, formData.courseFormatID)}</p>
+                    </div>
+                  </div>
                   
-                  {(formData.startDate || formData.endDate) && (
-                    <div className="flex items-start gap-3">
-                      <Calendar className="w-4 h-4 text-orange-500 mt-0.5" />
-                      <div>
-                        <span className="text-gray-500 text-xs uppercase tracking-wide">Schedule</span>
-                        <p className="font-semibold text-gray-800">
-                          {formData.startDate && formData.endDate 
-                            ? `${new Date(formData.startDate).toLocaleDateString()} - ${new Date(formData.endDate).toLocaleDateString()}`
-                            : formData.startDate 
-                            ? `Starts: ${new Date(formData.startDate).toLocaleDateString()}`
-                            : formData.endDate 
-                            ? `Ends: ${new Date(formData.endDate).toLocaleDateString()}`
-                            : 'Not scheduled'
-                          }
-                        </p>
-                      </div>
-                    </div>
-                  )}
                   
                   <div className="flex items-start gap-3">
-                    <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5" />
+                    <AlertCircle className="w-4 h-4 text-amber-500 mt-1" />
                     <div>
                       <span className="text-gray-500 text-xs uppercase tracking-wide">Status</span>
-                      <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium mt-1 ${
+                      <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ml-2 ${
                         formData.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
                       }`}>
                         {formData.status}
@@ -1040,23 +1586,43 @@ export default function AddEditCoursePage() {
                            formData.syllabus ? `${formData.syllabus.split('\n').length} weeks` : 'Not set'}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <BookOpen className="w-3 h-3 text-green-500" />
-                        <span className="text-xs text-gray-600">Materials:</span>
-                        <span className="text-xs font-medium">
-                          {materialsFile ? `📎 ${materialsFile.name}` : 
-                           materialsUrl ? `🔗 URL provided` :
-                           formData.materials ? `${formData.materials.split('\n').length} items` : 'Not set'}
-                        </span>
+                      <div className="flex items-start gap-2">
+                        <Zap className="w-3 h-3 text-emerald-600 mt-0.5" />
+                        <div>
+                          <span className="text-xs text-gray-600">Skills:</span>
+                          <span className="text-xs font-medium ml-1">
+                            {getLabelsFromIds(skillOptions, selectedSkills).join(', ') || 'Not set'}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="w-3 h-3 text-purple-500" />
-                        <span className="text-xs text-gray-600">Assignments:</span>
-                        <span className="text-xs font-medium">
-                          {assignmentsFile ? `📎 ${assignmentsFile.name}` : 
-                           assignmentsUrl ? `🔗 URL provided` :
-                           formData.assignments ? `${formData.assignments.split('\n').length} tasks` : 'Not set'}
-                        </span>
+                      <div className="flex items-start gap-2">
+                        <Gift className="w-3 h-3 text-purple-600 mt-0.5" />
+                        <div>
+                          <span className="text-xs text-gray-600">Benefits:</span>
+                          <span className="text-xs font-medium ml-1">
+                            {getLabelsFromIds(benefitOptions, selectedBenefits).join(', ') || 'Not set'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle className="w-3 h-3 text-orange-600 mt-0.5" />
+                        <div>
+                          <span className="text-xs text-gray-600">Requirements:</span>
+                          <span className="text-xs font-medium ml-1">
+                            {getLabelsFromIds(requirementOptions, selectedRequirements).join(', ') || 'Not set'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Calendar className="w-3 h-3 text-indigo-600 mt-0.5" />
+                        <div>
+                          <span className="text-xs text-gray-600">Schedules:</span>
+                          <span className="text-xs font-medium ml-1">
+                            {schedules.length
+                              ? schedules.map(s => `${dayNames[s.dayOfWeek]} • ${getOptionLabel(timeslotOptions, s.timeSlotID)}`).join('; ')
+                              : 'Not set'}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>

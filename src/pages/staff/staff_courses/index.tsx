@@ -7,15 +7,18 @@ import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import CoursesList from "./components/courses_list";
 import Button from "@/components/ui/Button";
 import { BookOpen, Users, Clock, Award, Download, BarChart3, AlertCircle, Loader2 } from "lucide-react";
+import { getCoursesList } from "@/api/course.api";
+import type { Course } from "@/types/course.types";
 
 export default function StaffCoursesPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [stats, setStats] = useState({
     totalCourses: 0,
     activeCourses: 0,
-    avgDuration: "0 weeks",
+    avgDuration: "0 slots",
     enrolledStudents: 0,
     monthlyGrowth: 0,
     weeklyGrowth: 0
@@ -30,26 +33,41 @@ export default function StaffCoursesPage() {
     navigate("/staff/analytics");
   };
 
-  // Simulate data loading
+  // Fetch real data from API
   useEffect(() => {
     const fetchStats = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Fetch courses from API
+        const response = await getCoursesList();
+        const coursesData: Course[] = response.data.value || response.data || [];
+        setCourses(coursesData);
+        
+        // Calculate statistics from real data
+        const totalCourses = coursesData.length;
+        const activeCourses = coursesData.filter((c: Course) => c.isActive).length;
+        const enrolledStudents = coursesData.reduce((sum: number, c: Course) => sum + (c.studentsCount || 0), 0);
+        
+        // Calculate average duration (assuming duration is in "X slots" format)
+        const totalSlots = coursesData.reduce((sum: number, c: Course) => {
+          const match = c.duration?.match(/(\d+)/);
+          return sum + (match ? parseInt(match[1]) : 0);
+        }, 0);
+        const avgSlots = totalCourses > 0 ? Math.round(totalSlots / totalCourses) : 0;
         
         setStats({
-          totalCourses: 12,
-          activeCourses: 10,
-          avgDuration: "8 weeks",
-          enrolledStudents: 156,
-          monthlyGrowth: 2,
-          weeklyGrowth: 23
+          totalCourses,
+          activeCourses,
+          avgDuration: `${avgSlots} slots`,
+          enrolledStudents,
+          monthlyGrowth: 0, // You can calculate this if you have date info
+          weeklyGrowth: 0 // You can calculate this if you have date info
         });
-      } catch (err) {
-        setError("Failed to load course statistics. Please try again.");
+      } catch (err: any) {
+        console.error("Error fetching courses:", err);
+        setError(err.response?.data?.message || "Failed to load course statistics. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -60,19 +78,9 @@ export default function StaffCoursesPage() {
 
   const handleRetry = () => {
     setError(null);
-    // Re-trigger the useEffect
     setLoading(true);
-    setTimeout(() => {
-      setStats({
-        totalCourses: 12,
-        activeCourses: 10,
-        avgDuration: "8 weeks",
-        enrolledStudents: 156,
-        monthlyGrowth: 2,
-        weeklyGrowth: 23
-      });
-      setLoading(false);
-    }, 1000);
+    // Re-trigger fetch by changing a dependency
+    window.location.reload();
   };
 
   const breadcrumbItems = [
@@ -136,7 +144,7 @@ export default function StaffCoursesPage() {
                   {loading ? "..." : stats.totalCourses}
                 </p>
                 <p className="text-xs text-blue-600 mt-1">
-                  {loading ? "Loading..." : `+${stats.monthlyGrowth} this month`}
+                  {loading ? "Loading..." : "All courses"}
                 </p>
               </div>
             </div>
@@ -187,7 +195,7 @@ export default function StaffCoursesPage() {
                   {loading ? "..." : stats.enrolledStudents}
                 </p>
                 <p className="text-xs text-purple-600 mt-1">
-                  {loading ? "Loading..." : `+${stats.weeklyGrowth} this week`}
+                  {loading ? "Loading..." : "Total enrolled"}
                 </p>
               </div>
             </div>

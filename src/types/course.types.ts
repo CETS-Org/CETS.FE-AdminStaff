@@ -1,18 +1,35 @@
 export type Course = {
   id: string;
-  name: string;
-  description: string;
+  courseName: string;
+  description?: string;
   duration: string;
-  level: "beginner" | "intermediate" | "advanced";
-  status: "active" | "inactive";
-  enrolledStudents: number;
-  maxStudents: number;
-  startDate: string;
-  endDate: string;
-  instructor?: string;
-  category?: string;
-  rating?: number;
-  featured?: boolean;
+  courseLevel: string;
+  standardPrice: number;
+  rating: number;
+  studentsCount: number;
+  courseImageUrl: string;
+  categoryName: string;
+  isActive: boolean;
+  teacherDetails?: TeacherDetail[];
+  courseSkills?: CourseSkill[];
+  schedules?: CourseSchedule[];
+};
+
+export type TeacherDetail = {
+  id: string;
+  fullName: string;
+  avatarUrl?: string;
+};
+
+export type CourseSkill = {
+  id: string;
+  skillName: string;
+};
+
+export type CourseSchedule = {
+  id: string;
+  timeSlotName: string;
+  dayOfWeek: number;
 };
 
 export type Class = {
@@ -52,4 +69,20 @@ export type TableAction<T> = {
   onClick: (item: T) => void;
   variant?: "primary" | "secondary" | "danger";
   className?: string;
+};
+
+export type CourseFormData = {
+  id?: string;
+  name: string;
+  description: string;
+  level: "beginner" | "intermediate" | "advanced";
+  status: "active" | "inactive";
+  image?: string;
+  price?: number;
+  maxStudents?: number;
+  syllabus?: string;
+  courseCode?: string;
+  courseLevelID?: string; // GUID
+  courseFormatID?: string; // GUID
+  categoryID?: string; // GUID
 };
