@@ -7,13 +7,16 @@ import PageHeader from "@/components/ui/PageHeader";
 import { type TableColumn } from "@/components/ui/Table";
 import DataTable, { type FilterConfig, type BulkAction } from "@/components/ui/DataTable";
 import { Eye, Pencil, Users, TrendingUp, AlertCircle, BookOpen, Download, BarChart3, Loader2, Plus, Trash2, CheckSquare, Square } from "lucide-react";
-import { mockClasses, getClassStatistics, type ClassRow } from "./data/mockClassesData";
+import { getStaffClasses, calculateClassStatistics, deleteClass, type ClassData } from "@/api/class.api";
 import DeleteClassDialog from "./components/DeleteClassDialog";
+
+// Type alias for compatibility with existing code
+type ClassRow = ClassData;
 
 export default function StaffClassesPage() {
   const navigate = useNavigate();
 
-  const [rows, setRows] = useState<ClassRow[]>(mockClasses);
+  const [rows, setRows] = useState<ClassRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -25,28 +28,38 @@ export default function StaffClassesPage() {
     totalStudents: 0
   });
 
-  // Simulate data loading
+  // Fetch classes data from API
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        // Get stats from mock data
-        const calculatedStats = getClassStatistics();
-        setStats(calculatedStats);
-      } catch (err) {
-        setError("Failed to load class statistics. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
+    fetchClassesData();
   }, []);
+
+  const fetchClassesData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log("Fetching staff classes from API...");
+      
+      // Call API to get staff classes
+      const classesData = await getStaffClasses();
+      console.log("Classes data received:", classesData);
+      
+      // Update rows with API data
+      setRows(classesData);
+      
+      // Calculate and update statistics
+      const calculatedStats = calculateClassStatistics(classesData);
+      setStats(calculatedStats);
+      
+      console.log("Statistics calculated:", calculatedStats);
+    } catch (err: any) {
+      console.error("Error fetching classes:", err);
+      const errorMessage = err.response?.data?.message || "Failed to load classes. Please try again.";
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleExportData = () => {
     console.log("Export class data");
@@ -57,13 +70,7 @@ export default function StaffClassesPage() {
   };
 
   const handleRetry = () => {
-    setError(null);
-    setLoading(true);
-    setTimeout(() => {
-      const calculatedStats = getClassStatistics();
-      setStats(calculatedStats);
-      setLoading(false);
-    }, 800);
+    fetchClassesData();
   };
 
   const handleDelete = (classRow: ClassRow) => {
@@ -71,11 +78,32 @@ export default function StaffClassesPage() {
     setDeleteDialogOpen(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!selectedClass) return;
-    setRows(prev => prev.filter(c => c.id !== selectedClass.id));
-    setDeleteDialogOpen(false);
-    setSelectedClass(null);
+    
+    try {
+      console.log("Deleting class:", selectedClass.id);
+      
+      // Call API to delete class
+      await deleteClass(selectedClass.id);
+      
+      // Update local state
+      setRows(prev => prev.filter(c => c.id !== selectedClass.id));
+      
+      // Recalculate statistics
+      const updatedClasses = rows.filter(c => c.id !== selectedClass.id);
+      const calculatedStats = calculateClassStatistics(updatedClasses);
+      setStats(calculatedStats);
+      
+      console.log("Class deleted successfully");
+    } catch (err: any) {
+      console.error("Error deleting class:", err);
+      const errorMessage = err.response?.data?.message || "Failed to delete class. Please try again.";
+      alert(errorMessage);
+    } finally {
+      setDeleteDialogOpen(false);
+      setSelectedClass(null);
+    }
   };
 
   const breadcrumbItems = [
