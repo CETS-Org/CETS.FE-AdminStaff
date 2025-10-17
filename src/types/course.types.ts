@@ -86,3 +86,74 @@ export type CourseFormData = {
   courseFormatID?: string; // GUID
   categoryID?: string; // GUID
 };
+
+// Course Detail Types
+export type CourseDetailData = {
+  id: string;
+  courseCode: string;
+  name: string;
+  level: string;
+  format: string;
+  duration: string;
+  teachers: TeacherDetailInfo[];
+  status: "active" | "inactive";
+  description: string;
+  objectives?: string[];
+  image: string;
+  price?: number;
+  currentStudents?: number;
+  rating?: number;
+  category?: string;
+  totalStudents?: number;
+  createdAt?: string;
+  updatedAt?: string | null;
+  createdBy?: string;
+  updatedBy?: string | null;
+};
+
+export type TeacherDetailInfo = {
+  id: string;
+  fullName: string;
+  avatarUrl?: string;
+  bio?: string;
+  yearsExperience?: number;
+};
+
+export type CourseSkillDetail = {
+  id: string;
+  skillName: string;
+};
+
+export type CourseBenefitDetail = {
+  id: string;
+  benefitName: string;
+};
+
+export type CourseRequirementDetail = {
+  id: string;
+  requirementName: string;
+};
+
+export type CourseDateRange = {
+  startDate: Date | null;
+  endDate: Date | null;
+};
+
+export type SyllabusItem = {
+  id: string;
+  sessionNumber: number;
+  topicTitle: string;
+  totalSlots: number;
+  required: boolean;
+  objectives: string;
+  contentSummary: string;
+  preReadingUrl: string | null;
+};
+
+export type CourseSyllabus = {
+  syllabusID: string;
+  courseID: string;
+  title: string;
+  description: string | null;
+  items: SyllabusItem[];
+};

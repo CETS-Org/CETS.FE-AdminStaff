@@ -80,3 +80,21 @@ export const DEFAULT_TIMESLOTS: Omit<Timeslot, 'id' | 'createdAt' | 'updatedAt'>
   { slotNumber: 8, slotName: 'Slot 8', startTime: '20:00', endTime: '21:30', duration: 90, isActive: true },
 ];
 
+// Course Schedule Session Types
+export interface ClassSession {
+  id: string;
+  courseID: string;
+  timeSlotID: string;
+  dayOfWeek: string;
+  courseName: string;
+  timeSlotName: string;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface TimeSlotLookup {
+  id: string;
+  code: string;
+  name: string;
+}
+
