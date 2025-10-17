@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Card from "@/components/ui/Card";
 import PageHeader from "@/components/ui/PageHeader";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
-import CoursesList from "./components/courses_list";
+import CoursesList from "./components/CoursesList";
 import Button from "@/components/ui/Button";
 import { BookOpen, Users, Clock, Award, Download, BarChart3, AlertCircle, Loader2 } from "lucide-react";
 import { getCoursesList } from "@/api/course.api";

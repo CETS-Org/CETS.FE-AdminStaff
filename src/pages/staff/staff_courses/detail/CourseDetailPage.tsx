@@ -8,12 +8,13 @@ import Input from '@/components/ui/Input';
 import ScheduleHeader from '@/components/schedule/ScheduleHeader';
 import ScheduleGrid from '@/components/schedule/ScheduleGrid';
 import { startOfWeek, addDays } from '@/components/schedule/scheduleUtils';
-import { useCourseDetail } from './hooks/useCourseDetail';
-import { useTimeSlots } from './hooks/useTimeSlots';
+import { useCourseDetail } from '../shared/hooks/useCourseDetail';
+import { useTimeSlots } from '../shared/hooks/useTimeSlots';
 import { CourseOverviewCards } from './components/CourseOverviewCards';
 import { CourseInfoSection } from './components/CourseInfoSection';
-import DeleteConfirmDialog from './components/DeleteConfirmDialog';
-import { convertSessionsToBaseSession, getWeekNavigationProps, DAY_OF_WEEK_MAP } from './utils/scheduleHelpers';
+import DeleteConfirmDialog from '../shared/components/DeleteConfirmDialog';
+import { convertSessionsToBaseSession, getWeekNavigationProps, DAY_OF_WEEK_MAP } from '../shared/utils/scheduleHelpers';
+import { deleteCourse } from '@/api/course.api';
 import type { Class as ClassInfo } from '@/types/course.types';
 
 const CourseDetailPage: React.FC = () => {
@@ -30,6 +31,7 @@ const CourseDetailPage: React.FC = () => {
   const [subTab, setSubTab] = useState<'schedule' | 'table'>('schedule');
   const [classSearch, setClassSearch] = useState('');
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Calculate course date range
   const courseDateRange = useMemo(() => {
@@ -76,7 +78,27 @@ const CourseDetailPage: React.FC = () => {
   // Handlers
   const handleEdit = () => navigate(`/staff/courses/edit/${id}`);
   const handleDelete = () => setDeleteCourseDialog(true);
-  const handleConfirmDeleteCourse = () => navigate('/staff/courses');
+  
+  const handleConfirmDeleteCourse = async () => {
+    if (!id) return;
+    
+    try {
+      setIsDeleting(true);
+      console.log('Deleting course:', id);
+      await deleteCourse(id);
+      console.log('Course deleted successfully');
+      
+      // Close dialog and navigate back to courses list
+      setDeleteCourseDialog(false);
+      navigate('/staff/courses');
+    } catch (err: any) {
+      console.error('Error deleting course:', err);
+      alert(err.response?.data?.message || 'Failed to delete course. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+  
   const handleViewClass = (classData: ClassInfo) => navigate(`/staff/classes/${classData.id}`);
 
   const handlePreviousWeek = () => {
@@ -190,8 +212,9 @@ const CourseDetailPage: React.FC = () => {
                 onClick={handleDelete}
                 iconLeft={<Trash2 className="w-4 h-4" />}
                 className="!bg-red-500 hover:!bg-red-600 !text-white"
+                disabled={isDeleting}
               >
-                Delete Course
+                {isDeleting ? 'Deleting...' : 'Delete Course'}
               </Button>
             </div>
           </div>
@@ -398,6 +421,8 @@ const CourseDetailPage: React.FC = () => {
           onConfirm={handleConfirmDeleteCourse}
           title="Delete Course"
           message={`Are you sure you want to delete the course "${courseDetail.name}"? This action cannot be undone.`}
+          confirmText={isDeleting ? "Deleting..." : "Delete Course"}
+          isLoading={isDeleting}
         />
       </div>
     </div>

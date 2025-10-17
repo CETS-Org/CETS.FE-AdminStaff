@@ -8,11 +8,10 @@ import StaffSidebar from "@/shared/StaffSidebar";
 
 import StaffSchedulePage from "./staff_schedule";
 import StaffStudentsPage from "./staff_students";
-import StaffCoursesPage from "./staff_courses";
+import StaffCoursesPage from "./staff_courses/list/CoursesListPage";
 import TeacherManagement from "./staff_teachers";
 import StaffAnalytics from "./staff_analys";
-import CourseDetailPage from "./staff_courses/CourseDetailPage";
-import AddEditCoursePage from "./staff_courses/AddEditCoursePage";
+import { CourseDetailPage, AddCoursePage, EditCoursePage } from "./staff_courses";
 import AddEditClassPage from "./staff_classes/AddEditClassPage";
 import ClassDetailPage from "./staff_classes/ClassDetailPage";
 import AssignTeacherPage from "./staff_assign_teacher";
@@ -125,8 +124,8 @@ export default function StaffHome() {
               element={userRole === 'AccountantStaff' ? <StaffContractsPage /> : <Navigate to="/staff/analytics" replace />}
             />
             <Route path="courses" element={<StaffCoursesPage />} />
-            <Route path="courses/add" element={<AddEditCoursePage />} />
-            <Route path="courses/edit/:id" element={<AddEditCoursePage />} />
+            <Route path="courses/add" element={<AddCoursePage />} />
+            <Route path="courses/edit/:id" element={<EditCoursePage />} />
             <Route path="courses/:id" element={<CourseDetailPage />} />
             <Route path="courses/:courseId/classes/add" element={<AddEditClassPage />} />
             <Route path="courses/:courseId/classes/:classId" element={<ClassDetailPage />} />

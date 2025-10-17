@@ -9,7 +9,7 @@ import {
   CheckSquare, Square, Download,
   DollarSign
 } from "lucide-react";
-import DeleteConfirmDialog from "./DeleteConfirmDialog";
+import DeleteConfirmDialog from "../../shared/components/DeleteConfirmDialog";
 import type { Course } from "@/types/course.types";
 import { getCoursesList, deleteCourse } from "@/api/course.api";
 

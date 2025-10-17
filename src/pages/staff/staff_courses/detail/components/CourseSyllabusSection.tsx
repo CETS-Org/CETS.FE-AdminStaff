@@ -122,7 +122,7 @@ export const CourseSyllabusSection: React.FC<Props> = ({ syllabi }) => {
 
                       {/* Content Summary */}
                       <div className="mb-3">
-                        <div className="flex items-start gap-2">
+                        <div className="flex items-start gap-2 ">
                           <BookOpen className="w-5 h-5 text-gray-700 mt-0.5 flex-shrink-0" />
                           <div className="flex-1">
                             <h4 className="font-semibold text-gray-900 mb-1">Content Summary</h4>

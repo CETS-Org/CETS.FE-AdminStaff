@@ -46,3 +46,6 @@ export const updateSyllabusItem = (id: string, data: any, config?: AxiosRequestC
 
 export const deleteSyllabus = (id: string, config?: AxiosRequestConfig) =>
   api.delete(`${syllabusEndpoint}/${id}`, config);
+
+export const deleteSyllabusItem = (id: string, config?: AxiosRequestConfig) =>
+  api.delete(`${syllabusItemEndpoint}/${id}`, config);

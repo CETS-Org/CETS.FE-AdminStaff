@@ -51,26 +51,10 @@ export const useCourseDetail = (courseId: string | undefined) => {
 
         setCourseDetail(mappedCourseDetail);
 
+        setSkills(apiData.courseSkills || []);
         setBenefits(apiData.benefits || []);
         setRequirements(apiData.requirements || []);
-        
-     
-        if (apiData.syllabusItems && apiData.syllabusItems.length > 0) {
-          // Create a single syllabus containing all items
-          const syllabus: CourseSyllabus = {
-            syllabusID: courseId, // Use courseId as syllabusID
-            courseID: courseId,
-            title: `${apiData.courseName} Syllabus`,
-            description: null,
-            items: apiData.syllabusItems
-          };
-          setSyllabi([syllabus]);
-        } else {
-          setSyllabi([]);
-        }
-        
-        // Skills data not available in the API response
-        setSkills([]);
+        setSyllabi(apiData.syllabi || []);
 
         // Fetch classes
         try {
