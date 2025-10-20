@@ -445,29 +445,48 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
         categoryID: formData.categoryID,
         description: formData.description,
         standardPrice: formData.price || 0,
-                 benefitIDs: selectedBenefits,
-                 requirementIDs: selectedRequirements,
-                 skillIDs: selectedSkills,
+        benefitIDs: selectedBenefits,
+        requirementIDs: selectedRequirements,
+        skillIDs: selectedSkills,
         schedules: schedules.filter(sc => sc.timeSlotID && sc.timeSlotID.trim()).map(sc => ({
           timeSlotID: sc.timeSlotID,
           dayOfWeek: Number(sc.dayOfWeek) || 0
         }))
       };
 
+      if (!isEdit && syllabi && syllabi.length > 0) {
+        // Map syllabi to the API format
+        payload.syllabi = syllabi.map(s => ({
+          title: s.title || `${formData.courseCode || formData.name} Syllabus`,
+          description: s.description || '',
+          items: s.items.map(item => ({
+            sessionNumber: item.sessionNumber,
+            topicTitle: item.topicTitle,
+            totalSlots: item.totalSlots || null,
+            required: item.required !== false,
+            objectives: Array.isArray(item.objectives) ? item.objectives.join('\n') : (item.objectives || null),
+            contentSummary: item.contentSummary || null,
+            preReadingUrl: item.preReadingUrl || null
+          }))
+        }));
+      }
+
       // Save or update course first
       let savedCourseId = id;
       if (isEdit && id) {
         await updateCourse(id, { id, ...payload });
       } else {
+        // Create mode - single API call with syllabi included
         const createRes = await createCourse(payload);
         savedCourseId = (createRes?.data?.Id || createRes?.data?.id || '').toString();
       }
 
-      // Create multiple syllabi and their items if provided
+      // For edit mode, handle syllabi updates separately
+      // For create mode, syllabi are already included in the course creation
       const userDataStr = localStorage.getItem('userInfo');
       const currentUserId = userDataStr ? (JSON.parse(userDataStr)?.id || JSON.parse(userDataStr)?.Id || JSON.parse(userDataStr)?.accountId || JSON.parse(userDataStr)?.AccountId) : undefined;
 
-      if (savedCourseId && currentUserId) {
+      if (isEdit && savedCourseId && currentUserId) {
         try {
           // If no syllabi provided via new UI, fallback to single from formData.syllabus
           const list = syllabi && syllabi.length ? syllabi : (formData.syllabus ? [{ 
@@ -800,7 +819,7 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
       if (isEdit) {
         showSuccessMessage("Course updated successfully!");
       } else {
-        showSuccessMessage("Course created successfully!");
+        showSuccessMessage("Course created successfully with all details!");
         // Navigate after a short delay to allow toast to be seen (only for create)
         setTimeout(() => {
           navigate('/staff/courses');
@@ -830,8 +849,11 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
       formData.image || imagePreview,
       formData.price,
       formData.maxStudents,
-      formData.syllabus || syllabusFile || syllabusUrl
-     
+      formData.syllabus || syllabusFile || syllabusUrl || syllabi.length > 0,
+      selectedSkills.length > 0,
+      selectedBenefits.length > 0,
+      selectedRequirements.length > 0,
+      courseObjectives.length > 0
     ];
     
     const completedRequired = requiredFields.filter(Boolean).length;
@@ -941,14 +963,14 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
               Basic Info
             </div>
              <div className="flex items-center gap-1">
-               {formData.categoryID ? 
+               {(selectedSkills.length > 0 || selectedBenefits.length > 0 || selectedRequirements.length > 0 || courseObjectives.length > 0) ? 
                  <CheckCircle className="w-3 h-3 text-green-500" /> : 
                  <AlertCircle className="w-3 h-3 text-amber-500" />
                }
-               Category
+               Additional Info
              </div>
             <div className="flex items-center gap-1">
-              {(formData.syllabus || syllabusFile || syllabusUrl) ? 
+              {(formData.syllabus || syllabusFile || syllabusUrl || syllabi.length > 0) ? 
                 <CheckCircle className="w-3 h-3 text-green-500" /> : 
                 <AlertCircle className="w-3 h-3 text-amber-500" />
               }

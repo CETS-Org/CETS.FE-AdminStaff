@@ -38,7 +38,7 @@ export default function CourseScheduleSection({
       <div className="flex items-center justify-between">
         <div>
           <h4 className="text-sm font-semibold text-gray-800">Course Schedules</h4>
-          <p className="text-xs text-gray-500 mt-1">Set recurring meeting times for this course</p>
+      
         </div>
         <Button size="sm" variant="secondary" onClick={onAddSchedule}>
           Add Schedule

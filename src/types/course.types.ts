@@ -157,3 +157,42 @@ export type CourseSyllabus = {
   description: string | null;
   items: SyllabusItem[];
 };
+
+// Create Course Request Types
+export type CreateCourseScheduleDetail = {
+  timeSlotID: string;
+  dayOfWeek: number;
+};
+
+export type CreateCourseSyllabusItemDetail = {
+  sessionNumber: number;
+  topicTitle: string;
+  totalSlots?: number | null;
+  required: boolean;
+  objectives?: string | null;
+  contentSummary?: string | null;
+  preReadingUrl?: string | null;
+};
+
+export type CreateCourseSyllabusDetail = {
+  title: string;
+  description?: string | null;
+  items?: CreateCourseSyllabusItemDetail[];
+};
+
+export type CreateCourseRequest = {
+  courseCode: string;
+  courseName: string;
+  courseLevelID: string;
+  courseFormatID: string;
+  courseImageUrl?: string;
+  courseObjective?: string[];
+  categoryID: string;
+  description?: string;
+  standardPrice: number;
+  benefitIDs?: string[];
+  requirementIDs?: string[];
+  skillIDs?: string[];
+  schedules?: CreateCourseScheduleDetail[];
+  syllabi?: CreateCourseSyllabusDetail[];
+};
