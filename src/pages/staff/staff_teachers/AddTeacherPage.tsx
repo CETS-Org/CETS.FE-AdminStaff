@@ -154,6 +154,18 @@ export default function AddEditTeacherPage() {
       const today = new Date();
       if (birthDate > today) {
         newErrors.dateOfBirth = "Date of birth cannot be in the future";
+      } else {
+        // Validate age is at least 18
+        const age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        const dayDiff = today.getDate() - birthDate.getDate();
+        
+        // Calculate exact age considering month and day
+        const exactAge = monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
+        
+        if (exactAge < 18) {
+          newErrors.dateOfBirth = "Teacher must be at least 18 years old";
+        }
       }
     }
 
@@ -225,10 +237,51 @@ export default function AddEditTeacherPage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const calculateAge = (dateOfBirth: string): number => {
+    if (!dateOfBirth) return 0;
+    
+    const birthDate = new Date(dateOfBirth);
+    const today = new Date();
+    const age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    const dayDiff = today.getDate() - birthDate.getDate();
+    
+    // Calculate exact age considering month and day
+    return monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
+  };
+
   const handleInputChange = (field: keyof TeacherFormData, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Clear existing error for this field
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: "" }));
+    }
+    
+    // Real-time validation for date of birth
+    if (field === 'dateOfBirth' && typeof value === 'string') {
+      const newErrors: Record<string, string> = {};
+      
+      if (value) {
+        const birthDate = new Date(value);
+        const today = new Date();
+        
+        // Check if date is in the future
+        if (birthDate > today) {
+          newErrors.dateOfBirth = "Date of birth cannot be in the future";
+        } else {
+          // Check age requirement
+          const age = calculateAge(value);
+          if (age < 18) {
+            newErrors.dateOfBirth = "Teacher must be at least 18 years old";
+          }
+        }
+      }
+      
+      // Update errors for date of birth
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(prev => ({ ...prev, ...newErrors }));
+      }
     }
   };
 
