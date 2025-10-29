@@ -1,0 +1,1 @@
+export { default as DeleteConfirmDialog } from './components/DeleteConfirmDialog';
