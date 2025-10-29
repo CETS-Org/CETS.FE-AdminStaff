@@ -32,6 +32,7 @@ import StaffTimetablePage from "./staff_timetable";
 import StaffClassesPage from "./staff_classes";
 import StaffRoomsPage from "./staff_rooms";
 import StaffContractsPage from "./staff_contracts";
+import { PackagesListPage, PackageDetailPage, AddPackagePage, EditPackagePage } from "./staff_packages";
 
 export default function StaffHome() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -142,6 +143,10 @@ export default function StaffHome() {
             <Route path="complaints/:id" element={<ComplaintDetailPage />} />
             <Route path="complaints/:id/response" element={<ComplaintResponsePage />} />
             <Route path="requests" element={<StaffRequestPage />} />
+            <Route path="packages" element={<PackagesListPage />} />
+            <Route path="packages/add" element={<AddPackagePage />} />
+            <Route path="packages/edit/:id" element={<EditPackagePage />} />
+            <Route path="packages/:id" element={<PackageDetailPage />} />
           </Routes>
         </div>
       </div>

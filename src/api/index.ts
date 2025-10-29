@@ -18,6 +18,19 @@ import {
   updateTimetableEntry,
   deleteTimetableEntry
 } from './timetable.api';
+import { 
+  getPackagesList, 
+  getPackageById, 
+  getPackageDetailById, 
+  createPackage, 
+  updatePackage, 
+  deletePackage,
+  getPackageCourses,
+  addCourseToPackage,
+  removeCourseFromPackage,
+  updatePackageCourseOrder,
+  getPackageImageUploadUrl
+} from './package.api';
 
 export const apiClient = axiosInstance;
 export { endpoint } from './api';
@@ -95,6 +108,19 @@ export const api = {
   // Lookup
   getPlanTypes,
   getTimeSlots,
+
+  // Packages
+  getPackagesList,
+  getPackageById,
+  getPackageDetailById,
+  createPackage,
+  updatePackage,
+  deletePackage,
+  getPackageCourses,
+  addCourseToPackage,
+  removeCourseFromPackage,
+  updatePackageCourseOrder,
+  getPackageImageUploadUrl,
 };
 
 export {
@@ -155,6 +181,17 @@ export {
   deleteTimetableEntry,
   getPlanTypes,
   getTimeSlots,
+  getPackagesList,
+  getPackageById,
+  getPackageDetailById,
+  createPackage,
+  updatePackage,
+  deletePackage,
+  getPackageCourses,
+  addCourseToPackage,
+  removeCourseFromPackage,
+  updatePackageCourseOrder,
+  getPackageImageUploadUrl,
 };
 
 

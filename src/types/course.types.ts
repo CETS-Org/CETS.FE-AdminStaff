@@ -190,6 +190,7 @@ export type CreateCourseRequest = {
   categoryID: string;
   description?: string;
   standardPrice: number;
+  isActive?: boolean;
   benefitIDs?: string[];
   requirementIDs?: string[];
   skillIDs?: string[];

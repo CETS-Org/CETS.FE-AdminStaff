@@ -445,6 +445,7 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
         categoryID: formData.categoryID,
         description: formData.description,
         standardPrice: formData.price || 0,
+        isActive: formData.status === "active",
         benefitIDs: selectedBenefits,
         requirementIDs: selectedRequirements,
         skillIDs: selectedSkills,
