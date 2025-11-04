@@ -55,10 +55,8 @@ export default function CourseScheduleSection({
           const currentDay = Number(schedule.dayOfWeek);
           const currentTimeSlot = schedule.timeSlotID;
           
-          // Filter available days for current timeslot
-          const availableDays = allDays.filter(d => 
-            d.value === currentDay || isTimeSlotAvailable(currentTimeSlot, d.value, idx)
-          );
+       
+          const availableDays = allDays;
           
           // Filter available timeslots for current day
           const availableTimeSlots = timeslotOptions.filter(opt => 
@@ -86,17 +84,10 @@ export default function CourseScheduleSection({
                       onChange={(e) => onUpdateSchedule(idx, 'dayOfWeek', Number(e.target.value))}
                       className="mt-1"
                     >
-                      {availableDays.length === 0 ? (
-                        <option value="">No available days</option>
-                      ) : (
-                        availableDays.map(d => (
-                          <option key={d.value} value={d.value}>{d.label}</option>
-                        ))
-                      )}
+                      {availableDays.map(d => (
+                        <option key={d.value} value={d.value}>{d.label}</option>
+                      ))}
                     </Select>
-                    {[0, 1, 2, 3, 4, 5, 6].filter(day => isTimeSlotAvailable(schedule.timeSlotID, day, idx)).length === 0 && (
-                      <p className="text-xs text-red-600 mt-1">This time slot is taken on all days. Please select a different time slot.</p>
-                    )}
                   </div>
                   
                   <div>
@@ -115,8 +106,8 @@ export default function CourseScheduleSection({
                         ))
                       )}
                     </Select>
-                    {timeslotOptions.filter(opt => isTimeSlotAvailable(opt.value, Number(schedule.dayOfWeek), idx)).length === 0 && (
-                      <p className="text-xs text-red-600 mt-1">No available time slots for this day. Please select a different day.</p>
+                    {availableTimeSlots.length === 0 && (
+                      <p className="text-xs text-red-600 mt-1">All time slots are taken for this day. Please select a different day or remove a conflicting schedule.</p>
                     )}
                   </div>
                 </div>

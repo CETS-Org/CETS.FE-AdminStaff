@@ -6,7 +6,7 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import PageHeader from "@/components/ui/PageHeader";
 import Label from "@/components/ui/Label";
-import { Trash2, BookOpen, ArrowLeft, Upload, Camera, Save, FileText, Link as LinkIcon, CheckCircle, AlertCircle, Clock, DollarSign, Calendar, Loader2, PlusCircle, MinusCircle, Target, Zap, Gift, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Trash2, BookOpen, ArrowLeft, Upload, Camera, Save, FileText, Link as LinkIcon, CheckCircle, AlertCircle, Clock, DollarSign, Calendar, Loader2, PlusCircle, MinusCircle, Target, Zap, Gift, X, ChevronDown, ChevronUp, FileSpreadsheet, Download } from "lucide-react";
 import { createCourse, updateCourse } from "@/api/course.api";
 import { createSyllabus, createSyllabusItem, updateSyllabus, updateSyllabusItem, deleteSyllabus, deleteSyllabusItem, getCourseDetailById, getCourseSchedules, createCourseSchedule, updateCourseSchedule, deleteCourseSchedule, createCourseSkill, deleteCourseSkill, createCourseBenefit, deleteCourseBenefit, createCourseRequirement, deleteCourseRequirement } from "@/api";
 import type { CourseFormData } from "@/types/course.types";
@@ -112,6 +112,8 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
   
   const imageObjectUrlRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const excelFileInputRef = useRef<HTMLInputElement>(null);
+  const courseInfoExcelInputRef = useRef<HTMLInputElement>(null);
   const [syllabusFile, setSyllabusFile] = useState<File | null>(null);
   const [syllabusUrl, setSyllabusUrl] = useState<string>("");
   const [materialsUrl, setMaterialsUrl] = useState<string>("");
@@ -355,6 +357,399 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
         setFormData(prev => ({ ...prev, syllabus: "" }));
         break;
      
+    }
+  };
+
+  const handleExcelImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel'
+    ];
+    if (!allowedTypes.includes(file.type) && !file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      showErrorMessage('Please select a valid Excel file (.xlsx or .xls)');
+      return;
+    }
+
+    try {
+      // Dynamic import of xlsx library
+      const XLSX = await import('xlsx');
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = e.target?.result;
+          const workbook = XLSX.read(data, { type: 'binary' });
+          
+          // Expect first sheet to contain syllabus items
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          
+          // Convert to JSON
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+          
+          if (jsonData.length === 0) {
+            showErrorMessage('The Excel file is empty');
+            return;
+          }
+
+          // Parse syllabus data
+          // Expected columns: Title, Description, SessionNumber, TopicTitle, TotalSlots, Required, Objectives, ContentSummary, PreReadingUrl
+          
+          const syllabusMap = new Map<string, any>();
+          
+          jsonData.forEach((row: any) => {
+            const title = row['Title'] || row['title'] || 'Imported Syllabus';
+            const description = row['Description'] || row['description'] || '';
+            
+            if (!syllabusMap.has(title)) {
+              syllabusMap.set(title, {
+                title,
+                description,
+                items: []
+              });
+            }
+            
+            // Add item to syllabus
+            const sessionNumber = parseInt(row['SessionNumber'] || row['sessionNumber'] || row['Session']) || 1;
+            const topicTitle = row['TopicTitle'] || row['topicTitle'] || row['Topic'] || '';
+            const totalSlots = parseInt(row['TotalSlots'] || row['totalSlots'] || row['Slots']) || 1;
+            const required = row['Required'] || row['required'] || 'true';
+            const objectives = row['Objectives'] || row['objectives'] || '';
+            const contentSummary = row['ContentSummary'] || row['contentSummary'] || row['Summary'] || '';
+            const preReadingUrl = row['PreReadingUrl'] || row['preReadingUrl'] || row['URL'] || '';
+            
+            if (topicTitle) {
+              syllabusMap.get(title)!.items.push({
+                sessionNumber,
+                topicTitle,
+                totalSlots,
+                required: required === true || required.toString().toLowerCase() === 'true' || required === '1' || required === 1,
+                objectives: objectives ? (typeof objectives === 'string' ? objectives.split('\n').filter((o: string) => o.trim()) : [objectives]) : [],
+                contentSummary,
+                preReadingUrl
+              });
+            }
+          });
+          
+          // Add all imported syllabi to the state
+          const importedSyllabi = Array.from(syllabusMap.values());
+          
+          if (importedSyllabi.length === 0) {
+            showErrorMessage('No valid syllabus data found in the file');
+            return;
+          }
+          
+          // Sort items by session number
+          importedSyllabi.forEach(syllabus => {
+            syllabus.items.sort((a: any, b: any) => a.sessionNumber - b.sessionNumber);
+          });
+          
+          // Add to existing syllabi
+          const updatedSyllabi = [...syllabi, ...importedSyllabi];
+          loadSyllabi(updatedSyllabi);
+          
+          showSuccessMessage(`Successfully imported ${importedSyllabi.length} syllabus/syllabi with ${importedSyllabi.reduce((sum: number, s: any) => sum + s.items.length, 0)} items`);
+          
+          // Reset file input
+          if (excelFileInputRef.current) {
+            excelFileInputRef.current.value = '';
+          }
+        } catch (error) {
+          console.error('Error parsing Excel file:', error);
+          showErrorMessage('Failed to parse Excel file. Please check the format.');
+        }
+      };
+      
+      reader.onerror = () => {
+        showErrorMessage('Failed to read the Excel file');
+      };
+      
+      reader.readAsBinaryString(file);
+    } catch (error) {
+      console.error('Error importing Excel:', error);
+      showErrorMessage('Failed to import Excel file. Make sure xlsx library is installed.');
+    }
+  };
+
+  const downloadExcelTemplate = async () => {
+    try {
+      const XLSX = await import('xlsx');
+      
+      // Create sample data
+      const templateData = [
+        {
+          'Title': 'Sample Syllabus',
+          'Description': 'This is a sample syllabus description',
+          'SessionNumber': 1,
+          'TopicTitle': 'Introduction to Course',
+          'TotalSlots': 2,
+          'Required': 'true',
+          'Objectives': 'Understand course structure\nLearn basic concepts',
+          'ContentSummary': 'Overview of course content and expectations',
+          'PreReadingUrl': 'https://example.com/reading1'
+        },
+        {
+          'Title': 'Sample Syllabus',
+          'Description': 'This is a sample syllabus description',
+          'SessionNumber': 2,
+          'TopicTitle': 'Advanced Topics',
+          'TotalSlots': 3,
+          'Required': 'true',
+          'Objectives': 'Master advanced concepts\nApply knowledge practically',
+          'ContentSummary': 'Deep dive into advanced course materials',
+          'PreReadingUrl': 'https://example.com/reading2'
+        }
+      ];
+      
+      // Create workbook and worksheet
+      const worksheet = XLSX.utils.json_to_sheet(templateData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Syllabus');
+      
+      // Set column widths
+      worksheet['!cols'] = [
+        { wch: 20 }, // Title
+        { wch: 40 }, // Description
+        { wch: 15 }, // SessionNumber
+        { wch: 30 }, // TopicTitle
+        { wch: 12 }, // TotalSlots
+        { wch: 10 }, // Required
+        { wch: 50 }, // Objectives
+        { wch: 50 }, // ContentSummary
+        { wch: 40 }  // PreReadingUrl
+      ];
+      
+      // Download file
+      XLSX.writeFile(workbook, 'syllabus_template.xlsx');
+      
+      showSuccessMessage('Template downloaded successfully');
+    } catch (error) {
+      console.error('Error creating template:', error);
+      showErrorMessage('Failed to download template. Make sure xlsx library is installed.');
+    }
+  };
+
+  const handleCourseInfoExcelImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel'
+    ];
+    if (!allowedTypes.includes(file.type) && !file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      showErrorMessage('Please select a valid Excel file (.xlsx or .xls)');
+      return;
+    }
+
+    try {
+      const XLSX = await import('xlsx');
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = e.target?.result;
+          const workbook = XLSX.read(data, { type: 'binary' });
+          
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+          
+          if (jsonData.length === 0) {
+            showErrorMessage('The Excel file is empty');
+            return;
+          }
+
+          // Parse course data from first row
+          const row: any = jsonData[0];
+          
+          const courseCode = row['CourseCode'] || row['courseCode'] || row['Code'] || '';
+          const courseName = row['CourseName'] || row['courseName'] || row['Name'] || '';
+          const description = row['Description'] || row['description'] || '';
+          const price = parseFloat(row['Price'] || row['price'] || '0') || 0;
+          const status = (row['Status'] || row['status'] || 'active').toString().toLowerCase();
+          const courseLevel = row['Level'] || row['level'] || row['CourseLevel'] || row['courseLevel'] || '';
+          const courseFormat = row['Format'] || row['format'] || row['CourseFormat'] || row['courseFormat'] || '';
+          const category = row['Category'] || row['category'] || row['CategoryID'] || row['categoryID'] || '';
+          
+          // Parse objectives (newline separated)
+          const objectivesStr = row['Objectives'] || row['objectives'] || '';
+          const objectives = objectivesStr ? objectivesStr.split('\n').filter((o: string) => o.trim()) : [];
+          
+          // Parse skills (comma or newline separated)
+          const skillsStr = row['Skills'] || row['skills'] || '';
+          const skillNames = skillsStr ? skillsStr.split(/[,\n]/).map((s: string) => s.trim()).filter((s: string) => s) : [];
+          
+          // Parse benefits (comma or newline separated)
+          const benefitsStr = row['Benefits'] || row['benefits'] || '';
+          const benefitNames = benefitsStr ? benefitsStr.split(/[,\n]/).map((b: string) => b.trim()).filter((b: string) => b) : [];
+          
+          // Parse requirements (comma or newline separated)
+          const requirementsStr = row['Requirements'] || row['requirements'] || '';
+          const requirementNames = requirementsStr ? requirementsStr.split(/[,\n]/).map((r: string) => r.trim()).filter((r: string) => r) : [];
+
+          // Update form data
+          setFormData(prev => ({
+            ...prev,
+            courseCode: courseCode || prev.courseCode,
+            name: courseName || prev.name,
+            description: description || prev.description,
+            price: price || prev.price,
+            status: (status === 'active' || status === 'inactive') ? status : prev.status,
+            // For dropdown IDs, we'll need to match by label
+            courseLevelID: lookupOptions.courseLevelOptions.find(opt => 
+              opt.label.toLowerCase() === courseLevel.toLowerCase()
+            )?.value || prev.courseLevelID,
+            courseFormatID: lookupOptions.courseFormatOptions.find(opt => 
+              opt.label.toLowerCase() === courseFormat.toLowerCase()
+            )?.value || prev.courseFormatID,
+            categoryID: lookupOptions.categoryOptions.find(opt => 
+              opt.label.toLowerCase() === category.toLowerCase()
+            )?.value || prev.categoryID
+          }));
+
+          // Update objectives
+          if (objectives.length > 0) {
+            loadObjectives(objectives);
+          }
+
+          // Match and select skills by name
+          if (skillNames.length > 0) {
+            const matchedSkillIds = skillNames
+              .map((name: string) => lookupOptions.skillOptions.find(opt => 
+                opt.label.toLowerCase() === name.toLowerCase()
+              )?.value)
+              .filter((id: string | undefined): id is string => !!id);
+            
+            // Load skills directly to replace existing
+            if (matchedSkillIds.length > 0) {
+              loadSkills(matchedSkillIds.map((id: string) => ({ 
+                courseSkillID: '', 
+                skillID: id, 
+                skill: { skillID: id, skillName: lookupOptions.skillOptions.find(s => s.value === id)?.label || '' } 
+              })));
+            }
+          }
+
+          // Match and select benefits by name
+          if (benefitNames.length > 0) {
+            const matchedBenefitIds = benefitNames
+              .map((name: string) => lookupOptions.benefitOptions.find(opt => 
+                opt.label.toLowerCase() === name.toLowerCase()
+              )?.value)
+              .filter((id: string | undefined): id is string => !!id);
+            
+            // Load benefits directly to replace existing
+            if (matchedBenefitIds.length > 0) {
+              loadBenefits(matchedBenefitIds.map((id: string) => ({ 
+                courseBenefitID: '', 
+                benefitID: id, 
+                benefit: { benefitID: id, benefitName: lookupOptions.benefitOptions.find(b => b.value === id)?.label || '' } 
+              })));
+            }
+          }
+
+          // Match and select requirements by name
+          if (requirementNames.length > 0) {
+            const matchedRequirementIds = requirementNames
+              .map((name: string) => lookupOptions.requirementOptions.find(opt => 
+                opt.label.toLowerCase() === name.toLowerCase()
+              )?.value)
+              .filter((id: string | undefined): id is string => !!id);
+            
+            // Load requirements directly to replace existing
+            if (matchedRequirementIds.length > 0) {
+              loadRequirements(matchedRequirementIds.map((id: string) => ({ 
+                courseRequirementID: '', 
+                requirementID: id, 
+                requirement: { requirementID: id, requirementName: lookupOptions.requirementOptions.find(r => r.value === id)?.label || '' } 
+              })));
+            }
+          }
+
+          showSuccessMessage('Course information imported successfully!');
+          
+          if (courseInfoExcelInputRef.current) {
+            courseInfoExcelInputRef.current.value = '';
+          }
+        } catch (error) {
+          console.error('Error parsing Excel file:', error);
+          showErrorMessage('Failed to parse Excel file. Please check the format.');
+        }
+      };
+      
+      reader.onerror = () => {
+        showErrorMessage('Failed to read the Excel file');
+      };
+      
+      reader.readAsBinaryString(file);
+    } catch (error) {
+      console.error('Error importing Excel:', error);
+      showErrorMessage('Failed to import Excel file.');
+    }
+  };
+
+  const downloadCourseInfoTemplate = async () => {
+    try {
+      const XLSX = await import('xlsx');
+      
+      // Get sample values from options
+      const sampleLevel = lookupOptions.courseLevelOptions[0]?.label || 'Beginner';
+      const sampleFormat = lookupOptions.courseFormatOptions[0]?.label || 'Online';
+      const sampleCategory = lookupOptions.categoryOptions[0]?.label || 'Technology';
+      const sampleSkills = lookupOptions.skillOptions.slice(0, 3).map(s => s.label).join(', ') || 'Critical Thinking, Problem Solving';
+      const sampleBenefits = lookupOptions.benefitOptions.slice(0, 2).map(b => b.label).join(', ') || 'Career Advancement, Skill Development';
+      const sampleRequirements = lookupOptions.requirementOptions.slice(0, 2).map(r => r.label).join(', ') || 'Basic Computer Skills, Internet Access';
+      
+      const templateData = [
+        {
+          'CourseCode': 'SAMPLE-101',
+          'CourseName': 'Sample Course Name',
+          'Description': 'This is a comprehensive description of the sample course. It includes all the key information about what students will learn.',
+          'Price': 50000,
+          'Status': 'active',
+          'Level': sampleLevel,
+          'Format': sampleFormat,
+          'Category': sampleCategory,
+          'Objectives': 'Master the fundamentals\nApply knowledge in real scenarios\nBuild practical projects',
+          'Skills': sampleSkills,
+          'Benefits': sampleBenefits,
+          'Requirements': sampleRequirements
+        }
+      ];
+      
+      const worksheet = XLSX.utils.json_to_sheet(templateData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Course Info');
+      
+      // Set column widths
+      worksheet['!cols'] = [
+        { wch: 15 }, // CourseCode
+        { wch: 30 }, // CourseName
+        { wch: 60 }, // Description
+        { wch: 12 }, // Price
+        { wch: 10 }, // Status
+        { wch: 15 }, // Level
+        { wch: 15 }, // Format
+        { wch: 20 }, // Category
+        { wch: 50 }, // Objectives
+        { wch: 40 }, // Skills
+        { wch: 40 }, // Benefits
+        { wch: 40 }  // Requirements
+      ];
+      
+      XLSX.writeFile(workbook, 'course_info_template.xlsx');
+      
+      showSuccessMessage('Course info template downloaded successfully');
+    } catch (error) {
+      console.error('Error creating template:', error);
+      showErrorMessage('Failed to download template.');
     }
   };
 
@@ -835,7 +1230,7 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
   };
 
   const handleCancel = () => {
-    navigate('/staff/courses');
+    navigate(-1);
   };
 
   const getFormCompletionPercentage = () => {
@@ -1076,6 +1471,54 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
               </div>
             </Card>
 
+            {/* Excel Import Section for Course Info */}
+            <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+              <div className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <FileSpreadsheet className="w-6 h-6 text-green-600" />
+                    <div>
+                      <h3 className="text-sm font-semibold text-green-900">Quick Import from Excel</h3>
+                      <p className="text-xs text-green-700">Import course information to save time</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      size="sm" 
+                      variant="secondary" 
+                      onClick={downloadCourseInfoTemplate}
+                      iconLeft={<Download className="w-4 h-4" />}
+                      className="!border-green-300 hover:!bg-green-400 !bg-green-500 text-white"
+                    >
+                      Download Template
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="secondary" 
+                      onClick={() => courseInfoExcelInputRef.current?.click()}
+                      iconLeft={<FileSpreadsheet className="w-4 h-4" />}
+                      className="!border-blue-300 hover:!bg-blue-400 !bg-blue-500 text-white"
+                    >
+                      Import Course Info
+                    </Button>
+                    <input
+                      ref={courseInfoExcelInputRef}
+                      type="file"
+                      accept=".xlsx,.xls"
+                      onChange={handleCourseInfoExcelImport}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+                <div className="mt-3 text-xs text-green-800">
+                  <p className="flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3" />
+                    Import basic info, objectives, skills, benefits, and requirements in one click
+                  </p>
+                </div>
+              </div>
+            </Card>
+
             {/* Basic Information */}
             <Card className="overflow-hidden">
               <div className="p-6">
@@ -1224,9 +1667,9 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
                                       variant="secondary" 
                                       className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-white hover:text-white !bg-red-500 hover:!bg-accent2-500 border-red-200"
                                       onClick={() => removeCourseObjective(idx)}
-                                      iconLeft={<Trash2 className="w-3 h-3" />}
+                                    
                                     >
-                                      Remove
+                                    <Trash2 className="w-4 h-4" />
                                     </Button>
                                   </div>
                                 </div>
@@ -1437,8 +1880,53 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <h4 className="text-sm font-semibold text-gray-800">Syllabi</h4>
-                        <Button size="sm" variant="secondary" onClick={addSyllabus}>Add Syllabus</Button>
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="secondary" 
+                            onClick={downloadExcelTemplate}
+                            iconLeft={<Download className="w-4 h-4" />}
+                            className="!border-green-300 hover:!bg-green-400 !bg-green-500"
+                          >
+                            Template
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="secondary" 
+                            onClick={() => excelFileInputRef.current?.click()}
+                            iconLeft={<FileSpreadsheet className="w-4 h-4" />}
+                            className="!border-blue-300 hover:!bg-blue-400 !bg-blue-500"
+                          >
+                            Import Excel
+                          </Button>
+                          <Button size="sm" variant="secondary" onClick={addSyllabus}>Add Syllabus</Button>
+                          <input
+                            ref={excelFileInputRef}
+                            type="file"
+                            accept=".xlsx,.xls"
+                            onChange={handleExcelImport}
+                            className="hidden"
+                          />
+                        </div>
                       </div>
+                      
+                      {/* Excel Import Help */}
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800">
+                        <div className="flex items-start gap-2">
+                          <FileSpreadsheet className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="font-semibold mb-1">Excel Import Guide:</p>
+                            <ul className="list-disc list-inside space-y-1 text-blue-700">
+                              <li>Download the template to see the required format</li>
+                              <li>Each row represents a syllabus item (session)</li>
+                              <li>Use the same Title for items belonging to the same syllabus</li>
+                              <li>Required columns: Title, SessionNumber, TopicTitle</li>
+                              <li>Objectives can be separated by line breaks (Alt+Enter in Excel)</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                      
                       {syllabi.length === 0 && (
                         <p className="text-xs text-gray-500">No syllabus added yet. Add one or keep the description only.</p>
                       )}
@@ -1547,9 +2035,9 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
                                           <Input className="flex-1" value={obj} onChange={(e) => updateObjectiveInItem(sIdx, iIdx, oIdx, e.target.value)} placeholder={`Objective #${oIdx + 1}`} />
                                           <Button size="sm" 
                                           variant="secondary" 
-                                          className="text-white hover:text-white !bg-red-500 hover:!bg-accent2-500 border-red-200" 
+                                          className="text-white hover:text-white !bg-red-500 hover:!bg-accent2-500 border-red-200 !p-2" 
                                           onClick={() => removeObjectiveFromItem(sIdx, iIdx, oIdx)}>
-                                            Remove
+                                            <Trash2 className="w-4 h-4" />
                                           </Button>
                                         </div>
                                       ))}
@@ -1748,40 +2236,42 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
               </div>
             </Card>
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl mt-4 p-6 shadow-lg border border-white/50">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-500">
-              {isEdit ? "Last updated: Today" : "All fields marked with * are required"}
-            </div>
-            <div className="flex items-center gap-3">
-              <Button
-                onClick={handleCancel}
-                variant="secondary"
-                disabled={isLoading}
-                className="min-w-[120px]"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSave}
-                disabled={isLoading}
-                className="min-w-[160px] bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800"
-              >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    {isEdit ? "Updating..." : "Creating..."}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Save className="w-4 h-4" />
-                    {isEdit ? "Update Course" : "Create Course"}
-                  </div>
-                )}
-              </Button>
+          
+          {/* Action Buttons */}
+          <div className="lg:col-span-2">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-500">
+                  {isEdit ? "Last updated: Today" : "All fields marked with * are required"}
+                </div>
+                <div className="flex items-center gap-3">
+                  <Button
+                    onClick={handleCancel}
+                    variant="secondary"
+                    disabled={isLoading}
+                    className="min-w-[120px]"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSave}
+                    disabled={isLoading}
+                    className="min-w-[160px] bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800"
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        {isEdit ? "Updating..." : "Creating..."}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Save className="w-4 h-4" />
+                        {isEdit ? "Update Course" : "Create Course"}
+                      </div>
+                    )}
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

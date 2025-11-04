@@ -4,12 +4,18 @@ import { addDays, fmtTime, toDateAny } from "./scheduleUtils";
 import type { BaseSession } from "./scheduleUtils";
 import SessionCard from "./SessionCard";
 
+type TimeSlot = {
+  start: string;
+  end: string;
+};
+
 type Props<T extends BaseSession> = {
   weekStart: Date;
   sessions: T[];
   startHour: number;
   slots: number;
   slotMinutes: number;
+  timeSlots?: TimeSlot[];
   todayIdx: number;
   selectedIdx: number;
   onSessionClick: (session: T, startLabel: string, endLabel: string) => void;
@@ -22,25 +28,45 @@ export default function ScheduleGrid<T extends BaseSession>({
   startHour,
   slots,
   slotMinutes,
+  timeSlots,
   todayIdx,
   selectedIdx,
   onSessionClick,
   isStudent = false,
 }: Props<T>) {
-  // Tạo các mốc thời gian theo slot
-  const slotTimes = Array.from({ length: slots }, (_, i) => {
-    const total = startHour * 60 + i * slotMinutes;
-    return [Math.floor(total / 60), total % 60] as const;
-  });
+  // Tạo các mốc thời gian theo slot hoặc custom time slots
+  const slotTimes = timeSlots 
+    ? timeSlots.map(slot => {
+        const [hours, minutes] = slot.start.split(':').map(Number);
+        return [hours, minutes] as const;
+      })
+    : Array.from({ length: slots }, (_, i) => {
+        const total = startHour * 60 + i * slotMinutes;
+        return [Math.floor(total / 60), total % 60] as const;
+      });
 
   // Map session -> ô (dayIdx-slotIdx)
   function getPosition(dt: Date) {
     const dayIdx = (dt.getDay() + 6) % 7; // Mon=0
     const minutes = dt.getHours() * 60 + dt.getMinutes();
-    const startMin = startHour * 60;
-    const diff = minutes - startMin;
-    const slotIdx = Math.floor(diff / slotMinutes);
-    return { dayIdx, slotIdx };
+    
+    if (timeSlots) {
+      // Find which custom time slot this session belongs to
+      const slotIdx = timeSlots.findIndex(slot => {
+        const [startHours, startMinutes] = slot.start.split(':').map(Number);
+        const [endHours, endMinutes] = slot.end.split(':').map(Number);
+        const slotStart = startHours * 60 + startMinutes;
+        const slotEnd = endHours * 60 + endMinutes;
+        return minutes >= slotStart && minutes < slotEnd;
+      });
+      return { dayIdx, slotIdx };
+    } else {
+      // Original logic for regular slots
+      const startMin = startHour * 60;
+      const diff = minutes - startMin;
+      const slotIdx = Math.floor(diff / slotMinutes);
+      return { dayIdx, slotIdx };
+    }
   }
 
   const cellMap = new Map<string, T[]>();
@@ -48,7 +74,8 @@ export default function ScheduleGrid<T extends BaseSession>({
     const dt = toDateAny(s.start);
     if (Number.isNaN(+dt)) continue;
     const { dayIdx, slotIdx } = getPosition(dt);
-    if (slotIdx < 0 || slotIdx >= slots) continue;
+    const maxSlots = timeSlots ? timeSlots.length : slots;
+    if (slotIdx < 0 || slotIdx >= maxSlots) continue;
     const key = `${dayIdx}-${slotIdx}`;
     const list = cellMap.get(key) || [];
     list.push(s);
@@ -90,7 +117,15 @@ export default function ScheduleGrid<T extends BaseSession>({
         {slotTimes.map(([h, m], row) => (
           <React.Fragment key={row}>
             <div className="border-t border-accent-400 p-2 text-sm font-semibold text-primary-700 bg-accent-200 text-center">
-              {fmtTime(h, m)}
+              {timeSlots && timeSlots[row] ? (
+                <div>
+                  <div>{timeSlots[row].start}</div>
+                  <div className="text-xs text-primary-500">–</div>
+                  <div>{timeSlots[row].end}</div>
+                </div>
+              ) : (
+                fmtTime(h, m)
+              )}
             </div>
 
             {Array.from({ length: 7 }, (_, dayIdx) => {
@@ -120,12 +155,23 @@ export default function ScheduleGrid<T extends BaseSession>({
                     }
                   >
                     {items.map((s) => {
-                      const eMin = m + (s.durationMin ?? slotMinutes);
-                      const startLabel = fmtTime(h, m);
-                      const endLabel = fmtTime(
-                        h + Math.floor(eMin / 60),
-                        eMin % 60
-                      );
+                      let startLabel: string;
+                      let endLabel: string;
+                      
+                      if (timeSlots && timeSlots[row]) {
+                        // Use custom time slot times
+                        startLabel = timeSlots[row].start;
+                        endLabel = timeSlots[row].end;
+                      } else {
+                        // Original logic
+                        const eMin = m + (s.durationMin ?? slotMinutes);
+                        startLabel = fmtTime(h, m);
+                        endLabel = fmtTime(
+                          h + Math.floor(eMin / 60),
+                          eMin % 60
+                        );
+                      }
+                      
                       return (
                         <SessionCard
                           key={s.id}

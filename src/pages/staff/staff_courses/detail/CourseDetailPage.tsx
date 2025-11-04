@@ -9,7 +9,6 @@ import ScheduleHeader from '@/components/schedule/ScheduleHeader';
 import ScheduleGrid from '@/components/schedule/ScheduleGrid';
 import { startOfWeek, addDays } from '@/components/schedule/scheduleUtils';
 import { useCourseDetail } from '../shared/hooks/useCourseDetail';
-import { useTimeSlots } from '../shared/hooks/useTimeSlots';
 import { CourseOverviewCards } from './components/CourseOverviewCards';
 import { CourseInfoSection } from './components/CourseInfoSection';
 import DeleteConfirmDialog from '../shared/components/DeleteConfirmDialog';
@@ -24,7 +23,15 @@ const CourseDetailPage: React.FC = () => {
   // Fetch course data
   const { loading, error, courseDetail, classes, classSessions, skills, benefits, requirements, syllabi } =
     useCourseDetail(id);
-  const { scheduleConfig } = useTimeSlots();
+
+  // Define custom time slots
+  const timeSlots = [
+    { start: '09:00', end: '10:30' },
+    { start: '13:30', end: '15:00' },
+    { start: '15:30', end: '17:00' },
+    { start: '18:00', end: '19:30' },
+    { start: '20:00', end: '21:30' },
+  ];
 
   // Local state
   const [deleteCourseDialog, setDeleteCourseDialog] = useState(false);
@@ -278,9 +285,10 @@ const CourseDetailPage: React.FC = () => {
               <ScheduleGrid
                 weekStart={weekStart}
                 sessions={scheduleSessions}
-                startHour={scheduleConfig.startHour}
-                slots={scheduleConfig.slots}
-                slotMinutes={scheduleConfig.slotMinutes}
+                startHour={9}
+                slots={5}
+                slotMinutes={90}
+                timeSlots={timeSlots}
                 todayIdx={todayIdx}
                 selectedIdx={-1}
                 onSessionClick={() => {}}
