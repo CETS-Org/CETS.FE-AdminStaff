@@ -348,30 +348,30 @@ export default function StaffList() {
     accountant: staffs.filter(s => s.roleNames.some(role => role.toLowerCase().includes('accountant'))).length
   };
 
-  const handleExport = () => {
-    const dataToExport = staffs.map(staff => ({
-      'Full Name': staff.fullName,
-      'Email': staff.email,
-      'Phone': staff.phoneNumber || 'N/A',
-      'Roles': staff.roleNames.join(', '),
-      'Status': staff.statusName || 'Unknown',
-      'Date of Birth': staff.dateOfBirth ? new Date(staff.dateOfBirth).toLocaleDateString() : 'N/A',
-      'Created Date': new Date(staff.createdAt).toLocaleDateString()
-    }));
+  // const handleExport = () => {
+  //   const dataToExport = staffs.map(staff => ({
+  //     'Full Name': staff.fullName,
+  //     'Email': staff.email,
+  //     'Phone': staff.phoneNumber || 'N/A',
+  //     'Roles': staff.roleNames.join(', '),
+  //     'Status': staff.statusName || 'Unknown',
+  //     'Date of Birth': staff.dateOfBirth ? new Date(staff.dateOfBirth).toLocaleDateString() : 'N/A',
+  //     'Created Date': new Date(staff.createdAt).toLocaleDateString()
+  //   }));
     
-    const csv = [
-      Object.keys(dataToExport[0]).join(','),
-      ...dataToExport.map(row => Object.values(row).map(val => `"${val}"`).join(','))
-    ].join('\n');
+  //   const csv = [
+  //     Object.keys(dataToExport[0]).join(','),
+  //     ...dataToExport.map(row => Object.values(row).map(val => `"${val}"`).join(','))
+  //   ].join('\n');
     
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'staff-list.csv';
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
+  //   const blob = new Blob([csv], { type: 'text/csv' });
+  //   const url = window.URL.createObjectURL(blob);
+  //   const a = document.createElement('a');
+  //   a.href = url;
+  //   a.download = 'staff-list.csv';
+  //   a.click();
+  //   window.URL.revokeObjectURL(url);
+  // };
 
 
   if (loading) {
@@ -410,15 +410,15 @@ export default function StaffList() {
         title="Staff Management"
         description="Manage and oversee all staff members with comprehensive tools"
         icon={<Users className="w-5 h-5 text-white" />}
-        controls={[
-          {
-            type: 'button',
-            label: 'Export',
-            variant: 'secondary',
-            icon: <Download className="w-4 h-4" />,
-            onClick: handleExport
-          }
-        ]}
+        // controls={[
+        //   {
+        //     type: 'button',
+        //     label: 'Export',
+        //     variant: 'secondary',
+        //     icon: <Download className="w-4 h-4" />,
+        //     onClick: handleExport
+        //   }
+        // ]}
       />
 
       {/* Enhanced Stats Cards */}

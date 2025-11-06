@@ -4,19 +4,19 @@ import type { CreateTimeslotDto, UpdateTimeslotDto, TimeslotFilter } from '@/typ
 
 // Timeslot APIs
 export const getTimeslots = (filter?: TimeslotFilter, config?: AxiosRequestConfig) =>
-  api.get(`${endpoint.course}/timeslots`, { ...config, params: filter });
+  api.get(`${endpoint.coreLookup}/type/code/TimeSlot`, { ...config, params: filter });
 
 export const getTimeslotById = (id: string, config?: AxiosRequestConfig) =>
-  api.get(`${endpoint.course}/timeslots/${id}`, config);
+  api.get(`${endpoint.coreLookup}/type/code/TimeSlot/${id}`, config);
 
 export const createTimeslot = (data: CreateTimeslotDto, config?: AxiosRequestConfig) =>
-  api.post(`${endpoint.course}/timeslots`, data, config);
+  api.post(`${endpoint.coreLookup}/type/code/TimeSlot`, data, config);
 
 export const updateTimeslot = (id: string, data: UpdateTimeslotDto, config?: AxiosRequestConfig) =>
-  api.put(`${endpoint.course}/timeslots/${id}`, data, config);
+  api.put(`${endpoint.coreLookup}/type/code/TimeSlot/${id}`, data, config);
 
 export const deleteTimeslot = (id: string, config?: AxiosRequestConfig) =>
-  api.delete(`${endpoint.course}/timeslots/${id}`, config);
+  api.delete(`${endpoint.coreLookup}/type/code/TimeSlot/${id}`, config);
 
 // Timetable Entries APIs
 export const getTimetableEntries = (filter?: any, config?: AxiosRequestConfig) =>

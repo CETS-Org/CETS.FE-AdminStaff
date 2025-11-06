@@ -2,7 +2,8 @@
 import {
   BarChart3, BookOpenText, Users, GraduationCap, CalendarDays,
   UserPlus, Mail, MessageSquare, FileText, UserCheck, Percent,
-  Receipt, CreditCard, TrendingUp, PieChart, School, Clock, DoorOpen
+  Receipt, CreditCard, TrendingUp, PieChart, School, Clock, DoorOpen,
+  Package as PackageIcon
 } from "lucide-react";
 import type { SidebarConfig } from "./GenericSidebar";
 
@@ -13,6 +14,7 @@ export const academicStaffSidebarConfig: SidebarConfig = {
   items: [
     { id: "analytics", label: "Analytics", icon: BarChart3, path: "/staff/analytics" },
     { id: "courses", label: "Courses", icon: BookOpenText, path: "/staff/courses" },
+    { id: "packages", label: "Packages", icon: PackageIcon, path: "/staff/packages" },
     { id: "classes", label: "Classes", icon: School, path: "/staff/classes" },
     { id: "schedule", label: "Schedule", icon: CalendarDays, path: "/staff/schedule" },
     { id: "timetable", label: "Timetable", icon: Clock, path: "/staff/timetable" },

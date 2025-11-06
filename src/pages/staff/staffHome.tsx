@@ -8,11 +8,10 @@ import StaffSidebar from "@/shared/StaffSidebar";
 
 import StaffSchedulePage from "./staff_schedule";
 import StaffStudentsPage from "./staff_students";
-import StaffCoursesPage from "./staff_courses";
+import StaffCoursesPage from "./staff_courses/list/CoursesListPage";
 import TeacherManagement from "./staff_teachers";
 import StaffAnalytics from "./staff_analys";
-import CourseDetailPage from "./staff_courses/CourseDetailPage";
-import AddEditCoursePage from "./staff_courses/AddEditCoursePage";
+import { CourseDetailPage, AddCoursePage, EditCoursePage } from "./staff_courses";
 import AddEditClassPage from "./staff_classes/AddEditClassPage";
 import ClassDetailPage from "./staff_classes/ClassDetailPage";
 import AssignTeacherPage from "./staff_assign_teacher";
@@ -34,6 +33,7 @@ import StaffClassesPage from "./staff_classes";
 import StaffRoomsPage from "./staff_rooms";
 import StaffContractsPage from "./staff_contracts";
 import StaffTransactionsPage from "./staff_transactions";
+import { PackagesListPage, PackageDetailPage, AddPackagePage, EditPackagePage } from "./staff_packages";
 
 export default function StaffHome() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -130,8 +130,8 @@ export default function StaffHome() {
               element={userRole === 'AccountantStaff' ? <StaffTransactionsPage /> : <Navigate to="/staff/analytics" replace />}
             />
             <Route path="courses" element={<StaffCoursesPage />} />
-            <Route path="courses/add" element={<AddEditCoursePage />} />
-            <Route path="courses/edit/:id" element={<AddEditCoursePage />} />
+            <Route path="courses/add" element={<AddCoursePage />} />
+            <Route path="courses/edit/:id" element={<EditCoursePage />} />
             <Route path="courses/:id" element={<CourseDetailPage />} />
             <Route path="courses/:courseId/classes/add" element={<AddEditClassPage />} />
             <Route path="courses/:courseId/classes/:classId" element={<ClassDetailPage />} />
@@ -148,6 +148,10 @@ export default function StaffHome() {
             <Route path="complaints/:id" element={<ComplaintDetailPage />} />
             <Route path="complaints/:id/response" element={<ComplaintResponsePage />} />
             <Route path="requests" element={<StaffRequestPage />} />
+            <Route path="packages" element={<PackagesListPage />} />
+            <Route path="packages/add" element={<AddPackagePage />} />
+            <Route path="packages/edit/:id" element={<EditPackagePage />} />
+            <Route path="packages/:id" element={<PackageDetailPage />} />
           </Routes>
         </div>
       </div>
