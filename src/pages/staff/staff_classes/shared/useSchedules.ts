@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import type { ScheduleRow, TimeSlotOption } from "@/components/schedule/ScheduleSection";
+import type { ScheduleRow, TimeSlotOption } from "@/pages/staff/staff_classes/components/ScheduleSection";
 
 export function useSchedules(
   initial: ScheduleRow[] = [],
