@@ -21,6 +21,7 @@ export const endpoint ={
   teacherCredential: '/api/IDN_TeacherCredential',
   classes: '/api/ACAD_Classes',
   promotion: '/api/FIN_Promotion',
+  paymentWebhook: '/api/FIN_PaymentWebhook',
 }
 
   // Request interceptor to add auth token

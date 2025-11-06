@@ -33,6 +33,7 @@ import StaffTimetablePage from "./staff_timetable";
 import StaffClassesPage from "./staff_classes";
 import StaffRoomsPage from "./staff_rooms";
 import StaffContractsPage from "./staff_contracts";
+import StaffTransactionsPage from "./staff_transactions";
 
 export default function StaffHome() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -123,6 +124,10 @@ export default function StaffHome() {
             <Route
               path="contracts"
               element={userRole === 'AccountantStaff' ? <StaffContractsPage /> : <Navigate to="/staff/analytics" replace />}
+            />
+            <Route
+              path="transactions"
+              element={userRole === 'AccountantStaff' ? <StaffTransactionsPage /> : <Navigate to="/staff/analytics" replace />}
             />
             <Route path="courses" element={<StaffCoursesPage />} />
             <Route path="courses/add" element={<AddEditCoursePage />} />

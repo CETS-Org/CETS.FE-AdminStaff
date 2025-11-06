@@ -13,6 +13,13 @@ import {
   updateTimetableEntry,
   deleteTimetableEntry
 } from './timetable.api';
+import {
+  getAdminAnalytics,
+  exportAnalyticsReport,
+  getUserAnalyticsByRole,
+  getComplaintAnalytics,
+  getSystemMetrics
+} from './analytics.api';
 
 export const apiClient = axiosInstance;
 export { endpoint } from './api';
@@ -39,6 +46,13 @@ export const api = {
   createTimetableEntry,
   updateTimetableEntry,
   deleteTimetableEntry,
+
+  // Analytics
+  getAdminAnalytics,
+  exportAnalyticsReport,
+  getUserAnalyticsByRole,
+  getComplaintAnalytics,
+  getSystemMetrics,
 };
 
 export {
@@ -58,6 +72,11 @@ export {
   createTimetableEntry,
   updateTimetableEntry,
   deleteTimetableEntry,
+  getAdminAnalytics,
+  exportAnalyticsReport,
+  getUserAnalyticsByRole,
+  getComplaintAnalytics,
+  getSystemMetrics,
 };
 
 

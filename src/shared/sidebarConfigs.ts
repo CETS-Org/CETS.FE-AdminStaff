@@ -44,6 +44,7 @@ export const staffSidebarConfig: SidebarConfig = academicStaffSidebarConfig;
 export const adminSidebarConfig: SidebarConfig = {
   title: "Admin",
   items: [
+    { id: "analytics", label: "Analytics", icon: BarChart3, path: "/admin/analytics" },
     {
       id: "user-management",
       label: "User Management",
