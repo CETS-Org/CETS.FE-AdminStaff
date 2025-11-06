@@ -51,10 +51,27 @@ export default function AddEditStaffDialog({
     const hasFullName = formData.fullName.trim().length > 0;
     const hasEmail = formData.email.trim().length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email);
     const hasPhone = formData.phoneNumber.trim().length > 0 && /^0\d{9}$/.test(formData.phoneNumber.replace(/\s/g, ''));
-    const hasDob = !!formData.dateOfBirth && new Date(formData.dateOfBirth) <= new Date();
+    
+    // Check date of birth and age
+    let hasValidDob = false;
+    if (formData.dateOfBirth) {
+      const dob = new Date(formData.dateOfBirth);
+      const today = new Date();
+      if (dob <= today) {
+        // Calculate age
+        const age = today.getFullYear() - dob.getFullYear();
+        const monthDiff = today.getMonth() - dob.getMonth();
+        const dayDiff = today.getDate() - dob.getDate();
+        
+        // Adjust age if birthday hasn't occurred this year
+        const actualAge = (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) ? age - 1 : age;
+        hasValidDob = actualAge >= 18;
+      }
+    }
+    
     const validCid = formData.cid.trim().length > 0 && /^\d{9,12}$/.test(formData.cid.trim());
     const roleOk = mode === "edit" ? true : !!formData.roleID;
-    return hasFullName && hasEmail && hasPhone && hasDob && validCid && roleOk;
+    return hasFullName && hasEmail && hasPhone && hasValidDob && validCid && roleOk;
   })();
 
   // Fetch roles when dialog opens
@@ -112,6 +129,21 @@ export default function AddEditStaffDialog({
     }
   }, [open, mode, staff]);
 
+  // Set default role when roles are loaded and we're in add mode
+  useEffect(() => {
+    if (open && mode === "add" && staffRoles.length > 0 && !formData.roleID) {
+      // Find Academic Staff role or use the first available role
+      const academicStaffRole = staffRoles.find(role => 
+        role.roleName?.toLowerCase().includes('academic') || 
+        role.roleName?.toLowerCase().includes('staff')
+      );
+      
+      if (academicStaffRole) {
+        setFormData(prev => ({ ...prev, roleID: academicStaffRole.id }));
+      }
+    }
+  }, [open, mode, staffRoles, formData.roleID]);
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -142,6 +174,18 @@ export default function AddEditStaffDialog({
       const today = new Date();
       if (dob > today) {
         newErrors.dateOfBirth = "Date of birth cannot be in the future";
+      } else {
+        // Calculate age
+        const age = today.getFullYear() - dob.getFullYear();
+        const monthDiff = today.getMonth() - dob.getMonth();
+        const dayDiff = today.getDate() - dob.getDate();
+        
+        // Adjust age if birthday hasn't occurred this year
+        const actualAge = (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) ? age - 1 : age;
+        
+        if (actualAge < 18) {
+          newErrors.dateOfBirth = "Age must be at least 18 years old";
+        }
       }
     }
 
@@ -300,8 +344,8 @@ export default function AddEditStaffDialog({
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange} modal={!isConfirmOpen}>
-      <DialogContent size="lg">
-        <DialogHeader>
+      <DialogContent size="lg" className="flex flex-col max-h-[90vh]">
+        <DialogHeader className="flex-shrink-0">
           <div className="flex items-center justify-between">
             <DialogTitle>
               {mode === "add" ? "Add New Staff" : "Edit Staff"}
@@ -315,7 +359,7 @@ export default function AddEditStaffDialog({
           </div>
         </DialogHeader>
 
-        <DialogBody>
+        <DialogBody className="flex-1 overflow-y-auto scrollbar-hide">
           {updateError && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
               <p className="text-sm text-red-600">{updateError}</p>
@@ -457,12 +501,33 @@ export default function AddEditStaffDialog({
                   onChange={(e) => {
                     const value = e.target.value;
                     setFormData(prev => ({ ...prev, dateOfBirth: value }));
-                    const date = value ? new Date(value) : null;
+                    
+                    let errorMessage = "";
+                    if (!value) {
+                      errorMessage = "Date of birth is required";
+                    } else {
+                      const date = new Date(value);
+                      const today = new Date();
+                      if (date > today) {
+                        errorMessage = "Date of birth cannot be in the future";
+                      } else {
+                        // Calculate age
+                        const age = today.getFullYear() - date.getFullYear();
+                        const monthDiff = today.getMonth() - date.getMonth();
+                        const dayDiff = today.getDate() - date.getDate();
+                        
+                        // Adjust age if birthday hasn't occurred this year
+                        const actualAge = (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) ? age - 1 : age;
+                        
+                        if (actualAge < 18) {
+                          errorMessage = "Age must be at least 18 years old";
+                        }
+                      }
+                    }
+                    
                     setErrors(prev => ({
                       ...prev,
-                      dateOfBirth: !value
-                        ? "Date of birth is required"
-                        : (date && date > new Date() ? "Date of birth cannot be in the future" : ""),
+                      dateOfBirth: errorMessage,
                     }));
                   }}
                   error={errors.dateOfBirth}
@@ -538,28 +603,30 @@ export default function AddEditStaffDialog({
           </div>
         </DialogBody>
 
-        <DialogFooter>
-          <Button
-            variant="secondary"
-            onClick={() => onOpenChange(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={handleSave}
-            disabled={isLoading || !isFormValid}
-            className="bg-primary-600 hover:bg-primary-700 text-white disabled:opacity-50"
-          >
-            {isLoading ? (
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                {mode === "add" ? "Adding..." : "Saving..."}
-              </div>
-            ) : (
-              mode === "add" ? "Add Staff" : "Save Changes"
-            )}
-          </Button>
+        <DialogFooter className="flex-shrink-0 border-t border-gray-200 bg-gray-50 px-6 py-4">
+          <div className="flex justify-end gap-3">
+            <Button
+              variant="secondary"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={handleSave}
+              disabled={isLoading || !isFormValid}
+              className="bg-primary-600 hover:bg-primary-700 text-white disabled:opacity-50"
+            >
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  {mode === "add" ? "Adding..." : "Saving..."}
+                </div>
+              ) : (
+                mode === "add" ? "Add Staff" : "Save Changes"
+              )}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
