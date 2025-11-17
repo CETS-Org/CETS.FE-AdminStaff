@@ -29,6 +29,12 @@ import ComplaintResponsePage from "@/shared/ComplaintResponsePage";
 import EditStudentPage from "./staff_students/EditStudentPage";
 import AddStudentPage from "./staff_students/AddStudentPage";
 import StaffPromotionsPage from "./staff_promotions";
+import StaffTimetablePage from "./staff_timetable";
+import StaffClassesPage from "./staff_classes";
+import StaffRoomsPage from "./staff_rooms";
+import StaffContractsPage from "./staff_contracts";
+import PlacementTestManagementPage from "./staff_placement_test";
+import CreatePlacementTestPage from "./staff_placement_test/CreatePlacementTestPage";
 
 export default function StaffHome() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -129,6 +135,9 @@ export default function StaffHome() {
             <Route path="complaints/:id" element={<ComplaintDetailPage />} />
             <Route path="complaints/:id/response" element={<ComplaintResponsePage />} />
             <Route path="requests" element={<StaffRequestPage />} />
+            <Route path="placement-test" element={<PlacementTestManagementPage />} />
+            <Route path="placement-test/create" element={<CreatePlacementTestPage />} />
+            <Route path="placement-test/edit/:id" element={<CreatePlacementTestPage />} />
           </Routes>
         </div>
       </div>

@@ -38,6 +38,7 @@
     "tailwind-scrollbar": "^4.0.2",
     "tailwindcss-animate": "^1.0.7",
     "vite-tsconfig-paths": "^5.1.4",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^4.0.17",
     "zustand": "^5.0.8"
   },
@@ -50,6 +51,7 @@
     "@types/react": "^19.1.10",
     "@types/react-big-calendar": "^1.16.2",
     "@types/react-dom": "^19.1.7",
+    "@types/xlsx": "^0.0.35",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.33.0",
