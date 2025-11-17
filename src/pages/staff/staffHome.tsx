@@ -1,6 +1,6 @@
 // src/pages/staff/StaffHome.tsx
 import { useState, useEffect } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import GenericNavbar from "@/shared/GenericNavbar";
 import { createAcademicStaffNavbarConfig, createAccountantStaffNavbarConfig } from "@/shared/navbarConfigs";
 import { academicStaffSidebarConfig, accountantStaffSidebarConfig } from "@/shared/sidebarConfigs";
@@ -8,13 +8,12 @@ import StaffSidebar from "@/shared/StaffSidebar";
 
 import StaffSchedulePage from "./staff_schedule";
 import StaffStudentsPage from "./staff_students";
-import StaffCoursesPage from "./staff_courses";
+import StaffCoursesPage from "./staff_courses/list/CoursesListPage";
 import TeacherManagement from "./staff_teachers";
 import StaffAnalytics from "./staff_analys";
-import CourseDetailPage from "./staff_courses/CourseDetailPage";
-import ClassDetailPage from "./staff_courses/ClassDetailPage";
-import AddEditCoursePage from "./staff_courses/AddEditCoursePage";
-import AddEditClassPage from "./staff_courses/AddEditClassPage";
+import { CourseDetailPage, AddCoursePage, EditCoursePage } from "./staff_courses";
+import AddEditClassPage from "./staff_classes/AddEditClassPage";
+import ClassDetailPage from "./staff_classes/ClassDetailPage";
 import AssignTeacherPage from "./staff_assign_teacher";
 import StaffRequestPage from "./staff_request";
 import StaffEventsPage from "./staff_events";
@@ -33,8 +32,8 @@ import StaffTimetablePage from "./staff_timetable";
 import StaffClassesPage from "./staff_classes";
 import StaffRoomsPage from "./staff_rooms";
 import StaffContractsPage from "./staff_contracts";
-import PlacementTestManagementPage from "./staff_placement_test";
-import CreatePlacementTestPage from "./staff_placement_test/CreatePlacementTestPage";
+import StaffTransactionsPage from "./staff_transactions";
+import { PackagesListPage, PackageDetailPage, AddPackagePage, EditPackagePage } from "./staff_packages";
 
 export default function StaffHome() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -120,13 +119,27 @@ export default function StaffHome() {
             <Route path="students/edit/:id" element={<EditStudentPage />} />
             <Route path="students/add" element={<AddStudentPage />} /> */}            
             <Route path="schedule" element={<StaffSchedulePage />} />
+            <Route path="timetable" element={<StaffTimetablePage />} />
+            <Route path="rooms" element={<StaffRoomsPage />} />
+            <Route
+              path="contracts"
+              element={userRole === 'AccountantStaff' ? <StaffContractsPage /> : <Navigate to="/staff/analytics" replace />}
+            />
+            <Route
+              path="transactions"
+              element={userRole === 'AccountantStaff' ? <StaffTransactionsPage /> : <Navigate to="/staff/analytics" replace />}
+            />
             <Route path="courses" element={<StaffCoursesPage />} />
-            <Route path="courses/add" element={<AddEditCoursePage />} />
-            <Route path="courses/edit/:id" element={<AddEditCoursePage />} />
+            <Route path="courses/add" element={<AddCoursePage />} />
+            <Route path="courses/edit/:id" element={<EditCoursePage />} />
             <Route path="courses/:id" element={<CourseDetailPage />} />
             <Route path="courses/:courseId/classes/add" element={<AddEditClassPage />} />
             <Route path="courses/:courseId/classes/:classId" element={<ClassDetailPage />} />
             <Route path="courses/:courseId/classes/:classId/edit" element={<AddEditClassPage />} />
+            <Route path="classes" element={<StaffClassesPage />} />
+            <Route path="classes/add" element={<AddEditClassPage />} />
+            <Route path="classes/:id" element={<ClassDetailPage />} />
+            <Route path="classes/:id/edit" element={<AddEditClassPage />} />
             <Route path="assign-teacher" element={<AssignTeacherPage />} />
             <Route path="promotions" element={<StaffPromotionsPage />} />
             <Route path="events" element={<StaffEventsPage />} />
@@ -135,9 +148,10 @@ export default function StaffHome() {
             <Route path="complaints/:id" element={<ComplaintDetailPage />} />
             <Route path="complaints/:id/response" element={<ComplaintResponsePage />} />
             <Route path="requests" element={<StaffRequestPage />} />
-            <Route path="placement-test" element={<PlacementTestManagementPage />} />
-            <Route path="placement-test/create" element={<CreatePlacementTestPage />} />
-            <Route path="placement-test/edit/:id" element={<CreatePlacementTestPage />} />
+            <Route path="packages" element={<PackagesListPage />} />
+            <Route path="packages/add" element={<AddPackagePage />} />
+            <Route path="packages/edit/:id" element={<EditPackagePage />} />
+            <Route path="packages/:id" element={<PackageDetailPage />} />
           </Routes>
         </div>
       </div>

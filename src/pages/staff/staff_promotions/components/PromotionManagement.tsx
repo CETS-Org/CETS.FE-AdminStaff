@@ -9,85 +9,7 @@ import type { Promotion } from "@/types/promotion.type";
 import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
 import AddEditPromotionDialog from "./AddEditPromotionDialog";
 import PromotionDetailDialog from "./PromotionDetailDialog";
-
-// Mock data for development - replace with actual API calls
-const mockPromotions: Promotion[] = [
-  {
-    id: "1",
-    promotionTypeID: "type1",
-    code: "SUMMER2024",
-    name: "Summer Sale 2024",
-    percentOff: 20,
-    amountOff: null,
-    startDate: "2024-06-01",
-    endDate: "2024-08-31",
-    isActive: true,
-    createdAt: "2024-01-15T10:30:00Z",
-    updatedAt: "2024-02-01T14:20:00Z",
-    createdBy: "staff1",
-    updatedBy: "staff1",
-    createdByNavigation: {
-      accountId: "staff1",
-      fullName: "John Doe",
-      email: "john.doe@example.com"
-    },
-    promotionType: {
-      id: "type1",
-      name: "Seasonal Discount",
-      description: "Seasonal promotional offers"
-    }
-  },
-  {
-    id: "2",
-    promotionTypeID: "type2",
-    code: "NEWSTUDENT",
-    name: "New Student Discount",
-    percentOff: null,
-    amountOff: 50,
-    startDate: "2024-01-01",
-    endDate: null,
-    isActive: true,
-    createdAt: "2024-01-10T09:15:00Z",
-    updatedAt: null,
-    createdBy: "staff2",
-    updatedBy: null,
-    createdByNavigation: {
-      accountId: "staff2",
-      fullName: "Jane Smith",
-      email: "jane.smith@example.com"
-    },
-    promotionType: {
-      id: "type2",
-      name: "Student Discount",
-      description: "Discounts for new students"
-    }
-  },
-  {
-    id: "3",
-    promotionTypeID: "type1",
-    code: "EXPIRED2023",
-    name: "Holiday Sale 2023",
-    percentOff: 15,
-    amountOff: null,
-    startDate: "2023-12-01",
-    endDate: "2023-12-31",
-    isActive: false,
-    createdAt: "2023-11-20T16:45:00Z",
-    updatedAt: "2024-01-01T08:00:00Z",
-    createdBy: "staff1",
-    updatedBy: "staff1",
-    createdByNavigation: {
-      accountId: "staff1",
-      fullName: "John Doe",
-      email: "john.doe@example.com"
-    },
-    promotionType: {
-      id: "type1",
-      name: "Seasonal Discount",
-      description: "Seasonal promotional offers"
-    }
-  }
-];
+import { getPromotions, deletePromotion, bulkDeletePromotions, bulkActivatePromotions } from "@/api/promotion.api";
 
 export default function PromotionManagement() {
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; promotion: Promotion | null }>({ open: false, promotion: null });
@@ -103,11 +25,17 @@ export default function PromotionManagement() {
     try {
       setLoading(true);
       setError(null);
-      // Replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
-      setPromotions(mockPromotions);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch promotions');
+      
+      console.log("Fetching promotions from API...");
+      
+      // Call API to get promotions
+      const promotionsData = await getPromotions();
+      console.log("Promotions data received:", promotionsData);
+      
+      setPromotions(promotionsData);
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch promotions';
+      setError(errorMessage);
       console.error('Error fetching promotions:', err);
     } finally {
       setLoading(false);
@@ -120,12 +48,20 @@ export default function PromotionManagement() {
 
   const handleDelete = async (promotionId: string) => {
     try {
-      // Replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log("Deleting promotion:", promotionId);
+      
+      // Call API to delete promotion
+      await deletePromotion(promotionId);
+      
+      // Update local state
       setPromotions(prev => prev.filter(p => p.id !== promotionId));
       setDeleteDialog({ open: false, promotion: null });
-    } catch (err) {
+      
+      console.log("Promotion deleted successfully");
+    } catch (err: any) {
       console.error('Error deleting promotion:', err);
+      const errorMessage = err.response?.data?.message || 'Failed to delete promotion. Please try again.';
+      alert(errorMessage);
     }
   };
 
@@ -146,19 +82,10 @@ export default function PromotionManagement() {
   };
 
   const getStatusBadge = (promotion: Promotion) => {
-    const now = new Date();
-    const endDate = promotion.endDate ? new Date(promotion.endDate) : null;
-    const startDate = promotion.startDate ? new Date(promotion.startDate) : null;
-    
-    if (!promotion.isActive) {
-      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Inactive</span>;
-    } else if (endDate && endDate < now) {
-      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Expired</span>;
-    } else if (startDate && startDate > now) {
-      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Scheduled</span>;
-    } else {
-      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Active</span>;
-    }
+    const active = promotion.isActive === true || (typeof promotion.isActive === 'number' && promotion.isActive === 1);
+    return active
+      ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Active</span>
+      : <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Expired</span>;
   };
 
   const columns: TableColumn<Promotion>[] = [
@@ -256,7 +183,7 @@ export default function PromotionManagement() {
       options: [
         { label: "All Status", value: "all" },
         { label: "Active", value: "true" },
-        { label: "Inactive", value: "false" },
+        { label: "Expired", value: "false" },
       ],
     },
     {
@@ -275,9 +202,24 @@ export default function PromotionManagement() {
       id: "delete",
       label: "Delete Selected",
       icon: <Trash2 className="w-4 h-4" />,
-      onClick: (selectedItems: Promotion[]) => {
-        // Handle bulk delete
-        console.log("Bulk delete:", selectedItems);
+      onClick: async (selectedItems: Promotion[]) => {
+        try {
+          const ids = selectedItems.map(item => item.id);
+          console.log("Bulk delete:", ids);
+          
+          if (window.confirm(`Are you sure you want to delete ${ids.length} promotion(s)?`)) {
+            await bulkDeletePromotions(ids);
+            
+            // Update local state
+            setPromotions(prev => prev.filter(p => !ids.includes(p.id)));
+            
+            console.log("Bulk delete successful");
+          }
+        } catch (err: any) {
+          console.error('Error bulk deleting promotions:', err);
+          const errorMessage = err.response?.data?.message || 'Failed to delete promotions. Please try again.';
+          alert(errorMessage);
+        }
       },
       variant: "danger",
     },
@@ -285,9 +227,22 @@ export default function PromotionManagement() {
       id: "activate",
       label: "Activate",
       icon: <TrendingUp className="w-4 h-4" />,
-      onClick: (selectedItems: Promotion[]) => {
-        // Handle bulk activate
-        console.log("Bulk activate:", selectedItems);
+      onClick: async (selectedItems: Promotion[]) => {
+        try {
+          const ids = selectedItems.map(item => item.id);
+          console.log("Bulk activate:", ids);
+          
+          await bulkActivatePromotions(ids);
+          
+          // Refresh data to get updated status
+          await fetchPromotions();
+          
+          console.log("Bulk activate successful");
+        } catch (err: any) {
+          console.error('Error bulk activating promotions:', err);
+          const errorMessage = err.response?.data?.message || 'Failed to activate promotions. Please try again.';
+          alert(errorMessage);
+        }
       },
       variant: "primary",
     },
@@ -295,11 +250,8 @@ export default function PromotionManagement() {
 
   const stats = {
     totalPromotions: promotions.length,
-    activePromotions: promotions.filter(p => p.isActive).length,
-    expiredPromotions: promotions.filter(p => {
-      const endDate = p.endDate ? new Date(p.endDate) : null;
-      return endDate && endDate < new Date();
-    }).length,
+    activePromotions: promotions.filter(p => p.isActive === true || (typeof p.isActive === 'number' && p.isActive === 1)).length,
+    expiredPromotions: promotions.filter(p => !(p.isActive === true || (typeof p.isActive === 'number' && p.isActive === 1))).length,
     scheduledPromotions: promotions.filter(p => {
       const startDate = p.startDate ? new Date(p.startDate) : null;
       return startDate && startDate > new Date();

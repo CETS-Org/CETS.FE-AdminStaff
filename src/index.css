@@ -74,9 +74,47 @@ html, body, #root {
   scroll-behavior: smooth;
 }
 
+/* Custom scrollbar for checkbox sections */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 3px;
+}
+
+.scrollbar-thumb-gray-400::-webkit-scrollbar-thumb {
+  background: #9ca3af;
+  border-radius: 3px;
+}
+
+.scrollbar-thumb-gray-400::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Firefox scrollbar styling for checkbox sections */
+.scrollbar-thin.scrollbar-thumb-gray-400 {
+  scrollbar-width: thin;
+  scrollbar-color: #9ca3af #f3f4f6;
+}
+
 /* Override default border color globally */
 .border {
   border-color: var(--color-border) !important;
 }
 
 
+/* Global focus ring: 1px on all interactive controls */
+@layer base {
+  :is(button, [type='button'], [type='submit'], [type='reset'], a[href], input, select, textarea, [role='button']) {
+    @apply focus-visible:outline-none focus-visible:!ring-1 focus-visible:ring-primary-500;
+  }
+}
+
+/* Utility to opt-in explicitly when needed */
+@layer components {
+  .focus-ring-1 {
+    @apply focus-visible:outline-none focus-visible:!ring-1 focus-visible:ring-primary-500;
+  }
+}

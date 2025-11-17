@@ -11,6 +11,7 @@ export const api = axios.create({
   
 export const endpoint ={
   account: '/api/IDN_Account',
+  course: '/api/ACAD_Course',
   student: '/api/IDN_Student',
   teacher: '/api/IDN_Teacher',
   role: '/api/IDN_Role',
@@ -18,6 +19,10 @@ export const endpoint ={
   attendance: '/api/ACAD_Attendance',
   courseTeacherAssignment: '/api/ACAD_CourseTeacherAssignment',
   teacherCredential: '/api/IDN_TeacherCredential',
+  coreLookup: '/api/CORE_LookUp',
+  classes: '/api/ACAD_Classes',
+  promotion: '/api/FIN_Promotion',
+  paymentWebhook: '/api/FIN_PaymentWebhook',
 }
 
   // Request interceptor to add auth token

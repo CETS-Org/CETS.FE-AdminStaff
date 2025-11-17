@@ -24,10 +24,10 @@ export const createAdminNavbarConfig = (userAccount: any): NavbarConfig => ({
   userInfo: createNavbarUserInfo(userAccount, "Admin"),
   navigationItems: [
     {
-      name: "Dashboard",
-      href: "/admin/dashboard",
+      name: "Analytics",
+      href: "/admin/analytics",
       icon: BarChart3,
-      description: "View system overview"
+      description: "View analytics dashboard"
     },
     {
       name: "Staff",
