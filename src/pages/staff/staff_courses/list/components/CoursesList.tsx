@@ -7,7 +7,8 @@ import {
   Plus, Clock, Eye, Edit, Trash2, 
   Star, 
   CheckSquare, Square, Download,
-  DollarSign
+  DollarSign,
+  MessageSquare
 } from "lucide-react";
 import DeleteConfirmDialog from "../../shared/components/DeleteConfirmDialog";
 import type { Course } from "@/types/course.types";
@@ -206,6 +207,14 @@ export default function CoursesList() {
         <div className="flex items-center gap-1">
           <Button
             size="sm"
+            onClick={() => handleViewFeedback(row)}
+            className="!p-2 !bg-purple-50 !text-purple-600 !border !border-purple-200 hover:!bg-purple-100 hover:!text-purple-700 hover:!border-purple-300 !transition-colors !rounded-md"
+            title="View Feedback"
+          >
+            <MessageSquare className="w-4 h-4" />
+          </Button>
+          <Button
+            size="sm"
             onClick={() => handleView(row)}
             className="!p-2 !bg-blue-50 !text-blue-600 !border !border-blue-200 hover:!bg-blue-100 hover:!text-blue-700 hover:!border-blue-300 !transition-colors !rounded-md"
           >
@@ -229,6 +238,10 @@ export default function CoursesList() {
       )
     }
   ];
+
+  const handleViewFeedback = (course: Course) => {
+    navigate(`/staff/courses/${course.id}/feedback`);
+  };
 
   const handleView = (course: Course) => {
     navigate(`/staff/courses/${course.id}`);
