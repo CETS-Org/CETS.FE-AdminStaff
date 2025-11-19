@@ -1,0 +1,56 @@
+import { useState, useEffect } from "react";
+import type { Question } from "../../types/placementQuestion.types";
+
+interface Props {
+  question: Question;
+  answer: any;
+  onAnswerChange: (answer: any) => void;
+  skillType: string;
+}
+
+export default function ShortAnswerQuestion({ question, answer, onAnswerChange }: Props) {
+  const [charCount, setCharCount] = useState(0);
+
+  useEffect(() => {
+    if (answer) {
+      setCharCount(String(answer).length);
+    } else {
+      setCharCount(0);
+    }
+  }, [answer]);
+
+  const handleChange = (value: string) => {
+    onAnswerChange(value);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-lg font-semibold text-neutral-900 mb-4">{question.question}</h3>
+        {question.audioTimestamp && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-700">
+              <span className="font-medium">Audio Timestamp:</span> {question.audioTimestamp}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <textarea
+          value={answer || ""}
+          onChange={(e) => handleChange(e.target.value)}
+          placeholder="Enter your answer here..."
+          className="w-full border border-neutral-300 rounded-md p-3 text-sm min-h-[150px] focus:outline-none focus:ring-1 focus:ring-primary-100"
+          maxLength={question.maxLength}
+        />
+        {question.maxLength && (
+          <p className="text-xs text-neutral-500 mt-2">
+            {charCount} / {question.maxLength} characters
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
