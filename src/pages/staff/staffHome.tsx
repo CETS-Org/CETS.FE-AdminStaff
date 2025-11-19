@@ -34,6 +34,9 @@ import StaffRoomsPage from "./staff_rooms";
 import StaffContractsPage from "./staff_contracts";
 import StaffTransactionsPage from "./staff_transactions";
 import { PackagesListPage, PackageDetailPage, AddPackagePage, EditPackagePage } from "./staff_packages";
+import PlacementTestManagementPage from "./staff_placement_test";
+import CreatePlacementTestPage from "./staff_placement_test/CreatePlacementTestPage";
+import StaffPlacementTestTaking from "./staff_placement_test/StaffPlacementTestTaking";
 
 export default function StaffHome() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -152,6 +155,10 @@ export default function StaffHome() {
             <Route path="packages/add" element={<AddPackagePage />} />
             <Route path="packages/edit/:id" element={<EditPackagePage />} />
             <Route path="packages/:id" element={<PackageDetailPage />} />
+            <Route path="placement-test" element={<PlacementTestManagementPage />} />
+            <Route path="placement-test/create" element={<CreatePlacementTestPage />} />
+            <Route path="placement-test/edit/:id" element={<CreatePlacementTestPage />} />
+            <Route path="placement-test/try/:testId" element={<StaffPlacementTestTaking />} />
           </Routes>
         </div>
       </div>

@@ -42,6 +42,17 @@ export interface CreatePlacementQuestionRequest {
   questionJson?: string; // JSON content để upload
 }
 
+export interface PlacementQuestionResponse {
+  id: string;
+  title: string;
+  questionUrl?: string | null;
+  skillTypeID: string;
+  questionTypeID: string;
+  difficulty: number;
+  createdAt: string;
+  updatedAt?: string | null;
+}
+
 export interface UpdatePlacementQuestionRequest {
   id: string;
   title?: string;
@@ -76,9 +87,13 @@ export interface RandomPlacementTestCriteria {
 
 // Placement Question APIs
 export const createPlacementQuestion = (
-  data: CreatePlacementQuestionRequest,
+  data: CreatePlacementQuestionRequest | CreatePlacementQuestionRequest[],
   config?: AxiosRequestConfig
-) => api.post<PlacementQuestion>('/api/ACAD_PlacementTest/question/create', data, config);
+) => {
+  // Luôn gửi dưới dạng array để hỗ trợ tạo nhiều câu hỏi cùng lúc
+  const requestData = Array.isArray(data) ? data : [data];
+  return api.post<PlacementQuestionResponse[]>('/api/ACAD_PlacementTest/question/create', requestData, config);
+};
 
 export const updatePlacementQuestion = (
   data: UpdatePlacementQuestionRequest,
@@ -145,6 +160,12 @@ export const deletePlacementTest = (
   config?: AxiosRequestConfig
 ) => api.delete(`/api/ACAD_PlacementTest/${id}`, config);
 
+export const togglePlacementTestStatus = (
+  id: string,
+  isDisabled: boolean,
+  config?: AxiosRequestConfig
+) => api.put<PlacementTest>(`/api/ACAD_PlacementTest/toggle-status/${id}?isDisabled=${isDisabled}`, null, config);
+
 // Student APIs
 export const getRandomPlacementTestForStudent = (
   config?: AxiosRequestConfig
@@ -178,5 +199,13 @@ export const getQuestionJsonUploadUrl = (
     ? `/api/ACAD_PlacementTest/question-json-upload-url?fileName=${encodeURIComponent(fileName)}`
     : '/api/ACAD_PlacementTest/question-json-upload-url';
   return api.get<{ uploadUrl: string; filePath: string }>(url, config);
+};
+
+export const getAudioUploadUrl = (
+  fileName: string,
+  config?: AxiosRequestConfig
+) => {
+  const url = `/api/ACAD_PlacementTest/audio-upload-url?fileName=${encodeURIComponent(fileName)}`;
+  return api.get<{ uploadUrl: string; filePath: string; publicUrl: string }>(url, config);
 };
 

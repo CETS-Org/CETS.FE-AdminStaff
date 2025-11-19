@@ -3,11 +3,14 @@ import { Upload, FileSpreadsheet, FileText, X, CheckCircle, AlertCircle } from "
 import Button from "@/components/ui/Button";
 import { useToast } from "@/hooks/useToast";
 import type { Question, QuestionOption } from "../types/placementQuestion.types";
+import type { QuestionType } from "@/api/placementTest.api";
 import * as XLSX from "xlsx";
 
 interface Props {
   onImport: (questions: Question[]) => void;
   skillType: string;
+  questionTypeId?: string | null;
+  questionTypes?: QuestionType[];
 }
 
 interface ImportError {
@@ -15,7 +18,7 @@ interface ImportError {
   message: string;
 }
 
-export default function QuestionImport({ onImport, skillType }: Props) {
+export default function QuestionImport({ onImport, skillType, questionTypeId, questionTypes }: Props) {
   const { success, error: showError } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
@@ -76,8 +79,11 @@ export default function QuestionImport({ onImport, skillType }: Props) {
         const pointsCol = findColumn(headers, ["points", "point", "score", "marks"]);
         const explanationCol = findColumn(headers, ["explanation", "explain", "note"]);
         
-        // Reading: Passage column
-        const passageCol = findColumn(headers, ["passage", "reading passage", "text"]);
+        // Reading: Passage column (skip if multiple choice)
+        const isMultipleChoice = questionTypeId && questionTypes && 
+          skillType.toLowerCase().includes("reading") &&
+          questionTypes.find(qt => qt.id === questionTypeId)?.name?.toLowerCase().includes("multiple choice");
+        const passageCol = !isMultipleChoice ? findColumn(headers, ["passage", "reading passage", "text"]) : -1;
         // Listening: Audio column
         const audioCol = findColumn(headers, ["audio", "audio url", "audiourl", "audio file", "sound"]);
 
@@ -333,7 +339,9 @@ export default function QuestionImport({ onImport, skillType }: Props) {
           <p>
             <strong>Optional columns:</strong> Type, Option A, Option B, Option C, Option D, Answer
             (or Correct Answer), Points, Explanation
-            {skillType.toLowerCase() === "reading" && (
+            {skillType.toLowerCase() === "reading" && 
+             !(questionTypeId && questionTypes && 
+               questionTypes.find(qt => qt.id === questionTypeId)?.name?.toLowerCase().includes("multiple choice")) && (
               <>, <strong>Passage</strong> (for reading assignments - can be shared across multiple questions)</>
             )}
             {skillType.toLowerCase() === "listening" && (
@@ -344,7 +352,9 @@ export default function QuestionImport({ onImport, skillType }: Props) {
             <strong>Question Types:</strong> multiple_choice, true_false, fill_in_the_blank,
             short_answer, essay
           </p>
-          {skillType.toLowerCase() === "reading" && (
+          {skillType.toLowerCase() === "reading" && 
+           !(questionTypeId && questionTypes && 
+             questionTypes.find(qt => qt.id === questionTypeId)?.name?.toLowerCase().includes("multiple choice")) && (
             <p className="mt-2 text-blue-800">
               <strong>Note:</strong> For Reading assignments, you can add a "Passage" column. 
               If a row has a Passage value, that question will use that passage. 
@@ -465,7 +475,12 @@ export default function QuestionImport({ onImport, skillType }: Props) {
             // Create sample Excel file based on skill type
             let sampleData: any[] = [];
             
-            if (skillType.toLowerCase() === "reading") {
+            // Check if this is reading + multiple choice (no passage column)
+            const isReadingMultipleChoice = skillType.toLowerCase() === "reading" && 
+              questionTypeId && questionTypes && 
+              questionTypes.find(qt => qt.id === questionTypeId)?.name?.toLowerCase().includes("multiple choice");
+            
+            if (skillType.toLowerCase() === "reading" && !isReadingMultipleChoice) {
               sampleData = [
                 {
                   Passage: "Climate change represents one of the most pressing challenges facing humanity. The scientific consensus is clear: Earth's climate is warming at an unprecedented rate, primarily due to human activities.",
@@ -502,6 +517,32 @@ export default function QuestionImport({ onImport, skillType }: Props) {
                   Answer: "B",
                   Points: 1,
                   Explanation: "The fox jumps over the lazy dog.",
+                },
+              ];
+            } else if (skillType.toLowerCase() === "reading" && isReadingMultipleChoice) {
+              // Reading + Multiple Choice: No Passage column
+              sampleData = [
+                {
+                  Question: "What is the main cause of climate change?",
+                  Type: "multiple_choice",
+                  "Option A": "Natural weather patterns",
+                  "Option B": "Human activities",
+                  "Option C": "Solar radiation",
+                  "Option D": "Ocean currents",
+                  Answer: "B",
+                  Points: 2,
+                  Explanation: "Human activities are the primary cause of climate change.",
+                },
+                {
+                  Question: "What is the capital of France?",
+                  Type: "multiple_choice",
+                  "Option A": "London",
+                  "Option B": "Berlin",
+                  "Option C": "Paris",
+                  "Option D": "Madrid",
+                  Answer: "C",
+                  Points: 1,
+                  Explanation: "Paris is the capital city of France.",
                 },
               ];
             } else if (skillType.toLowerCase() === "listening") {
@@ -558,10 +599,22 @@ export default function QuestionImport({ onImport, skillType }: Props) {
             const ws = XLSX.utils.json_to_sheet(sampleData);
             
             // Set column widths for better readability
-            if (skillType.toLowerCase() === "reading") {
+            if (skillType.toLowerCase() === "reading" && !isReadingMultipleChoice) {
               ws['!cols'] = [
                 { wch: 50 }, // Passage
                 { wch: 40 }, // Question
+                { wch: 15 }, // Type
+                { wch: 25 }, // Option A
+                { wch: 25 }, // Option B
+                { wch: 25 }, // Option C
+                { wch: 25 }, // Option D
+                { wch: 10 }, // Answer
+                { wch: 8 },  // Points
+                { wch: 40 }, // Explanation
+              ];
+            } else if (skillType.toLowerCase() === "reading" && isReadingMultipleChoice) {
+              ws['!cols'] = [
+                { wch: 40 }, // Question (no Passage column)
                 { wch: 15 }, // Type
                 { wch: 25 }, // Option A
                 { wch: 25 }, // Option B

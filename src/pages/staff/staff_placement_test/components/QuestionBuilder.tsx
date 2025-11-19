@@ -1,8 +1,11 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Plus, Trash2, GripVertical, X, CheckCircle, PenTool, Play, Pause, Headphones } from "lucide-react";
+import { Plus, Trash2, GripVertical, X, CheckCircle, PenTool, Play, Pause, Headphones, Loader2 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import type { Question, QuestionType, QuestionOption, FillInTheBlank, MatchingData, MatchingItem, MatchingPair } from "../types/placementQuestion.types";
+import type { QuestionType as APIQuestionType } from "@/api/placementTest.api";
+import { getAudioUploadUrl } from "@/api/placementTest.api";
+import { uploadAudioFileToPresignedUrl } from "./CreatePlacementQuestionDialog";
 import { config } from "@/lib/config";
 
 interface Props {
@@ -12,6 +15,8 @@ interface Props {
   onDeleteQuestion: (id: string) => void;
   onReorderQuestions: (fromIndex: number, toIndex: number) => void;
   skillType: string;
+  questionTypeId?: string | null;
+  questionTypes?: APIQuestionType[];
 }
 
 export default function QuestionBuilder({
@@ -21,6 +26,8 @@ export default function QuestionBuilder({
   onDeleteQuestion,
   onReorderQuestions,
   skillType,
+  questionTypeId,
+  questionTypes,
 }: Props) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -35,6 +42,7 @@ export default function QuestionBuilder({
   const [currentAudioUrl, setCurrentAudioUrl] = useState<string>("");
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [audioObjectUrl, setAudioObjectUrl] = useState<string | null>(null);
+  const [uploadingAudio, setUploadingAudio] = useState(false);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
   
   // Helper function to get existing passage from questions
@@ -83,25 +91,79 @@ export default function QuestionBuilder({
   }, [questions, skillType]);
 
   // Auto-load audio from imported questions when questions change
+  // This ensures audio is preserved when switching tabs or when component remounts
+  // BUT: Don't restore if user has uploaded a new file (currentAudioFile exists)
   useEffect(() => {
     if (skillType.toLowerCase() === "listening" && questions.length > 0) {
-      // Find first question with audio
+      // If user has uploaded a new file, don't restore URL from questions
+      // This ensures that when user uploads a new file, the old URL is completely replaced
+      if (currentAudioFile) {
+        // User has uploaded a new file - clear any existing URL to avoid conflicts
+        setCurrentAudioUrl(prev => {
+          // Only clear if there was a previous URL, otherwise keep empty
+          return prev ? "" : prev;
+        });
+        return;
+      }
+      
+      // Find first question with audio (prefer _audioUrl over reference, then check _audioFile)
       const questionWithAudio = questions.find(q => {
         const audio = (q as any)._audioUrl || q.reference;
         return audio && audio.trim();
       });
+      
       if (questionWithAudio) {
         const importedAudio = (questionWithAudio as any)._audioUrl || questionWithAudio.reference || "";
-        // Only update if currentAudioUrl is empty and no file is selected
+        
+        // Restore audio URL from questions if available (but not if user has uploaded new file)
+        // This handles the case when:
+        // 1. User uploaded audio file, saved question, then switched tabs
+        // 2. Component remounted and File object was lost
+        // 3. User comes back to tab and needs to hear the audio
         setCurrentAudioUrl(prev => {
-          if (!prev && !currentAudioFile) {
+          // Only restore if we don't have any audio set
+          if (!prev && !currentAudioFile && importedAudio) {
+            // Note: useEffect will handle auto-opening form when audio is restored
             return importedAudio;
           }
+          // Keep existing URL (user may have manually entered or file was uploaded)
           return prev;
         });
       }
+    } else if (skillType.toLowerCase() === "listening" && questions.length === 0) {
+      // Reset audio when no questions (but keep if manually set by user or file is uploaded)
+      // Only reset if user hasn't manually entered audio URL and no file is uploaded
+      setCurrentAudioUrl(prev => {
+        // Keep manually entered URL or if file is uploaded
+        if (currentAudioFile) {
+          return ""; // Clear URL if file is uploaded
+        }
+        return prev;
+      });
     }
   }, [questions, skillType, currentAudioFile]);
+
+  // Auto-open form when audio is set for listening (mặc định audio có nhiều câu hỏi)
+  // Form sẽ tự động mở khi audio được upload hoặc URL được nhập để có thể thêm nhiều câu hỏi
+  useEffect(() => {
+    if (
+      skillType.toLowerCase() === "listening" &&
+      !showAddForm &&
+      !editingId &&
+      (currentAudioFile || currentAudioUrl.trim() || getExistingAudio)
+    ) {
+      // Auto-open form when audio is set (file uploaded, URL entered, or audio restored from questions)
+      // This allows adding multiple questions for the same audio (mặc định audio có nhiều câu hỏi)
+      setShowAddForm(true);
+      setNewQuestion({
+        type: getDefaultQuestionType(),
+        question: "",
+        points: 1,
+        options: [],
+        shuffleOptions: false,
+      });
+    }
+  }, [skillType, currentAudioFile, currentAudioUrl, getExistingAudio, showAddForm, editingId]);
 
   // Helper function to get default question type
   const getDefaultQuestionType = (): QuestionType => {
@@ -121,7 +183,7 @@ export default function QuestionBuilder({
     shuffleOptions: false,
   }));
 
-  const questionTypes: { value: QuestionType; label: string; icon: string }[] = [
+  const questionTypeOptions: { value: QuestionType; label: string; icon: string }[] = [
     { value: "multiple_choice", label: "Multiple Choice", icon: "☑️" },
     { value: "true_false", label: "True/False", icon: "✓" },
     { value: "fill_in_the_blank", label: "Fill in the Blank", icon: "___" },
@@ -157,6 +219,7 @@ export default function QuestionBuilder({
       audioPlayerRef.current = null;
     }
     setAudioPlaying(false);
+    setUploadingAudio(false);
     // Cleanup object URL
     if (audioObjectUrl) {
       URL.revokeObjectURL(audioObjectUrl);
@@ -167,7 +230,7 @@ export default function QuestionBuilder({
     setCurrentAudioUrl("");
   };
 
-  const handleAudioFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAudioFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       // Check if file is audio (MP3, WAV, etc.)
@@ -188,11 +251,82 @@ export default function QuestionBuilder({
       }
       setAudioPlaying(false);
       
-      // Create object URL for the new file
+      // Create object URL for the new file for preview
       const objectUrl = URL.createObjectURL(file);
       setAudioObjectUrl(objectUrl);
       setCurrentAudioFile(file);
-      setCurrentAudioUrl(""); // Clear URL when new file is selected
+      // Clear old URL completely when new file is uploaded
+      // This ensures old URL is replaced by new file
+      setCurrentAudioUrl("");
+      
+      // Upload audio file to cloud immediately
+      try {
+        setUploadingAudio(true);
+        console.log("📤 Uploading audio file to cloud:", file.name);
+        
+        // Generate unique filename for audio
+        const audioFileName = `placement-audio-${Date.now()}-${Math.random().toString(36).substring(7)}-${file.name}`;
+        
+        // Get presigned URL for audio upload
+        const audioUploadUrlResponse = await getAudioUploadUrl(audioFileName);
+        const audioUploadData = audioUploadUrlResponse.data;
+        
+        if (
+          audioUploadData &&
+          typeof audioUploadData === "object" &&
+          "uploadUrl" in audioUploadData &&
+          "filePath" in audioUploadData &&
+          "publicUrl" in audioUploadData
+        ) {
+          const { uploadUrl, filePath, publicUrl } = audioUploadData as { 
+            uploadUrl: string; 
+            filePath: string; 
+            publicUrl: string;
+          };
+          
+          // Upload audio file to presigned URL
+          const audioUploadResponse = await uploadAudioFileToPresignedUrl(uploadUrl, file);
+          
+          // The uploadAudioFileToPresignedUrl utility might return a value of unknown type, so we instanceof it first
+          if (
+            !audioUploadResponse ||
+            typeof audioUploadResponse !== "object" ||
+            !("ok" in audioUploadResponse) ||
+            !("status" in audioUploadResponse)
+          ) {
+            throw new Error("Audio upload response is malformed.");
+          }
+
+          if (!(audioUploadResponse as Response).ok) {
+            throw new Error(
+              `Audio upload failed with status: ${(audioUploadResponse as Response).status}`
+            );
+          }
+          
+          // Save the filePath (relative path) to currentAudioUrl
+          // This URL will be used when saving questions
+          console.log("✅ Audio uploaded successfully, filePath:", filePath);
+          setCurrentAudioUrl(filePath); // Use filePath (internal path) instead of publicUrl
+          
+          // Note: Keep currentAudioFile for preview, but use currentAudioUrl for saving
+        } else {
+          throw new Error("Failed to get audio upload URL");
+        }
+      } catch (error) {
+        console.error("Error uploading audio file:", error);
+        alert(`Failed to upload audio file: ${error instanceof Error ? error.message : "Unknown error"}`);
+        // Reset state on error
+        setCurrentAudioFile(null);
+        setCurrentAudioUrl("");
+        if (audioObjectUrl) {
+          URL.revokeObjectURL(audioObjectUrl);
+          setAudioObjectUrl(null);
+        }
+      } finally {
+        setUploadingAudio(false);
+      }
+      
+      // Note: useEffect will handle auto-opening form when audio is set
     }
   };
 
@@ -214,22 +348,45 @@ export default function QuestionBuilder({
   // Helper function to normalize audio URL
   const getAudioSource = (): string | undefined => {
     if (currentAudioFile && audioObjectUrl) {
+      console.log("🎵 getAudioSource - Using object URL for local file:", audioObjectUrl);
       return audioObjectUrl; // Use object URL for local file
     }
     if (currentAudioUrl) {
       // If URL, check if it needs normalization
+      let normalizedUrl: string;
       if (currentAudioUrl.startsWith('http://') || currentAudioUrl.startsWith('https://')) {
-        return currentAudioUrl;
+        normalizedUrl = currentAudioUrl;
+      } else {
+        normalizedUrl = `${config.storagePublicUrl}${currentAudioUrl.startsWith('/') ? currentAudioUrl : '/' + currentAudioUrl}`;
       }
-      return `${config.storagePublicUrl}${currentAudioUrl.startsWith('/') ? currentAudioUrl : '/' + currentAudioUrl}`;
+      console.log("🎵 getAudioSource - Normalized audio URL:", { 
+        original: currentAudioUrl, 
+        normalized: normalizedUrl,
+        editingId: editingId
+      });
+      return normalizedUrl;
     }
     if (getExistingAudio) {
       // Normalize existing audio URL
+      let normalizedUrl: string;
       if (getExistingAudio.startsWith('http://') || getExistingAudio.startsWith('https://')) {
-        return getExistingAudio;
+        normalizedUrl = getExistingAudio;
+      } else {
+        normalizedUrl = `${config.storagePublicUrl}${getExistingAudio.startsWith('/') ? getExistingAudio : '/' + getExistingAudio}`;
       }
-      return `${config.storagePublicUrl}${getExistingAudio.startsWith('/') ? getExistingAudio : '/' + getExistingAudio}`;
+      console.log("🎵 getAudioSource - Using existing audio URL:", {
+        original: getExistingAudio,
+        normalized: normalizedUrl,
+        editingId: editingId
+      });
+      return normalizedUrl;
     }
+    console.log("🎵 getAudioSource - No audio source found", {
+      currentAudioFile: !!currentAudioFile,
+      currentAudioUrl: currentAudioUrl,
+      getExistingAudio: getExistingAudio,
+      editingId: editingId
+    });
     return undefined;
   };
 
@@ -360,7 +517,14 @@ export default function QuestionBuilder({
 
     // Validate audio for Listening
     if (skillType.toLowerCase() === "listening") {
-      if (!currentAudioFile && !currentAudioUrl.trim() && !getExistingAudio && questions.length === 0) {
+      // Check if upload is in progress
+      if (uploadingAudio) {
+        alert("Please wait for audio upload to complete");
+        return;
+      }
+      // Audio file should already be uploaded (currentAudioUrl should be set)
+      // Or user can manually enter URL, or use existing audio from questions
+      if (!currentAudioUrl.trim() && !getExistingAudio && questions.length === 0) {
         alert("Please upload an audio file or enter an audio URL for Listening questions");
         return;
       }
@@ -403,40 +567,59 @@ export default function QuestionBuilder({
       requiresManualGrading: newQuestion.type === "essay" || newQuestion.type === "short_answer" || newQuestion.type === "speaking",
     };
 
-    // For Reading: attach passage to question
+    // For Reading: attach passage to question (skip if multiple choice)
     if (skillType.toLowerCase() === "reading") {
-      if (editingId && shouldRemovePassage) {
-        (question as any)._passage = undefined;
-      } else if (currentPassage.trim()) {
-        (question as any)._passage = currentPassage.trim();
-      } else if (editingId) {
-        const existingQuestion = questions.find(q => q.id === editingId);
-        if (existingQuestion && (existingQuestion as any)._passage) {
+      // Check if this is multiple choice question type
+      const isMultipleChoice = questionTypeId && questionTypes ? 
+        questionTypes.find(qt => qt.id === questionTypeId)?.name?.toLowerCase().includes("multiple choice") : 
+        false;
+      
+      if (!isMultipleChoice) {
+        if (editingId && shouldRemovePassage) {
           (question as any)._passage = undefined;
-        }
-      } else {
-        if (getExistingPassage) {
-          (question as any)._passage = getExistingPassage;
+        } else if (currentPassage.trim()) {
+          (question as any)._passage = currentPassage.trim();
+        } else if (editingId) {
+          const existingQuestion = questions.find(q => q.id === editingId);
+          if (existingQuestion && (existingQuestion as any)._passage) {
+            (question as any)._passage = undefined;
+          }
+        } else {
+          if (getExistingPassage) {
+            (question as any)._passage = getExistingPassage;
+          }
         }
       }
     }
 
-    // For Listening: attach audio file or URL to question
+    // For Listening: attach audio URL to question
+    // Audio file has been uploaded to cloud immediately when selected, so use currentAudioUrl
     if (skillType.toLowerCase() === "listening") {
-      if (currentAudioFile) {
-        (question as any)._audioFile = currentAudioFile;
-        (question as any)._audioUrl = "";
-        question.reference = "";
-      } else if (currentAudioUrl.trim()) {
+      if (currentAudioUrl.trim()) {
+        // Audio URL is available (either uploaded or manually entered)
+        // Since audio is uploaded immediately, currentAudioUrl contains the filePath from cloud
         (question as any)._audioUrl = currentAudioUrl.trim();
         question.reference = currentAudioUrl.trim();
+        // Don't attach audio file anymore since it's already uploaded
         (question as any)._audioFile = null;
+      } else if (currentAudioFile) {
+        // Audio file is selected but upload might still be in progress
+        // Wait for upload to complete, or show error
+        if (uploadingAudio) {
+          alert("Please wait for audio upload to complete");
+          return;
+        }
+        // If upload failed, don't save
+        alert("Audio upload failed. Please try uploading again.");
+        return;
       } else {
+        // No audio - check if editing or should use existing
         if (editingId) {
-          (question as any)._audioFile = null;
+          // When editing, if no URL is set, remove audio
           (question as any)._audioUrl = "";
           question.reference = "";
         } else {
+          // When creating new, use existing audio if available
           if (getExistingAudio) {
             (question as any)._audioUrl = getExistingAudio;
             question.reference = getExistingAudio;
@@ -460,8 +643,11 @@ export default function QuestionBuilder({
       resetForm();
     } else {
       onAddQuestion(question);
-      // For Reading: keep form open to add more questions for the same passage
-      if (skillType.toLowerCase() === "reading" && currentPassage.trim()) {
+      // For Reading: keep form open to add more questions for the same passage (skip if multiple choice)
+      const isMultipleChoice = questionTypeId && questionTypes ? 
+        questionTypes.find(qt => qt.id === questionTypeId)?.name?.toLowerCase().includes("multiple choice") : 
+        false;
+      if (skillType.toLowerCase() === "reading" && currentPassage.trim() && !isMultipleChoice) {
         setNewQuestion({
           type: getDefaultQuestionType(),
           question: "",
@@ -510,20 +696,38 @@ export default function QuestionBuilder({
     }
     // Load audio if exists (for Listening)
     if (skillType.toLowerCase() === "listening") {
+      // Check if question has audio file or URL
       const hasAudioFile = (question as any)._audioFile;
       const audioUrl = (question as any)._audioUrl || question.reference;
       
+      console.log("🎵 handleEdit - Restoring audio for question:", {
+        questionId: question.id,
+        hasAudioFile: !!hasAudioFile,
+        audioUrl: audioUrl,
+        _audioUrl: (question as any)._audioUrl,
+        reference: question.reference
+      });
+      
       if (hasAudioFile) {
-        setCurrentAudioFile(null);
-        setCurrentAudioUrl("");
+        // Question has an audio file - this means it was uploaded but not yet saved to server
+        // We can't directly load the file, so we'll show that audio exists
+        // User can upload a new file to replace it
+        setCurrentAudioFile(null); // Can't load existing file object
+        setCurrentAudioUrl(""); // Clear URL to allow new upload
       } else if (audioUrl) {
+        // Question has audio URL - load it so user can see/modify/delete it
+        // Audio URL can be relative path (filePath) or public URL, both will work with getAudioSource()
+        console.log("🎵 Setting currentAudioUrl:", audioUrl);
         setCurrentAudioUrl(audioUrl);
-        setCurrentAudioFile(null);
+        setCurrentAudioFile(null); // Clear file when editing (URL takes precedence)
       } else {
+        // No audio - clear everything
+        console.log("🎵 No audio found in question");
         setCurrentAudioUrl("");
         setCurrentAudioFile(null);
       }
       
+      // Reset audio player state
       setAudioObjectUrl(null);
       setAudioPlaying(false);
       if (audioPlayerRef.current) {
@@ -554,7 +758,16 @@ export default function QuestionBuilder({
 
         <div className="space-y-4">
           {/* Reading Passage Section */}
-          {(skillType === "Reading" || skillType.toLowerCase().includes("reading")) && (
+          {/* Hide passage when skillType is reading and questionType is multiple choice */}
+          {(skillType === "Reading" || skillType.toLowerCase().includes("reading")) && (() => {
+            if (questionTypeId && questionTypes) {
+              const selectedQuestionType = questionTypes.find(qt => qt.id === questionTypeId);
+              const isMultipleChoice = selectedQuestionType?.name?.toLowerCase().includes("multiple choice");
+              if (isMultipleChoice) {
+                return null; // Hide passage for reading + multiple choice
+              }
+            }
+            return (
             <div className="border-2 border-blue-200 rounded-lg p-4 bg-blue-50">
               <div className="flex items-center justify-between mb-2">
                 <label className="block text-sm font-medium text-blue-800">
@@ -613,7 +826,8 @@ export default function QuestionBuilder({
                 </p>
               )}
             </div>
-          )}
+            );
+          })()}
 
           {/* Listening Audio Section */}
           {(skillType === "Listening" || skillType.toLowerCase().includes("listening")) && (
@@ -637,19 +851,32 @@ export default function QuestionBuilder({
                   type="file"
                   accept="audio/*,.mp3,.wav,.ogg,.m4a"
                   onChange={handleAudioFileChange}
+                  disabled={uploadingAudio}
                   className="hidden"
                   id="audio-file-input"
                 />
                 <label
                   htmlFor="audio-file-input"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-purple-300 rounded-md cursor-pointer hover:bg-purple-50 transition-colors text-sm text-purple-700"
+                  className={`inline-flex items-center gap-2 px-4 py-2 bg-white border border-purple-300 rounded-md transition-colors text-sm ${
+                    uploadingAudio 
+                      ? "cursor-not-allowed opacity-50 text-purple-400" 
+                      : "cursor-pointer hover:bg-purple-50 text-purple-700"
+                  }`}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
-                  {currentAudioFile ? "Change Audio File" : "Upload Audio File (MP3)"}
+                  {uploadingAudio ? "Uploading..." : currentAudioFile ? "Change Audio File" : "Upload Audio File (MP3)"}
                 </label>
-                {currentAudioFile && (
+                {uploadingAudio && (
+                  <div className="mt-2 p-3 bg-white border border-purple-200 rounded">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
+                      <span className="text-xs text-purple-700">Uploading audio file to cloud...</span>
+                    </div>
+                  </div>
+                )}
+                {currentAudioFile && !uploadingAudio && (
                   <div className="mt-2 p-3 bg-white border border-purple-200 rounded">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex-1">
@@ -658,10 +885,15 @@ export default function QuestionBuilder({
                         <span className="text-xs text-purple-500 ml-2">
                           ({(currentAudioFile.size / 1024 / 1024).toFixed(2)} MB)
                         </span>
+                        {currentAudioUrl && (
+                          <span className="text-xs text-green-600 ml-2">✓ Uploaded</span>
+                        )}
                       </div>
                       <button
                         onClick={() => {
                           setCurrentAudioFile(null);
+                          setCurrentAudioUrl("");
+                          setUploadingAudio(false);
                           setAudioObjectUrl(null);
                           setAudioPlaying(false);
                           if (audioPlayerRef.current) {
@@ -715,6 +947,7 @@ export default function QuestionBuilder({
                       onClick={() => {
                         setCurrentAudioUrl("");
                         setCurrentAudioFile(null);
+                        setUploadingAudio(false);
                         setAudioPlaying(false);
                         if (audioPlayerRef.current) {
                           audioPlayerRef.current.pause();
@@ -751,6 +984,8 @@ export default function QuestionBuilder({
                         URL.revokeObjectURL(audioObjectUrl);
                         setAudioObjectUrl(null);
                       }
+                      
+                      // Note: useEffect will handle auto-opening form when audio URL is set
                     }}
                     placeholder={editingId && getExistingAudio ? "Clear to remove audio, or enter new URL" : "https://example.com/audio.mp3"}
                     className="flex-1 border border-purple-300 rounded-md p-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500 bg-white"
@@ -788,7 +1023,7 @@ export default function QuestionBuilder({
                 Question Type
               </label>
               <div className="grid grid-cols-3 gap-2">
-                {questionTypes.map((type) => (
+                {questionTypeOptions.map((type) => (
                   <button
                     key={type.value}
                     onClick={() => {

@@ -8,14 +8,15 @@ import {
   updatePlacementTest,
   getPlacementTestById,
   getAllPlacementQuestions,
-  getQuestionDataUrl,
   type PlacementTest,
   type PlacementQuestion,
 } from '@/api/placementTest.api';
 import { useToast } from '@/hooks/useToast';
 import PageHeader from '@/components/ui/PageHeader';
-import { Plus, Trash2, Edit, RefreshCw, CheckCircle, X } from 'lucide-react';
+import { Plus, Trash2, Edit, RefreshCw, CheckCircle, X, Eye, Play } from 'lucide-react';
 import CreatePlacementQuestionDialog from './components/CreatePlacementQuestionDialog';
+import QuestionDetailDialog from './components/QuestionDetailDialog';
+import PlacementTestPreviewDialog from './components/PlacementTestPreviewDialog';
 
 export default function CreatePlacementTestPage() {
   const navigate = useNavigate();
@@ -31,6 +32,69 @@ export default function CreatePlacementTestPage() {
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [showQuestionDialog, setShowQuestionDialog] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<PlacementQuestion | null>(null);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [viewingQuestion, setViewingQuestion] = useState<PlacementQuestion | null>(null);
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+
+  // Helper function để sắp xếp questions theo thứ tự:
+  // 1. Reading multiple_choice
+  // 2. Passage ngắn (reading, difficulty = 2)
+  // 3. Passage dài (reading, difficulty = 3)
+  // 4. Listening multiple_choice
+  // 5. Audio ngắn (listening, difficulty = 2)
+  // 6. Audio dài (listening, difficulty = 3)
+  const sortQuestions = (questions: PlacementQuestion[]): PlacementQuestion[] => {
+    return [...questions].sort((a, b) => {
+      const getSortOrder = (q: PlacementQuestion): number => {
+        const skillType = q.skillType?.toLowerCase() || "";
+        const questionType = q.questionType.toLowerCase();
+        const difficulty = q.difficulty;
+        const isReading = skillType.includes("reading");
+        const isListening = skillType.includes("listening");
+        
+        // Reading questions (order 1-3)
+        if (isReading) {
+          // 1. Reading multiple_choice (không phải passage)
+          if (questionType !== "passage") {
+            return 1;
+          }
+          // 2. Passage ngắn (difficulty = 2)
+          if (questionType === "passage" && difficulty === 2) {
+            return 2;
+          }
+          // 3. Passage dài (difficulty = 3)
+          if (questionType === "passage" && difficulty === 3) {
+            return 3;
+          }
+          // Default reading
+          return 4;
+        }
+        
+        // Listening questions (order 4-6)
+        if (isListening) {
+          // 4. Listening multiple_choice (không phải audio)
+          if (questionType !== "audio") {
+            return 4;
+          }
+          // 5. Audio ngắn (difficulty = 2)
+          if (questionType === "audio" && difficulty === 2) {
+            return 5;
+          }
+          // 6. Audio dài (difficulty = 3)
+          if (questionType === "audio" && difficulty === 3) {
+            return 6;
+          }
+          // Default listening
+          return 7;
+        }
+        
+        // Default (không xác định được skill type)
+        return 50;
+      };
+      
+      return getSortOrder(a) - getSortOrder(b);
+    });
+  };
 
   useEffect(() => {
     loadAvailableQuestions();
@@ -46,7 +110,9 @@ export default function CreatePlacementTestPage() {
       const test = response.data;
       setTitle(test.title);
       setDurationMinutes(test.durationMinutes);
-      setSelectedQuestions(test.questions || []);
+      // Sắp xếp questions khi load từ database
+      const sortedQuestions = sortQuestions(test.questions || []);
+      setSelectedQuestions(sortedQuestions);
     } catch (err: any) {
       showError('Failed to load placement test');
     } finally {
@@ -71,7 +137,9 @@ export default function CreatePlacementTestPage() {
       setLoading(true);
       const response = await randomPlacementTest();
       const randomTest = response.data;
-      setSelectedQuestions(randomTest.questions || []);
+      // Sắp xếp questions ngay khi generate random
+      const sortedQuestions = sortQuestions(randomTest.questions || []);
+      setSelectedQuestions(sortedQuestions);
       success('Random placement test generated successfully');
     } catch (err: any) {
       showError(err?.response?.data || 'Failed to generate random test');
@@ -82,7 +150,10 @@ export default function CreatePlacementTestPage() {
 
   const handleAddQuestion = (question: PlacementQuestion) => {
     if (!selectedQuestions.find((q) => q.id === question.id)) {
-      setSelectedQuestions([...selectedQuestions, question]);
+      // Sắp xếp questions sau khi thêm câu hỏi mới
+      const newQuestions = [...selectedQuestions, question];
+      const sortedQuestions = sortQuestions(newQuestions);
+      setSelectedQuestions(sortedQuestions);
     }
   };
 
@@ -102,7 +173,10 @@ export default function CreatePlacementTestPage() {
 
     try {
       setLoading(true);
-      const questionIds = selectedQuestions.map((q) => q.id);
+      
+      // Sắp xếp selectedQuestions theo thứ tự trước khi submit
+      const sortedQuestions = sortQuestions(selectedQuestions);
+      const questionIds = sortedQuestions.map((q) => q.id);
       
       if (isEditMode && id) {
         await updatePlacementTest(id, {
@@ -127,8 +201,46 @@ export default function CreatePlacementTestPage() {
     }
   };
 
-  const handleQuestionCreated = () => {
-    loadAvailableQuestions();
+  const handleQuestionCreated = async () => {
+    const editingQuestionId = editingQuestion?.id;
+    
+    // Refresh available questions và lấy response
+    try {
+      setLoadingQuestions(true);
+      const response = await getAllPlacementQuestions();
+      const updatedAvailableQuestions = response.data || [];
+      setAvailableQuestions(updatedAvailableQuestions);
+      
+      // Refresh selectedQuestions nếu đang edit một question trong selectedQuestions
+      if (editingQuestionId && selectedQuestions.some(q => q.id === editingQuestionId)) {
+        const updatedQuestion = updatedAvailableQuestions.find(q => q.id === editingQuestionId);
+        if (updatedQuestion) {
+          setSelectedQuestions(prev => {
+            const updated = prev.map(q => q.id === editingQuestionId ? updatedQuestion : q);
+            return sortQuestions(updated);
+          });
+        }
+      }
+    } catch (err: any) {
+      showError('Failed to refresh questions');
+    } finally {
+      setLoadingQuestions(false);
+    }
+    
+    // Reset editingQuestion sau khi update thành công
+    setEditingQuestion(null);
+  };
+
+  const handleViewQuestion = (question: PlacementQuestion) => {
+    setViewingQuestion(question);
+    setShowDetailDialog(true);
+  };
+
+  const handleEditQuestion = (question: PlacementQuestion) => {
+    setEditingQuestion(question);
+    setShowQuestionDialog(true);
+    // Đóng detail dialog nếu đang mở
+    setShowDetailDialog(false);
   };
 
   return (
@@ -203,10 +315,11 @@ export default function CreatePlacementTestPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {selectedQuestions.map((question) => (
+              {sortQuestions(selectedQuestions).map((question) => (
                 <div
                   key={question.id}
-                  className="flex items-center justify-between p-4 border border-neutral-200 rounded-lg hover:bg-neutral-50"
+                  className="flex items-center justify-between p-4 border border-neutral-200 rounded-lg hover:bg-neutral-50 cursor-pointer"
+                  onClick={() => handleViewQuestion(question)}
                 >
                   <div className="flex-1">
                     <div className="font-medium text-neutral-900">{question.title}</div>
@@ -214,13 +327,28 @@ export default function CreatePlacementTestPage() {
                       {question.skillType} • {question.questionType} • Difficulty: {question.difficulty}
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleRemoveQuestion(question.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded"
-                    title="Remove"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewQuestion(question);
+                      }}
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                      title="View Details"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveQuestion(question.id);
+                      }}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded"
+                      title="Remove"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -267,11 +395,12 @@ export default function CreatePlacementTestPage() {
                 return (
                   <div
                     key={question.id}
-                    className={`flex items-center justify-between p-4 border rounded-lg ${
+                    className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer ${
                       isSelected
                         ? 'border-green-300 bg-green-50'
                         : 'border-neutral-200 hover:bg-neutral-50'
                     }`}
+                    onClick={() => handleViewQuestion(question)}
                   >
                     <div className="flex-1">
                       <div className="font-medium text-neutral-900">{question.title}</div>
@@ -286,14 +415,29 @@ export default function CreatePlacementTestPage() {
                           <span className="text-sm font-medium">Added</span>
                         </div>
                       ) : (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => handleAddQuestion(question)}
-                          iconLeft={<Plus className="w-4 h-4" />}
-                        >
-                          Add
-                        </Button>
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewQuestion(question);
+                            }}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                            title="View Details"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddQuestion(question);
+                            }}
+                            iconLeft={<Plus className="w-4 h-4" />}
+                          >
+                            Add
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -304,13 +448,35 @@ export default function CreatePlacementTestPage() {
         </div>
 
         {/* Actions */}
-        <div className="border-t pt-6 flex justify-end gap-4">
-          <Button variant="secondary" onClick={() => navigate('/staff/placement-test')}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={loading}>
-            {isEditMode ? 'Update Test' : 'Create Test'}
-          </Button>
+        <div className="border-t pt-6 flex justify-between items-center">
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => setShowPreviewDialog(true)}
+              disabled={selectedQuestions.length === 0}
+              iconLeft={<Eye className="w-4 h-4" />}
+            >
+              Preview Test
+            </Button>
+            {isEditMode && id && (
+              <Button
+                variant="secondary"
+                onClick={() => navigate(`/staff/placement-test/try/${id}`)}
+                disabled={selectedQuestions.length === 0}
+                iconLeft={<Play className="w-4 h-4" />}
+              >
+                Try Test
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-4">
+            <Button variant="secondary" onClick={() => navigate('/staff/placement-test')}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmit} disabled={loading || !title.trim() || selectedQuestions.length === 0}>
+              {isEditMode ? 'Update Test' : 'Create Test'}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -319,6 +485,21 @@ export default function CreatePlacementTestPage() {
         onOpenChange={setShowQuestionDialog}
         onSuccess={handleQuestionCreated}
         editQuestion={editingQuestion}
+      />
+
+      <QuestionDetailDialog
+        open={showDetailDialog}
+        onOpenChange={setShowDetailDialog}
+        question={viewingQuestion}
+        onEdit={handleEditQuestion}
+      />
+
+      <PlacementTestPreviewDialog
+        open={showPreviewDialog}
+        onOpenChange={setShowPreviewDialog}
+        questions={selectedQuestions}
+        testTitle={title}
+        durationMinutes={durationMinutes}
       />
     </div>
   );
