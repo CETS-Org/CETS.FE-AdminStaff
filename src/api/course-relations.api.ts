@@ -107,6 +107,15 @@ export const getClassesByCourse = (courseId: string, config?: AxiosRequestConfig
 export const getCourseTeachers = (courseId: string, config?: AxiosRequestConfig) =>
   api.get(`${endpoint.courseTeacherAssignment}/course/${courseId}`, config);
 
+export const createCourseTeacherAssignment = (data: {
+  courseID: string;
+  teacherID: string;
+}, config?: AxiosRequestConfig) =>
+  api.post(endpoint.courseTeacherAssignment, data, config);
+
+export const deleteCourseTeacherAssignment = (id: string, config?: AxiosRequestConfig) =>
+  api.delete(`${endpoint.courseTeacherAssignment}/${id}`, config);
+
 // ============================================
 // Course Students
 // ============================================
