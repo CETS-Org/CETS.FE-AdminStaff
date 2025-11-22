@@ -1,6 +1,6 @@
 // src/pages/staff/StaffHome.tsx
 import { useState, useEffect } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import GenericNavbar from "@/shared/GenericNavbar";
 import { createAcademicStaffNavbarConfig, createAccountantStaffNavbarConfig } from "@/shared/navbarConfigs";
 import { academicStaffSidebarConfig, accountantStaffSidebarConfig } from "@/shared/sidebarConfigs";
@@ -41,9 +41,10 @@ import StaffPlacementTestTaking from "./staff_placement_test/StaffPlacementTestT
 
 export default function StaffHome() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true); 
   const [userAccount, setUserAccount] = useState(null);
   const [userRole, setUserRole] = useState<string>('');
+  const location = useLocation();
 
   const contentShiftClass = collapsed ? "lg:ml-16" : "lg:ml-64";
 

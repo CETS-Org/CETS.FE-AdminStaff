@@ -9,7 +9,7 @@ import {
   HelpCircle
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate, NavLink } from "react-router-dom";
+import { useNavigate, NavLink, useLocation } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -44,10 +44,11 @@ export default function GenericNavbar({
     const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
 
     // Calculate unread count
     const unreadCount = notifications.filter(n => !n.isRead).length;
-    
+
     useEffect(() => {
         const userInfo = getUserInfo();
         const userId = userInfo?.id ?? userInfo?.accountId;
