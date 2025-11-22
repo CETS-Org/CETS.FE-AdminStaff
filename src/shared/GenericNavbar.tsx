@@ -8,9 +8,9 @@ import {
   Settings, 
   HelpCircle
 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, NavLink } from "react-router-dom";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,8 +21,14 @@ import {
 } from "@/components/ui/Dropdown-menu";
 import ConfirmationDialog from "@/components/ui/ConfirmationDialog";
 import NotificationDialog, { type Notification } from "@/components/ui/NotificationDialog";
-import { mockNotifications } from "@/data/mockNotifications";
 import type { GenericNavbarProps } from "@/types/navbar.type";
+import { getUserInfo, clearAuthData } from "@/lib/utils";
+import { 
+  getNotificationsByUser, 
+  markNotificationAsRead as apiMarkNotificationAsRead,
+  markAllNotificationsAsRead as apiMarkAllNotificationsAsRead,
+} from "@/api/notification.api";
+import { useNotificationSocket } from "@/hooks/useNotificationSocket";
 
 // Re-export types for backward compatibility
 export type { NavbarConfig } from "@/types/navbar.type";
@@ -34,20 +40,45 @@ export default function GenericNavbar({
     config 
 }: GenericNavbarProps) {
     const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
-    const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const navigate = useNavigate();
 
     // Calculate unread count
     const unreadCount = notifications.filter(n => !n.isRead).length;
     
+    useEffect(() => {
+        const userInfo = getUserInfo();
+        const userId = userInfo?.id ?? userInfo?.accountId;
+        if (!userId) {
+            setNotifications([]);
+            return;
+        }
+
+        const loadNotifications = async () => {
+            try {
+                setIsLoadingNotifications(true);
+                const response = await getNotificationsByUser(userId);
+                setNotifications(response.data || []);
+            } catch (error) {
+                console.error("Failed to load notifications", error);
+            } finally {
+                setIsLoadingNotifications(false);
+            }
+        };
+
+        loadNotifications();
+    }, []);
+
     const handleLogoutClick = () => {
         setIsLogoutDialogOpen(true);
     };
 
     const handleLogoutConfirm = () => {
         // Clear any authentication tokens/data here
-        localStorage.removeItem('authToken');
+        clearAuthData();
+        // Legacy key cleanup
         localStorage.removeItem('userData');
         
         // Close dialog and navigate to login
@@ -63,7 +94,7 @@ export default function GenericNavbar({
         navigate('/change-password');
     };
 
-    const handleMarkAsRead = (notificationId: string) => {
+    const handleMarkAsRead = async (notificationId: string) => {
         setNotifications(prev => 
             prev.map(notification => 
                 notification.id === notificationId 
@@ -71,13 +102,41 @@ export default function GenericNavbar({
                     : notification
             )
         );
+
+        try {
+            await apiMarkNotificationAsRead(notificationId);
+        } catch (error) {
+            console.error("Failed to mark notification as read", error);
+        }
     };
 
-    const handleMarkAllAsRead = () => {
+    const handleMarkAllAsRead = async () => {
+        const userInfo = getUserInfo();
+        const userId = userInfo?.id ?? userInfo?.accountId;
+        if (!userId) return;
+
         setNotifications(prev => 
             prev.map(notification => ({ ...notification, isRead: true }))
         );
+
+        try {
+            await apiMarkAllNotificationsAsRead(userId);
+        } catch (error) {
+            console.error("Failed to mark all notifications as read", error);
+        }
     };
+
+    const handleSocketNotification = useCallback((notification: Notification) => {
+        setNotifications(prev => {
+            const existing = prev.find(n => n.id === notification.id);
+            if (existing) {
+                return prev.map(n => n.id === notification.id ? notification : n);
+            }
+            return [notification, ...prev];
+        });
+    }, []);
+
+    useNotificationSocket(handleSocketNotification);
 
     return (
         <>

@@ -23,6 +23,7 @@ export const endpoint ={
   classes: '/api/ACAD_Classes',
   promotion: '/api/FIN_Promotion',
   paymentWebhook: '/api/FIN_PaymentWebhook',
+  notification: '/api/COM_Notification',
 }
 
   // Request interceptor to add auth token
