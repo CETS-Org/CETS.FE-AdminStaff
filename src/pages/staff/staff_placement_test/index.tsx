@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '@/components/ui/Button';
-import { Plus, FileText, Edit, Trash2, Search, Filter, PenTool, Play, Power, PowerOff } from 'lucide-react';
+import { Plus, FileText, Edit, Trash2, Search, Filter, Play, Power, PowerOff, Calendar } from 'lucide-react';
 import {
   getAllPlacementTests,
   deletePlacementTest,
@@ -12,7 +12,6 @@ import { useToast } from '@/hooks/useToast';
 import PageHeader from '@/components/ui/PageHeader';
 import Table from '@/components/ui/Table';
 import ConfirmationDialog from '@/components/ui/ConfirmationDialog';
-import CreatePlacementQuestionDialog from './components/CreatePlacementQuestionDialog';
 
 export default function PlacementTestManagementPage() {
   const navigate = useNavigate();
@@ -22,7 +21,10 @@ export default function PlacementTestManagementPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [testToDelete, setTestToDelete] = useState<PlacementTest | null>(null);
-  const [showCreateQuestionDialog, setShowCreateQuestionDialog] = useState(false);
+  
+  // Date range filter
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
 
   useEffect(() => {
     loadPlacementTests();
@@ -76,6 +78,25 @@ export default function PlacementTestManagementPage() {
   };
 
   const filteredTests = placementTests.filter((test) => {
+    // Date range filter
+    if (startDate || endDate) {
+      const testDate = new Date(test.createdAt);
+      testDate.setHours(0, 0, 0, 0); // Reset time to start of day
+      
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        if (testDate < start) return false;
+      }
+      
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999); // End of day
+        if (testDate > end) return false;
+      }
+    }
+    
+    // Search filter
     if (!debouncedSearchTerm.trim()) return true;
     
     const searchLower = debouncedSearchTerm.toLowerCase().trim();
@@ -196,8 +217,8 @@ export default function PlacementTestManagementPage() {
       />
 
       <div className="flex justify-between items-center">
-        <div className="flex gap-4 items-center flex-1 max-w-md">
-          <div className="relative flex-1">
+        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center flex-1 max-w-4xl">
+          <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-4 h-4" />
             <input
               type="text"
@@ -207,22 +228,50 @@ export default function PlacementTestManagementPage() {
               className="w-full pl-10 pr-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
+          
+          {/* Date Range Filter */}
+          <div className="flex gap-2 items-center">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-neutral-400" />
+              <label className="text-sm text-neutral-600">From:</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                max={endDate || undefined}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-neutral-600">To:</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                min={startDate || undefined}
+              />
+            </div>
+            {(startDate || endDate) && (
+              <button
+                onClick={() => {
+                  setStartDate('');
+                  setEndDate('');
+                }}
+                className="px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg border border-red-300 transition-colors"
+                title="Clear date range"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            onClick={() => setShowCreateQuestionDialog(true)}
-            iconLeft={<PenTool className="w-4 h-4" />}
-          >
-            Create Question
-          </Button>
-          <Button
-            onClick={() => navigate('/staff/placement-test/create')}
-            iconLeft={<Plus className="w-4 h-4" />}
-          >
-            Create Placement Test
-          </Button>
-        </div>
+        <Button
+          onClick={() => navigate('/staff/placement-test/create')}
+          iconLeft={<Plus className="w-4 h-4" />}
+        >
+          Create Placement Test
+        </Button>
       </div>
 
       {loading ? (
@@ -258,15 +307,6 @@ export default function PlacementTestManagementPage() {
         cancelText="Cancel"
         onConfirm={handleDelete}
         type="danger"
-      />
-
-      <CreatePlacementQuestionDialog
-        open={showCreateQuestionDialog}
-        onOpenChange={setShowCreateQuestionDialog}
-        onSuccess={() => {
-          // Optionally reload data or show success message
-          success('Question created successfully');
-        }}
       />
     </div>
   );
