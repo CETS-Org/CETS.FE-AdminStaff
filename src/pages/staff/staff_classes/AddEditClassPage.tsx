@@ -1,5 +1,5 @@
 // src/pages/staff/staff_classes/AddEditClassPage.tsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 import Card from "@/components/ui/Card";
@@ -7,29 +7,64 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Label from "@/components/ui/Label";
-import PageHeader from "@/components/ui/PageHeader";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
-import { ArrowLeft, Save, Calendar, Users, BookOpen, Loader2 } from "lucide-react";
+import {
+  Save,
+  Loader2,
+  RefreshCw,
+  BookOpen,
+  CalendarClock,
+  MapPin,
+  Users
+} from "lucide-react";
 
-// Enrollment (dùng StudentInfo)
+// Components
 import ClassEnrollmentSection from "@/pages/staff/staff_classes/components/ClassEnrollmentSection";
-// Domain types
-import type { StudentInfo } from "@/types/student.type";
-// Reusable schedule UI
-import ScheduleSection, { type ScheduleRow } from "@/pages/staff/staff_classes/components/ScheduleSection";
+import ScheduleSection, {
+  type ScheduleRow,
+} from "@/pages/staff/staff_classes/components/ScheduleSection";
 
-// ✅ Hooks theo yêu cầu
+// Hooks
 import { useToast } from "@/pages/staff/staff_classes/shared/useToast";
 import { useLookupOptions } from "@/pages/staff/staff_classes/shared/useLookupOptions";
-// ✅ Hook schedules theo yêu cầu
 import { useSchedules } from "@/pages/staff/staff_classes/shared/useSchedules";
+
+// APIs
+import {
+  getCourseOptions,
+  getCourseDetail,
+  getCourseSchedule,
+  getRoomOptions,
+  getAvailableTeachersForClass,
+  searchWaitingStudents,
+  autoPickWaitingStudents,
+  createClassComposite,
+  // assignStudentsToClass // [REMOVED]: Không cần gọi rời nữa
+} from "@/pages/staff/staff_classes/data/classPlacement.api";
+
+// API Syllabus
+import { getSyllabiByCourse, getSyllabusItems } from "@/api/syllabus.api";
+
+// Types
+import {
+  DAY_MAP,
+  type DayOfWeek,
+  type CourseOption,
+  type CourseScheduleRow,
+  type TeacherOption,
+  type CreateClassCompositeRequestDTO,
+  type ClassMeetingScheduleDTO,
+  type ClassScheduleInput,
+  type WaitingStudentItem // [ADDED]: Import type mới
+} from "@/pages/staff/staff_classes/data/classPlacement.types";
+
+import { getCurrentUserId } from "@/lib/utils";
 
 // -------------------------------
 // Page-local model
 // -------------------------------
 interface ClassModel {
   id?: string;
-  name: string;
   courseId: string;
   courseName: string;
   teacher: string;
@@ -39,11 +74,16 @@ interface ClassModel {
   currentStudents: number;
   maxStudents: number;
   status: "active" | "inactive" | "full";
-  startDate: string; // yyyy-MM-dd
-  endDate: string; // yyyy-MM-dd
-  description?: string;
+  startDate: string;
+  endDate: string;
   sessions?: number;
   completedSessions?: number;
+}
+
+interface SyllabusItemModel {
+  id: string;
+  sessionNumber: number;
+  topicName?: string;
 }
 
 const statusOptions = [
@@ -52,159 +92,30 @@ const statusOptions = [
   { label: "Full", value: "full" },
 ];
 
-const teacherOptions = [
-  "Dr. Sarah Johnson",
-  "Prof. Michael Chen",
-  "Ms. Emily Davis",
-  "Mr. David Wilson",
-  "Dr. Lisa Brown",
-  "Prof. James Taylor",
-];
-
-const roomOptions = [
-  "Room A101",
-  "Room A102",
-  "Room B201",
-  "Room B202",
-  "Room C301",
-  "Room C302",
-  "Laboratory 1",
-  "Laboratory 2",
-  "Conference Room",
-];
-
-const mockCourses = [
-  { id: "ENGO01", name: "English Conversation" },
-  { id: "ENGO02", name: "Business English" },
-  { id: "REACT01", name: "React Fundamentals" },
-  { id: "VUE01", name: "Vue.js Advanced" },
-];
-
-// -------------------------------
-// MOCK StudentInfo (thay bằng API thật)
-// -------------------------------
-const mockStudentInfos: StudentInfo[] = [
-  {
-    accountId: "A001",
-    studentCode: "STU-0001",
-    studentNumber: 1,
-    guardianName: "Le Thi B",
-    guardianPhone: "0988776655",
-    school: "Le Quy Don HS",
-    academicNote: null,
-    createdAt: "2024-05-01T00:00:00Z",
-    updatedAt: null,
-    updatedBy: null,
-    isDeleted: false,
-  },
-  {
-    accountId: "A002",
-    studentCode: "STU-0002",
-    studentNumber: 2,
-    guardianName: "Nguyen Van C",
-    guardianPhone: "0911222333",
-    school: "Nguyen Trai HS",
-    academicNote: null,
-    createdAt: "2024-05-01T00:00:00Z",
-    updatedAt: null,
-    updatedBy: null,
-    isDeleted: false,
-  },
-  {
-    accountId: "A003",
-    studentCode: "STU-0003",
-    studentNumber: 3,
-    guardianName: "Pham Thi D",
-    guardianPhone: "0908888777",
-    school: "Tran Phu HS",
-    academicNote: null,
-    createdAt: "2024-05-01T00:00:00Z",
-    updatedAt: null,
-    updatedBy: null,
-    isDeleted: false,
-  },
-  {
-    accountId: "A004",
-    studentCode: "STU-0004",
-    studentNumber: 4,
-    guardianName: "Do Van E",
-    guardianPhone: "0905555666",
-    school: "Chu Van An HS",
-    academicNote: null,
-    createdAt: "2024-05-01T00:00:00Z",
-    updatedAt: null,
-    updatedBy: null,
-    isDeleted: false,
-  },
-];
-
-// Async search (mock)
-async function fetchStudentInfoApi(
-  query: string,
-  page = 1
-): Promise<{ items: StudentInfo[]; hasMore: boolean }> {
-  const pageSize = 8;
-  const q = query.trim().toLowerCase();
-  const filtered = mockStudentInfos.filter((s) => {
-    if (!q) return true;
-    return (
-      s.studentCode.toLowerCase().includes(q) ||
-      (s.school ?? "").toLowerCase().includes(q) ||
-      (s.guardianName ?? "").toLowerCase().includes(q) ||
-      (s.guardianPhone ?? "").toLowerCase().includes(q)
-    );
-  });
-  const start = (page - 1) * pageSize;
-  const slice = filtered.slice(start, start + pageSize);
-  await new Promise((r) => setTimeout(r, 250));
-  return { items: slice, hasMore: start + pageSize < filtered.length };
-}
-
-// Auto add (mock)
-async function autoFillStudentInfo(): Promise<string[]> {
-  return mockStudentInfos.map((s) => s.accountId);
-}
-
-// -------------------------------
-// Helper: lọc giáo viên theo lịch (mock; thay bằng API availability sau)
-// -------------------------------
-function filterTeachersBySchedule(
-  schedules: ScheduleRow[],
-  all: string[]
-): string[] {
-  if (!schedules.length) return [];
-  // Ví dụ: nếu có >= 3 buổi/tuần thì loại 2 giáo viên cuối (để thấy UI thay đổi)
-  return schedules.length >= 3 ? all.slice(0, Math.max(0, all.length - 2)) : all;
-}
-
 export default function AddEditClassPage() {
   const params = useParams<{ courseId?: string; classId?: string; id?: string }>();
   const navigate = useNavigate();
-
   const { showSuccessMessage, showErrorMessage } = useToast();
+  
+  // Lookup options
   const lookupOptions = useLookupOptions(false);
+  const timeslotOptions = (lookupOptions as any)?.timeslotOptions || [
+     { value: "TS-0800-0900", label: "08:00–09:00" },
+     { value: "TS-1800-1930", label: "18:00–19:30" },
+  ];
 
-  // Lấy timeslotOptions từ lookup, có fallback
-  const timeslotOptions =
-    (lookupOptions as any)?.timeslotOptions?.length
-      ? (lookupOptions as any).timeslotOptions
-      : [
-          { value: "TS-0800-0900", label: "08:00–09:00" },
-          { value: "TS-0900-1000", label: "09:00–10:00" },
-          { value: "TS-1800-1930", label: "18:00–19:30" },
-        ];
-
-  // Route patterns
+  // Logic Route
   const classId = params.id || params.classId;
-  const courseId = params.courseId;
-  const isStandaloneRoute = !courseId;
+  const initialCourseIdFromRoute = params.courseId;
+  const isStandaloneRoute = !initialCourseIdFromRoute;
   const isEdit = !!classId;
 
+  // Form State
   const [formData, setFormData] = useState<ClassModel>({
-    name: "",
-    courseId: courseId || "",
+    courseId: initialCourseIdFromRoute || "",
     courseName: "",
     teacher: "",
+    teacherId: undefined,
     schedules: [],
     room: "",
     currentStudents: 0,
@@ -212,16 +123,33 @@ export default function AddEditClassPage() {
     status: "active",
     startDate: "",
     endDate: "",
-    description: "",
-    sessions: 48,
+    sessions: 0,
     completedSessions: 0,
   });
 
+  // State lưu Syllabus
+  const [currentSyllabusId, setCurrentSyllabusId] = useState<string>("");
+  const [syllabusItems, setSyllabusItems] = useState<SyllabusItemModel[]>([]);
+
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // [MODIFIED]: State để quản lý Selection
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  // [NEW]: State Map để lưu full object học sinh (dùng để map ngược từ ID -> Object khi submit)
+  const [studentLookup, setStudentLookup] = useState<Map<string, WaitingStudentItem>>(new Map());
 
-  // ✅ useSchedules hook
+  // Data States
+  const [courseOptions, setCourseOptions] = useState<CourseOption[]>([]);
+  const [roomOptions, setRoomOptions] = useState<any[]>([]); 
+  const [availableTeachers, setAvailableTeachers] = useState<TeacherOption[]>([]);
+  
+  // Loading States
+  const [isLoadingCourseOptions, setIsLoadingCourseOptions] = useState(false);
+  const [isLoadingRooms, setIsLoadingRooms] = useState(false);
+  const [isLoadingTeachers, setIsLoadingTeachers] = useState(false);
+
+  // Hook Schedule Management
   const {
     value: scheduleRows,
     load: loadSchedules,
@@ -234,461 +162,563 @@ export default function AddEditClassPage() {
     onError: showErrorMessage,
   });
 
-  // Chỉ cho phép chọn teacher khi đã có ít nhất 1 schedule
   const canPickTeacher = scheduleRows.length > 0;
 
-  // Danh sách teacher khả dụng theo lịch (mock)
-  const availableTeacherOptions = useMemo(() => {
-    const list = filterTeachersBySchedule(scheduleRows, teacherOptions);
-    return list.map((t) => ({ label: t, value: t }));
-  }, [scheduleRows]);
+  // --- HELPER: Update Student Lookup ---
+  // Hàm này giúp lưu trữ thông tin học sinh vào bộ nhớ tạm để dùng khi Submit
+  const updateStudentLookup = useCallback((items: WaitingStudentItem[]) => {
+    setStudentLookup(prev => {
+        const newMap = new Map(prev);
+        items.forEach(item => {
+            if (item.studentId) {
+                newMap.set(item.studentId, item);
+            }
+        });
+        return newMap;
+    });
+  }, []);
 
-  // Nếu xoá hết lịch, clear teacher để buộc chọn lại
-  useEffect(() => {
-    if (!canPickTeacher && formData.teacher) {
-      setFormData((prev) => ({ ...prev, teacher: "" }));
+  // --- HELPER: CALCULATE END DATE ---
+  const calculateClassEndDate = (
+    startStr: string, 
+    totalSessions: number, 
+    schedules: ScheduleRow[]
+  ): string => {
+    if (!startStr || totalSessions <= 0 || schedules.length === 0) return "";
+
+    const startDate = new Date(startStr);
+    let currentDate = new Date(startDate);
+    let sessionsCounted = 0;
+    
+    const validDays = new Set(schedules.map(s => DAY_MAP[s.dayOfWeek]));
+
+    let safetyLoop = 0;
+    const MAX_DAYS = 730; 
+    
+    while (sessionsCounted < totalSessions && safetyLoop < MAX_DAYS) {
+        const currentDayOfWeek = currentDate.getDay();
+
+        if (validDays.has(currentDayOfWeek)) {
+            sessionsCounted++;
+        }
+
+        if (sessionsCounted === totalSessions) {
+            return currentDate.toISOString().split('T')[0];
+        }
+
+        currentDate.setDate(currentDate.getDate() + 1);
+        safetyLoop++;
     }
-  }, [canPickTeacher]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // sync current students
+    return "";
+  };
+
+  // --- SYNC STATES ---
   useEffect(() => {
     setFormData((prev) => ({ ...prev, currentStudents: selectedStudentIds.length }));
   }, [selectedStudentIds]);
 
-  // sync schedules -> formData
   useEffect(() => {
     setFormData((prev) => ({ ...prev, schedules: scheduleRows }));
   }, [scheduleRows]);
 
+  // --- AUTO CALCULATE END DATE EFFECT ---
   useEffect(() => {
-    if (isEdit && classId) {
-      loadClassData(classId);
-    } else if (courseId) {
-      loadCourseInfo(courseId);
+    if (formData.startDate && syllabusItems.length > 0 && scheduleRows.length > 0) {
+        const projectedEndDate = calculateClassEndDate(
+            formData.startDate, 
+            syllabusItems.length, 
+            scheduleRows
+        );
+
+        if (projectedEndDate && projectedEndDate !== formData.endDate) {
+             setFormData(prev => ({
+                 ...prev,
+                 endDate: projectedEndDate,
+                 sessions: syllabusItems.length 
+             }));
+        }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEdit, classId, courseId]);
+  }, [formData.startDate, syllabusItems, scheduleRows]);
 
-  const loadClassData = async (id: string) => {
+  // --- INITIAL LOAD ---
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        setIsLoadingCourseOptions(true);
+        setIsLoadingRooms(true);
+
+        const [courseRes, roomRes] = await Promise.all([
+          getCourseOptions(),
+          getRoomOptions()
+        ]);
+
+        setCourseOptions(courseRes.data);
+        setRoomOptions(roomRes.data);
+      } catch (err) {
+        console.error(err);
+        showErrorMessage("Failed to load initial data.");
+      } finally {
+        setIsLoadingCourseOptions(false);
+        setIsLoadingRooms(false);
+      }
+    };
+    loadInitialData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // --- LOAD CLASS DETAIL ---
+  useEffect(() => {
+    if (isEdit && classId) {
+        // TODO: Get Detail Logic
+    } else if (initialCourseIdFromRoute) {
+      handleCourseChange(initialCourseIdFromRoute);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEdit, classId, initialCourseIdFromRoute]);
+
+
+  // ========================================================================
+  // --- HANDLER: CHANGE COURSE ---
+  // ========================================================================
+  const handleCourseChange = async (courseId: string) => {
+    setFormData((prev) => ({ ...prev, courseId, courseName: "", sessions: 0 }));
+    setSelectedStudentIds([]); 
+    setStudentLookup(new Map()); // Reset lookup
+    setCurrentSyllabusId(""); 
+    setSyllabusItems([]); 
+    
+    if (!courseId) {
+      loadSchedules([]);
+      return;
+    }
+
     try {
       setIsLoading(true);
-      const mockClassData: ClassModel = {
-        id,
-        name: "English Advanced - Morning Class",
-        courseId: courseId || "ENGO01",
-        courseName: "English Conversation",
-        teacher: "Dr. Sarah Johnson",
-        teacherId: "T001",
-        schedules: [
-          { dayOfWeek: 1, timeSlotID: "TS-0800-0900" },
-          { dayOfWeek: 3, timeSlotID: "TS-0800-0900" },
-          { dayOfWeek: 5, timeSlotID: "TS-0800-0900" },
-        ],
-        room: "Room A101",
-        currentStudents: 2,
-        maxStudents: 20,
-        status: "active",
-        startDate: "2024-01-15",
-        endDate: "2024-04-15",
-        description:
-          "Advanced English conversation class focusing on business communication and professional development.",
-        sessions: 48,
-        completedSessions: 12,
-      };
 
-      setFormData(mockClassData);
-      loadSchedules(mockClassData.schedules); // ⬅️ đẩy vào hook
-      setSelectedStudentIds(["A001", "A003"]);
+      const [detailRes, scheduleRes, syllabusRes] = await Promise.all([
+        getCourseDetail(courseId),
+        getCourseSchedule(courseId),
+        getSyllabiByCourse(courseId) 
+      ]);
+
+      const detailData = detailRes.data;
+      const scheduleData = scheduleRes.data;
+      const syllabusList = syllabusRes.data;
+
+      if (syllabusList && syllabusList.length > 0) {
+        const activeSyllabus = syllabusList.find((s: any) => s.isActive) || syllabusList[0];
+        setCurrentSyllabusId(activeSyllabus.syllabusID);
+
+        try {
+            const itemsRes = await getSyllabusItems(activeSyllabus.syllabusID);
+            const items = itemsRes.data || [];
+            items.sort((a: SyllabusItemModel, b: SyllabusItemModel) => a.sessionNumber - b.sessionNumber);
+            setSyllabusItems(items);
+        } catch (error) {
+            console.error("Error fetching syllabus items:", error);
+            showErrorMessage("Could not load syllabus content.");
+        }
+
+      } else {
+        showErrorMessage("Warning: This course has no syllabus configured.");
+      }
+
+      const scheduleRowsFromCourse: ScheduleRow[] = (scheduleData || []).map(
+        (r: CourseScheduleRow): ScheduleRow => ({
+          dayOfWeek: r.dayOfWeek as DayOfWeek,
+          timeSlotID: r.timeSlotID,
+        })
+      );
+
+      setFormData((prev) => ({
+        ...prev,
+        courseId,
+        courseName: (detailData as any).courseName ?? prev.courseName,
+        maxStudents: (detailData as any).defaultMaxStudents ?? prev.maxStudents,
+        sessions: (detailData as any).totalSessions ?? prev.sessions,
+      }));
+
+      loadSchedules(scheduleRowsFromCourse);
     } catch (err) {
       console.error(err);
-      showErrorMessage("Failed to load class data.");
+      showErrorMessage("Failed to load course information.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const loadCourseInfo = async (id: string) => {
-    const course = mockCourses.find((c) => c.id === id);
-    if (course) {
-      setFormData((prev) => ({ ...prev, courseId: id, courseName: course.name }));
+  // --- HANDLER: FIND TEACHERS ---
+  const reloadAvailableTeachers = useCallback(async () => {
+    if (!formData.courseId || !formData.startDate || !formData.endDate) {
+      showErrorMessage("Please select course and dates first.");
+      return;
     }
-  };
+    if (scheduleRows.length === 0) {
+      showErrorMessage("Please configure at least one schedule.");
+      return;
+    }
 
+    try {
+      setIsLoadingTeachers(true);
+      setAvailableTeachers([]);
+
+      const apiSchedules: ClassScheduleInput[] = scheduleRows.map((row) => ({
+        timeSlotID: row.timeSlotID,
+        dayOfWeek: DAY_MAP[row.dayOfWeek]
+      }));
+
+      const res = await getAvailableTeachersForClass({
+        courseId: formData.courseId,
+        schedules: apiSchedules, 
+        startDate: formData.startDate,
+        endDate: formData.endDate
+      });
+      
+      if (res && res.data) {
+          setAvailableTeachers(res.data);
+          if (res.data.length === 0) {
+            showErrorMessage("No available teachers found.");
+          }
+      }
+    } catch (err) {
+      console.error(err);
+      showErrorMessage("Failed to load available teachers.");
+    } finally {
+      setIsLoadingTeachers(false);
+    }
+  }, [formData.courseId, formData.startDate, formData.endDate, scheduleRows, showErrorMessage]);
+
+  // --- INPUT HANDLERS ---
   const handleInputChange = (field: keyof ClassModel, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value as any }));
     if (errors[field]) setErrors((p) => ({ ...p, [field]: "" }));
   };
 
+  const handleTeacherSelectChange = (value: string) => {
+    const teacher = availableTeachers.find((x) => x.id === value);
+    setFormData((prev) => ({
+      ...prev,
+      teacherId: value,
+      teacher: teacher?.fullName ?? "",
+    }));
+  };
+
+  // --- VALIDATION ---
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
+    if (isStandaloneRoute && !formData.courseId) newErrors.courseId = "Required";
+    if (!formData.room) newErrors.room = "Required";
+    if (!formData.startDate) newErrors.startDate = "Required";
+    if (!formData.endDate) newErrors.endDate = "Required";
+    if (formData.maxStudents <= 0) newErrors.maxStudents = "Must be > 0";
+    if (scheduleRows.length === 0) newErrors.schedules = "Required";
+    
+    const dup = checkDuplicate(scheduleRows);
+    if (dup.hasDup) newErrors.schedules = "Duplicate schedules detected.";
 
-    if (isStandaloneRoute && !formData.courseId) newErrors.courseId = "Course is required";
-    if (!formData.name.trim()) newErrors.name = "Class name is required";
-    if (!formData.room.trim()) newErrors.room = "Room is required";
-    if (!formData.startDate) newErrors.startDate = "Start date is required";
-    if (!formData.endDate) newErrors.endDate = "End date is required";
-    if (formData.maxStudents <= 0) newErrors.maxStudents = "Max students must be greater than 0";
-    if (selectedStudentIds.length > formData.maxStudents)
-      newErrors.maxStudents = "Current students exceed Max Students";
-
-    // schedules validation
-    if (!formData.schedules || formData.schedules.length === 0) {
-      newErrors.schedules = "At least one schedule is required";
-    } else {
-      const dup = checkDuplicate(formData.schedules);
-      if (dup.hasDup) newErrors.schedules = "Duplicate schedules (same day & time slot) are not allowed.";
-      const invalid = formData.schedules.some(
-        (s) =>
-          !s.timeSlotID ||
-          s.timeSlotID.trim() === "" ||
-          s.dayOfWeek === undefined ||
-          s.dayOfWeek === null
-      );
-      if (!newErrors.schedules && invalid) newErrors.schedules = "Please select day and time for all rows.";
-    }
-
-    // ✅ Chỉ yêu cầu Teacher SAU khi đã có lịch
-    if (formData.schedules.length > 0 && !formData.teacher.trim()) {
-      newErrors.teacher = "Teacher is required after selecting schedules";
-    }
+    if (scheduleRows.length > 0 && !formData.teacherId) newErrors.teacher = "Required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  // --- HELPER: GENERATE DATES ---
+  const generateMeetingDates = (start: string, end: string, schedules: ScheduleRow[]) => {
+    const dates: { date: string; slotId: string }[] = [];
+    const currentDate = new Date(start);
+    const endDate = new Date(end);
+    
+    const validDays = schedules.map(s => ({
+        day: DAY_MAP[s.dayOfWeek],
+        slotId: s.timeSlotID
+    }));
+
+    while (currentDate <= endDate) {
+        const currentDayOfWeek = currentDate.getDay();
+        const matched = validDays.find(s => s.day === currentDayOfWeek);
+        if (matched) {
+            dates.push({
+                date: currentDate.toISOString().split('T')[0],
+                slotId: matched.slotId
+            });
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+    return dates;
+  };
+
+  // ========================================================================
+  // --- SAVE HANDLER ---
+  // ========================================================================
   const handleSave = async () => {
     if (!validateForm()) return;
+
+    if (!currentSyllabusId || syllabusItems.length === 0) {
+      showErrorMessage("Cannot create class: Missing Syllabus Items.");
+      return;
+    }
+
+    const CONST_STATUS_PLANED = "D5621E55-A2FB-4DAC-B0EE-B53F378405FF"; 
+    // const CONST_ENROLL_STATUS = "148fdc3d-fecc-457d-a539-cc28fd5df900"; // [REMOVED]: Backend tự xử lý
+    const CONST_COURSE_FORMAT = "2423c370-7205-463f-bea6-530ddc9aa544"; 
+    const CURRENT_USER_ID = getCurrentUserId(); 
 
     try {
       setIsLoading(true);
 
-      const payload = {
-        ...formData,
-        schedules: formData.schedules.map((s) => ({
-          dayOfWeek: Number(s.dayOfWeek),
-          timeSlotID: s.timeSlotID,
-        })),
-        studentAccountIds: selectedStudentIds,
+      const scheduleString = scheduleRows.map(s => {
+          const timeLabel = timeslotOptions.find((t: any) => t.value === s.timeSlotID)?.label || "";
+          return `${s.dayOfWeek} (${timeLabel})`;
+      }).join(", ");
+
+      const meetingDates = generateMeetingDates(formData.startDate, formData.endDate, scheduleRows);
+      
+      if (meetingDates.length > syllabusItems.length) {
+          console.warn(`Warning: Meetings (${meetingDates.length}) > Syllabus Items (${syllabusItems.length})`);
+      }
+
+      const schedulePayloads: ClassMeetingScheduleDTO[] = meetingDates.map((m, index) => {
+          const matchedItem = syllabusItems[index] || syllabusItems[syllabusItems.length - 1];
+
+          return {
+              slotID: m.slotId,
+              date: m.date,
+              roomID: formData.room, 
+              syllabusItemID: matchedItem ? matchedItem.id : currentSyllabusId, 
+              scheduleDescription: scheduleString
+          };
+      });
+
+      const autoClassName = `${formData.courseName} - (${formData.startDate})`;
+      
+      // [MODIFIED]: Chuẩn bị list objects học sinh từ danh sách ID đã chọn
+      const enrollmentObjects = selectedStudentIds
+        .map(id => studentLookup.get(id))
+        .filter((item): item is WaitingStudentItem => !!item); // Lọc bỏ null/undefined
+
+      // [MODIFIED]: Payload gộp
+      const compositePayload: CreateClassCompositeRequestDTO = {
+        className: autoClassName, 
+        classStatusID: CONST_STATUS_PLANED,
+        courseFormatID: CONST_COURSE_FORMAT,
+        teacherAssignmentID: formData.teacherId,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        capacity: formData.maxStudents,
+        createdBy: CURRENT_USER_ID,
+        schedules: schedulePayloads,
+        enrollments: enrollmentObjects // Gửi kèm danh sách object học sinh
       };
 
-      console.log("Saving class:", payload);
-      await new Promise((r) => setTimeout(r, 900)); // mock
-      showSuccessMessage(isEdit ? "Class updated successfully!" : "Class created successfully!");
+      await createClassComposite(compositePayload);
+      // Không cần gọi assignStudentsToClass nữa
 
+      showSuccessMessage("Class created & students enrolled successfully!");
+      
       if (isStandaloneRoute) navigate(`/staff/classes`);
       else navigate(`/staff/courses/${formData.courseId}`);
-    } catch (err) {
+
+    } catch (err: any) {
       console.error(err);
-      showErrorMessage("Failed to save class. Please try again.");
+      showErrorMessage(err.response?.data?.message || "Failed to create class.");
     } finally {
       setIsLoading(false);
     }
   };
-
-  const handleCancel = () => {
-    if (isStandaloneRoute) navigate("/staff/classes");
-    else navigate(`/staff/courses`);
-  };
-
-  const breadcrumbItems = isStandaloneRoute
-    ? [{ label: "Classes", to: "/staff/classes" }, { label: isEdit ? "Edit Class" : "Add Class" }]
-    : [
-        { label: "Courses", to: "/staff/courses" },
-        { label: formData.courseName || "Course", to: `/staff/courses/${courseId}` },
-        { label: isEdit ? "Edit Class" : "Add Class" },
-      ];
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50/50 pt-16">
-        <div className="p-6">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto" />
-            <p className="text-gray-600 mt-4">Loading...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  
+  // --- RENDER ---
   return (
     <div className="min-h-screen bg-gray-50/50 pt-16">
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="mb-6">
-          <Breadcrumbs items={breadcrumbItems} />
-          <PageHeader
-            title={isEdit ? "Edit Class" : "Add New Class"}
-            description={isEdit ? "Update class information and content" : "Create a class with detailed information"}
-            controls={[
-              {
-                type: "button",
-                label: "Back to Classes",
-                variant: "secondary",
-                icon: <ArrowLeft className="w-4 h-4" />,
-                onClick: handleCancel,
-              },
-            ]}
-          />
-        </div>
+      <div className="p-6 space-y-6 max-w-5xl mx-auto">
+         {/* Header */}
+         <div className="flex flex-col gap-2">
+            <Breadcrumbs items={[{ label: "Classes", to: "/staff/classes" }, { label: isEdit ? "Edit Class" : "New Class" }]} />
+            <h1 className="text-2xl font-bold text-gray-800">{isEdit ? "Edit Class" : "Create New Class"}</h1>
+            <p className="text-sm text-gray-500">Setup class schedule, location and enroll students.</p>
+         </div>
+         
+         <div className="space-y-6">
+                {/* CARD 1: GENERAL INFO */}
+                <Card className="p-6 border-t-4 border-t-blue-500">
+                    <div className="flex items-center gap-2 mb-4 pb-2 border-b">
+                        <BookOpen className="w-5 h-5 text-blue-600" />
+                        <h2 className="font-semibold text-lg text-gray-800">General Information</h2>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="md:col-span-2">
+                            {isStandaloneRoute && !isEdit ? (
+                                <div>
+                                    <Label required>Course</Label>
+                                    <Select 
+                                        value={formData.courseId} 
+                                        onChange={e => handleCourseChange(e.target.value)}
+                                        options={[
+                                            { label: isLoadingCourseOptions ? "Loading..." : "Select a course...", value: "" },
+                                            ...courseOptions.map(c => ({ label: `${c.courseCode} - ${c.courseName}`, value: c.id }))
+                                        ]}
+                                        disabled={isLoadingCourseOptions}
+                                        error={errors.courseId}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="bg-gray-50 p-3 rounded border">
+                                    <Label className="text-xs text-gray-500 uppercase">Selected Course</Label>
+                                    <div className="font-medium text-gray-900">{formData.courseName || "Loading..."}</div>
+                                </div>
+                            )}
+                        </div>
+                        <div>
+                            <Label>Status</Label>
+                            <Select 
+                                value={formData.status}
+                                onChange={e => handleInputChange("status", e.target.value)}
+                                options={statusOptions}
+                            />
+                        </div>
+                    </div>
+                </Card>
 
-        {/* Form */}
-        <div className={`grid grid-cols-1 gap-6 ${isEdit ? "lg:grid-cols-3" : "max-w-4xl mx-auto"}`}>
-          {/* Main Form */}
-          <div className={`space-y-6 ${isEdit ? "lg:col-span-2" : ""}`}>
-            {/* Basic Information */}
-            <Card className="p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <BookOpen className="w-6 h-6 text-blue-600" />
-                <h2 className="text-xl font-semibold">Basic Information</h2>
-              </div>
+                {/* CARD 2: SCHEDULE & LOCATION */}
+                <Card className="p-6 border-t-4 border-t-indigo-500">
+                     <div className="flex items-center gap-2 mb-4 pb-2 border-b">
+                        <CalendarClock className="w-5 h-5 text-indigo-600" />
+                        <h2 className="font-semibold text-lg text-gray-800">Schedule & Location</h2>
+                    </div>
+                     <div className="mb-6">
+                        <ScheduleSection 
+                            value={scheduleRows}
+                            timeslotOptions={timeslotOptions}
+                            onAdd={() => addSchedule(showErrorMessage)}
+                            onRemove={removeSchedule}
+                            onChange={updateSchedule}
+                            checkDuplicate={checkDuplicate}
+                        />
+                        {errors.schedules && <p className="text-sm text-red-500 mt-1">{errors.schedules}</p>}
+                     </div>
+                     <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <Label required>Start Date</Label>
+                            <Input 
+                                type="date" 
+                                value={formData.startDate} 
+                                onChange={e => handleInputChange("startDate", e.target.value)} 
+                                error={errors.startDate} 
+                            />
+                        </div>
+                        <div>
+                            <Label>End Date (Auto)</Label>
+                            <Input 
+                                type="date" 
+                                value={formData.endDate} 
+                                readOnly={true}
+                                className="bg-gray-100 cursor-not-allowed"
+                                title="Calculated automatically based on syllabus & schedule"
+                            />
+                            <p className="text-[10px] text-gray-500 mt-1">
+                                Based on {syllabusItems.length > 0 ? syllabusItems.length : "0"} syllabus sessions.
+                            </p>
+                        </div>
+                     </div>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <MapPin className="w-4 h-4 text-gray-400" />
+                                <Label required className="mb-0">Room</Label>
+                            </div>
+                            <Select 
+                                value={formData.room}
+                                onChange={e => handleInputChange("room", e.target.value)}
+                                options={[
+                                    { label: isLoadingRooms ? "Loading rooms..." : "Select a room...", value: "" },
+                                    ...roomOptions.filter(r => r.isActive).map(r => ({ label: `${r.roomCode} (Cap: ${r.capacity})`, value: r.id }))
+                                ]}
+                                disabled={isLoadingRooms}
+                                error={errors.room}
+                            />
+                        </div>
+                        <div>
+                            <div className="flex justify-between items-center mb-1">
+                                <Label required className="mb-0">Teacher</Label>
+                                <Button 
+                                    variant="secondary" 
+                                    size="sm" 
+                                    className="h-6 px-2 text-xs"
+                                    onClick={reloadAvailableTeachers} 
+                                    disabled={isLoadingTeachers || !canPickTeacher}
+                                >
+                                    {isLoadingTeachers ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1" />}
+                                    Find Available
+                                </Button>
+                            </div>
+                            <Select 
+                                options={[
+                                    { label: availableTeachers.length ? "Select a teacher..." : "No teachers found", value: "" },
+                                    ...availableTeachers.map(t => ({ label: t.fullName, value: t.id }))
+                                ]}
+                                value={formData.teacherId || ""}
+                                onChange={e => handleTeacherSelectChange(e.target.value)}
+                                disabled={availableTeachers.length === 0}
+                                error={errors.teacher}
+                            />
+                            {!canPickTeacher && <p className="text-[10px] text-amber-600 mt-1">Setup schedules & dates first to find teachers.</p>}
+                        </div>
+                     </div>
+                </Card>
 
-              <div className="space-y-4">
-                {isStandaloneRoute && !isEdit ? (
-                  <div>
-                    <Label required>Course</Label>
-                    <Select
-                      value={formData.courseId}
-                      onChange={(e) => {
-                        const selectedCourse = mockCourses.find((c) => c.id === e.target.value);
-                        handleInputChange("courseId", e.target.value);
-                        if (selectedCourse) handleInputChange("courseName", selectedCourse.name);
-                      }}
-                      options={[
-                        { label: "Select a course", value: "" },
-                        ...mockCourses.map((course) => ({ label: course.name, value: course.id })),
-                      ]}
-                      error={errors.courseId}
+                {/* CARD 3: STUDENTS */}
+                <Card className="p-6 border-t-4 border-t-purple-500">
+                    <div className="flex items-center justify-between mb-4 pb-2 border-b">
+                        <div className="flex items-center gap-2">
+                            <Users className="w-5 h-5 text-purple-600" />
+                            <h2 className="font-semibold text-lg text-gray-800">Students & Capacity</h2>
+                        </div>
+                        <div className="text-sm text-gray-500">
+                            Enrolled: <span className="font-bold text-gray-800">{selectedStudentIds.length}</span> / {formData.maxStudents}
+                        </div>
+                    </div>
+                    <div className="mb-6 max-w-xs">
+                         <Label>Max Class Capacity</Label>
+                         <Input 
+                           type="number" 
+                           value={formData.maxStudents} 
+                           onChange={e => handleInputChange("maxStudents", parseInt(e.target.value))} 
+                           min={1}
+                         />
+                    </div>
+                    <ClassEnrollmentSection 
+                        key={formData.courseId} 
+                        selectedIds={selectedStudentIds}
+                        maxStudents={formData.maxStudents}
+                        onChangeSelected={setSelectedStudentIds}
+                        // [MODIFIED]: Fetch students và cập nhật luôn vào Map Lookup
+                        fetchStudents={async (q, p) => {
+                            if (!formData.courseId) return { items: [], hasMore: false };
+                            const res = await searchWaitingStudents(formData.courseId, q, p || 1);
+                            updateStudentLookup(res.data.items); // Lưu vào cache
+                            return res.data; 
+                        }}
+                        // [MODIFIED]: Auto pick và cập nhật luôn vào Map Lookup
+                        onAutoFill={async () => {
+                            if (!formData.courseId) return [];
+                            const res = await autoPickWaitingStudents(formData.courseId, formData.maxStudents);
+                            updateStudentLookup(res.data); // Lưu vào cache
+                            return res.data;
+                        }}
+                        labels={{ manualTitle: "Waiting List", emptyEnrolled: "No students yet" }}
                     />
-                  </div>
-                ) : (
-                  <div>
-                    <Label>Course</Label>
-                    <Input value={formData.courseName} disabled className="bg-gray-50" />
-                  </div>
-                )}
+                </Card>
+         </div>
 
-                <div>
-                  <Label required>Class Name</Label>
-                  <Input
-                    value={formData.name}
-                    onChange={(e) => handleInputChange("name", e.target.value)}
-                    placeholder="Enter class name"
-                    error={errors.name}
-                  />
-                </div>
-
-                <div>
-                  <Label>Description</Label>
-                  <textarea
-                    value={formData.description || ""}
-                    onChange={(e) => handleInputChange("description", e.target.value)}
-                    placeholder="Enter class description"
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-            </Card>
-
-            {/* Schedule & Location */}
-            <Card className="p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <Calendar className="w-6 h-6 text-green-600" />
-                <h2 className="text-xl font-semibold">Schedule & Location</h2>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* ⬇️ Schedules trước */}
-                <div className="md:col-span-2">
-                  <Label required>Schedules</Label>
-                  <ScheduleSection
-                    value={scheduleRows}
-                    timeslotOptions={timeslotOptions}
-                    onAdd={() => addSchedule(showErrorMessage)}
-                    onRemove={removeSchedule}
-                    onChange={updateSchedule}
-                    checkDuplicate={checkDuplicate}
-                    dayLabel={(d) => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d]}
-                  />
-                  {errors.schedules && <p className="mt-2 text-sm text-red-600">{errors.schedules}</p>}
-                </div>
-
-                {/* Room */}
-                <div>
-                  <Label required>Room</Label>
-                  <Select
-                    value={formData.room}
-                    onChange={(e) => handleInputChange("room", e.target.value)}
-                    options={[{ label: "Select a room", value: "" }, ...roomOptions.map((r) => ({ label: r, value: r }))]}
-                    error={errors.room}
-                  />
-                </div>
-
-                {/* Teacher — disabled cho đến khi có schedule */}
-                <div>
-                  <div className="flex items-center justify-between">
-                    <Label required>Teacher</Label>
-                    {!canPickTeacher && <span className="text-xs text-amber-600">Select schedules first</span>}
-                  </div>
-                  <Select
-                    value={formData.teacher}
-                    onChange={(e) => handleInputChange("teacher", e.target.value)}
-                    options={[{ label: "Select a teacher", value: "" }, ...availableTeacherOptions]}
-                    error={errors.teacher}
-                    disabled={!canPickTeacher}
-                  />
-                </div>
-
-                <div>
-                  <Label required>Start Date</Label>
-                  <Input
-                    type="date"
-                    value={formData.startDate}
-                    onChange={(e) => handleInputChange("startDate", e.target.value)}
-                    error={errors.startDate}
-                  />
-                </div>
-
-                <div>
-                  <Label required>End Date</Label>
-                  <Input
-                    type="date"
-                    value={formData.endDate}
-                    onChange={(e) => handleInputChange("endDate", e.target.value)}
-                    error={errors.endDate}
-                  />
-                </div>
-              </div>
-            </Card>
-
-            {/* Capacity, Status & Enrollment */}
-            <Card className="p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <Users className="w-6 h-6 text-purple-600" />
-                <h2 className="text-xl font-semibold"> Enrollment</h2>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label required>Max Students</Label>
-                  <Input
-                    type="number"
-                    value={formData.maxStudents}
-                    onChange={(e) => {
-                      const v = Math.max(1, parseInt(e.target.value || "1", 10));
-                      handleInputChange("maxStudents", v);
-                      setSelectedStudentIds((prev) => prev.slice(0, v));
-                    }}
-                    min="1"
-                    error={errors.maxStudents}
-                  />
-                </div>
-
-                <div>
-                  <Label>Current Students</Label>
-                  <Input type="number" value={selectedStudentIds.length} disabled className="bg-gray-50" />
-                </div>
-
-                <div>
-                  <Label>Status</Label>
-                  <Select
-                    value={formData.status}
-                    onChange={(e) => handleInputChange("status", e.target.value)}
-                    options={statusOptions}
-                  />
-                </div>
-              </div>
-
-              <ClassEnrollmentSection
-                selectedIds={selectedStudentIds}
-                maxStudents={formData.maxStudents}
-                onChangeSelected={setSelectedStudentIds}
-                fetchStudents={fetchStudentInfoApi}
-                onAutoFill={autoFillStudentInfo}
-                labels={{
-                  manualTitle: "Reservation List ",
-                  enrolledTitle: "Enrolled Students",
-                  addSelected: "Add Student",
-                  clearSelection: "Clear Selection",
-                  autoAdd: "Auto",
-                  clearAll: "Clear All",
-                  searchPlaceholder: "Search by Student Code",
-                  inClassTag: "In class",
-                  emptyEnrolled: "No students yet.",
-                }}
-              />
-            </Card>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {isEdit && (
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Class Statistics</h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Enrollment</span>
-                    <span className="font-medium">
-                      {selectedStudentIds.length}/{formData.maxStudents}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Progress</span>
-                    <span className="font-medium">
-                      {formData.completedSessions}/{formData.sessions} sessions
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Status</span>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        formData.status === "active"
-                          ? "bg-green-100 text-green-700"
-                          : formData.status === "full"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      {formData.status.charAt(0).toUpperCase() + formData.status.slice(1)}
-                    </span>
-                  </div>
-                </div>
-              </Card>
-            )}
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-500">
-              {isEdit ? "Last updated: Today" : "All fields marked with * are required"}
-            </div>
-            <div className="flex items-center gap-3">
-              <Button onClick={handleCancel} variant="secondary" disabled={isLoading} className="min-w-[120px]">
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSave}
-                disabled={isLoading}
-                className="min-w-[160px] bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800"
-              >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    {isEdit ? "Updating..." : "Creating..."}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Save className="w-4 h-4" />
-                    {isEdit ? "Update Class" : "Create Class"}
-                  </div>
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
+         {/* STICKY ACTIONS BAR */}
+         <div className="sticky bottom-0 z-10 bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-2xl border-t border-gray-200 flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => navigate(-1)} className="min-w-[100px]">Cancel</Button>
+            <Button onClick={handleSave} disabled={isLoading} className="min-w-[140px] bg-blue-600 hover:bg-blue-700 text-white">
+                {isLoading ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                {isEdit ? "Update Class" : "Create Class"}
+            </Button>
+         </div>
       </div>
     </div>
   );

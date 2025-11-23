@@ -1,20 +1,32 @@
+// src/pages/staff/staff_classes/components/ScheduleSection.tsx
+
+import React from "react";
 import Label from "@/components/ui/Label";
 import Select from "@/components/ui/Select";
 import Button from "@/components/ui/Button";
 import { PlusCircle, Trash2, AlertCircle } from "lucide-react";
 
-export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6; // Sun..Sat
+// Import Type riêng và Value riêng
+import type { DayOfWeek } from "@/pages/staff/staff_classes/data/classPlacement.types"; 
+import  {  DAYS_OF_WEEK } from "@/pages/staff/staff_classes/data/classPlacement.types"; 
+
 export type TimeSlotOption = { value: string; label: string };
-export type ScheduleRow = { id?: string; timeSlotID: string; dayOfWeek: DayOfWeek };
+
+// Định nghĩa ScheduleRow dùng string
+export type ScheduleRow = { 
+  id?: string; 
+  timeSlotID: string; 
+  dayOfWeek: DayOfWeek 
+};
 
 export type ScheduleSectionProps = {
   value: ScheduleRow[];
   timeslotOptions: TimeSlotOption[];
   onAdd: () => void;
   onRemove: (index: number) => void;
-  onChange: (index: number, field: "timeSlotID" | "dayOfWeek", v: string | number) => void;
+  onChange: (index: number, field: "timeSlotID" | "dayOfWeek", v: string) => void;
   checkDuplicate?: (rows: ScheduleRow[]) => { hasDup: boolean; dups?: number[] };
-  dayLabel?: (d: DayOfWeek) => string;
+  dayLabel?: (d: string | number) => string;
   readOnly?: boolean;
   className?: string;
 };
@@ -26,7 +38,7 @@ export default function ScheduleSection({
   onRemove,
   onChange,
   checkDuplicate,
-  dayLabel = (d) => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d],
+  dayLabel, // Có thể bỏ qua nếu dùng tên tiếng Anh mặc định
   readOnly,
   className
 }: ScheduleSectionProps) {
@@ -68,18 +80,14 @@ export default function ScheduleSection({
                 <div>
                   <Label>Day of Week</Label>
                   <Select
-                    value={String(row.dayOfWeek)}
-                    onChange={(e) => onChange(idx, "dayOfWeek", Number(e.target.value))}
+                    value={row.dayOfWeek}
+                    // Pass trực tiếp string, không ép kiểu Number
+                    onChange={(e) => onChange(idx, "dayOfWeek", e.target.value as DayOfWeek)}
                     disabled={readOnly}
-                    options={[
-                      { value: "0", label: dayLabel(0) },
-                      { value: "1", label: dayLabel(1) },
-                      { value: "2", label: dayLabel(2) },
-                      { value: "3", label: dayLabel(3) },
-                      { value: "4", label: dayLabel(4) },
-                      { value: "5", label: dayLabel(5) },
-                      { value: "6", label: dayLabel(6) }
-                    ]}
+                    options={DAYS_OF_WEEK.map((day) => ({
+                      value: day,
+                      label: day, 
+                    }))}
                   />
                 </div>
                 <div>
