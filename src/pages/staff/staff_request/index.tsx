@@ -59,11 +59,15 @@ export default function StaffRequestPage() {
 
     // Map request type - you may need to adjust based on your actual request type names
     const requestTypeName = apiRequest.requestTypeName?.toLowerCase() || "";
-    let requestType: "course_change" | "schedule_change" | "refund" | "other" | "class_transfer" | "meeting_reschedule" = "other";
+    let requestType: "course_change" | "schedule_change" | "refund" | "other" | "class_transfer" | "meeting_reschedule" | "enrollment_cancellation" | "suspension" = "other";
     if (requestTypeName.includes("class transfer") || requestTypeName.includes("classtransfer")) {
       requestType = "class_transfer";
     } else if (requestTypeName.includes("meeting reschedule") || requestTypeName.includes("meetingreschedule")) {
       requestType = "meeting_reschedule";
+    } else if (requestTypeName.includes("enrollment cancellation") || requestTypeName.includes("cancellation")) {
+      requestType = "enrollment_cancellation";
+    } else if (requestTypeName.includes("suspension") || requestTypeName.includes("suspend")) {
+      requestType = "suspension";
     } else if (requestTypeName.includes("schedule")) {
       requestType = "schedule_change";
     } else if (requestTypeName.includes("course")) {
@@ -437,6 +441,14 @@ export default function StaffRequestPage() {
         return "Course Change";
       case "schedule_change":
         return "Schedule Change";
+      case "class_transfer":
+        return "Class Transfer";
+      case "meeting_reschedule":
+        return "Meeting Reschedule";
+      case "enrollment_cancellation":
+        return "Enrollment Cancellation";
+      case "suspension":
+        return "Suspension";
       case "refund":
         return "Refund";
       case "other":

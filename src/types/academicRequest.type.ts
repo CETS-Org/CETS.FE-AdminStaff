@@ -51,7 +51,7 @@ export interface AcademicRequest {
   id: string;
   studentName: string;
   studentEmail: string;
-  requestType: "course_change" | "schedule_change" | "refund" | "other" | "class_transfer" | "meeting_reschedule";
+  requestType: "course_change" | "schedule_change" | "refund" | "other" | "class_transfer" | "meeting_reschedule" | "enrollment_cancellation" | "suspension";
   description: string;
   status: "pending" | "approved" | "rejected";
   submittedDate: string;

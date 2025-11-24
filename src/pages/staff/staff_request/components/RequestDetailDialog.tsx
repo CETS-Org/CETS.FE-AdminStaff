@@ -128,6 +128,10 @@ export default function RequestDetailDialog({
         return "Class Transfer";
       case "meeting_reschedule":
         return "Meeting Reschedule";
+      case "enrollment_cancellation":
+        return "Enrollment Cancellation";
+      case "suspension":
+        return "Suspension";
       case "refund":
         return "Refund";
       case "other":
@@ -147,6 +151,10 @@ export default function RequestDetailDialog({
         return "Approving this request will change the student's enrolled course. Please ensure all prerequisites are met.";
       case "schedule_change":
         return "Approving this request will modify the student's class schedule. Please verify schedule conflicts.";
+      case "enrollment_cancellation":
+        return "Approving this request will cancel the student's enrollment. Please verify the cancellation policy and any refund implications.";
+      case "suspension":
+        return "Approving this request will suspend the student's enrollment. Please ensure proper documentation and follow institutional policies.";
       case "refund":
         return "Approving this request will process a refund for the student. Please verify the refund amount and policy compliance.";
       case "other":
