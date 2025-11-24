@@ -38,6 +38,13 @@ import {
   updatePackageCourseOrder,
   getPackageImageUploadUrl
 } from './package.api';
+import {
+  getRevenueAnalytics,
+  getTopEnrolledCourses,
+  getStudentDropoutAnalytics,
+  getAIRecommendations,
+  getDashboardData
+} from './admin-dashboard.api';
 
 export const apiClient = axiosInstance;
 export { endpoint } from './api';
@@ -136,6 +143,13 @@ export const api = {
   removeCourseFromPackage,
   updatePackageCourseOrder,
   getPackageImageUploadUrl,
+
+  // Dashboard Analytics
+  getRevenueAnalytics,
+  getTopEnrolledCourses,
+  getStudentDropoutAnalytics,
+  getAIRecommendations,
+  getDashboardData,
 };
 
 export {
@@ -214,6 +228,11 @@ export {
   removeCourseFromPackage,
   updatePackageCourseOrder,
   getPackageImageUploadUrl,
+  getRevenueAnalytics,
+  getTopEnrolledCourses,
+  getStudentDropoutAnalytics,
+  getAIRecommendations,
+  getDashboardData,
 };
 
 
