@@ -17,6 +17,7 @@ import AddEditTeacherPage from "../staff/staff_teachers/AddTeacherPage";
 import EditTeacherPage from "../staff/staff_teachers/EditTeacherPage";
 import TeacherDetailPage from "../staff/staff_teachers/TeacherDetailPage";
 import AdminAnalytics from "./admin_analytics";
+import StaffRoomsPage from "../staff/staff_rooms";
 
 export default function AdminHome() {
         const [mobileOpen, setMobileOpen] = useState(false);
@@ -65,6 +66,7 @@ export default function AdminHome() {
             <Route path="teachers/:id" element={<TeacherDetailPage />} />
             <Route path="teachers/edit/:id" element={<EditTeacherPage />} />
             <Route path="schedule" element={<StaffSchedulePage />} />
+            <Route path="rooms" element={<StaffRoomsPage />} />
             <Route path="students" element={<StaffStudentsPage />} />
             <Route path="students/:id" element={<StudentDetailPage />} />
             <Route path="students/edit/:id" element={<EditStudentPage />} />

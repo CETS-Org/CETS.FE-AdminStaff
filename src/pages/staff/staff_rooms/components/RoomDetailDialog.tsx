@@ -50,12 +50,12 @@ export default function RoomDetailDialog({
               <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${
                 room.isActive 
                   ? 'bg-green-100 text-green-800 border-green-200' 
-                  : 'bg-gray-100 text-gray-800 border-gray-200'
+                  : 'bg-amber-100 text-amber-800 border-amber-200'
               }`}>
                 <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
-                  room.isActive ? 'bg-green-500' : 'bg-gray-400'
+                  room.isActive ? 'bg-green-500' : 'bg-amber-500'
                 }`} />
-                {room.isActive ? 'Active' : 'Inactive'}
+                {room.isActive ? 'Active' : 'Maintenance'}
               </span>
             </div>
           </div>
