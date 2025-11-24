@@ -20,7 +20,7 @@ import AdminAnalytics from "./admin_analytics";
 
 export default function AdminHome() {
         const [mobileOpen, setMobileOpen] = useState(false);
-        const [collapsed, setCollapsed] = useState(false);
+        const [collapsed, setCollapsed] = useState(true); 
         const [userAccount, setUserAccount] = useState(null);
 
         const contentShiftClass = collapsed ? "lg:ml-16" : "lg:ml-64";

@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -10,21 +11,15 @@ import Pagination from "@/shared/pagination";
 import { Search, Filter, Clock, CheckCircle, XCircle, Calendar, X, TrendingUp, Download, SortAsc, SortDesc, FileText, Zap, MessageSquare } from "lucide-react";
 import RequestDetailDialog from "./components/RequestDetailDialog";
 import ConfirmRequestDialog from "./components/ConfirmRequestDialog";
-
-interface Request {
-  id: string;
-  studentName: string;
-  studentEmail: string;
-  requestType: "course_change" | "schedule_change" | "refund" | "other";
-  description: string;
-  status: "pending" | "approved" | "rejected";
-  submittedDate: string;
-  priority: "low" | "medium" | "high";
-  note?: string;
-}
+import { getAllAcademicRequests, getAcademicRequestsByStatus, processAcademicRequest } from "@/api/academicRequest.api";
+import { getLookupsByTypeCode } from "@/api/core.api";
+import { getUserInfo } from "@/lib/utils";
+import { useToast } from "@/hooks/useToast";
+import type { AcademicRequestResponse, AcademicRequest } from "@/types/academicRequest.type";
 
 export default function StaffRequestPage() {
-  const [requests, setRequests] = useState<Request[]>([]);
+  const { showToast, toasts, hideToast } = useToast();
+  const [requests, setRequests] = useState<AcademicRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -34,152 +29,151 @@ export default function StaffRequestPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(12);
-  const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<AcademicRequest | null>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [confirmAction] = useState<"approve" | "reject">("approve");
-  const [confirmRequest, setConfirmRequest] = useState<Request | null>(null);
+  const [confirmRequest, setConfirmRequest] = useState<AcademicRequest | null>(null);
   const [selectedRequests, setSelectedRequests] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<'date' | 'priority' | 'status' | 'name'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [filterPriority, setFilterPriority] = useState('all');
+  const [statusLookups, setStatusLookups] = useState<Array<{ id: string; name: string; code: string }>>([]);
+  const [statusMap, setStatusMap] = useState<Map<string, string>>(new Map());
 
-  // Mock data
+  // Map API response to AcademicRequest interface
+  const mapToRequest = useCallback((apiRequest: AcademicRequestResponse): AcademicRequest => {
+    const statusName = apiRequest.statusName?.toLowerCase() || "";
+    const statusCode = statusLookups.find(s => s.id === apiRequest.academicRequestStatusID)?.code?.toLowerCase() || "";
+    let status: "pending" | "approved" | "rejected" = "pending";
+    
+    // Check both status name and code
+    const combinedStatus = `${statusName} ${statusCode}`;
+    if (combinedStatus.includes("approved") || combinedStatus.includes("accept") || combinedStatus.includes("approved")) {
+      status = "approved";
+    } else if (combinedStatus.includes("rejected") || combinedStatus.includes("reject") || combinedStatus.includes("denied") || combinedStatus.includes("declined")) {
+      status = "rejected";
+    } else {
+      status = "pending";
+    }
+
+    // Map request type - you may need to adjust based on your actual request type names
+    const requestTypeName = apiRequest.requestTypeName?.toLowerCase() || "";
+    let requestType: "course_change" | "schedule_change" | "refund" | "other" | "class_transfer" | "meeting_reschedule" = "other";
+    if (requestTypeName.includes("class transfer") || requestTypeName.includes("classtransfer")) {
+      requestType = "class_transfer";
+    } else if (requestTypeName.includes("meeting reschedule") || requestTypeName.includes("meetingreschedule")) {
+      requestType = "meeting_reschedule";
+    } else if (requestTypeName.includes("schedule")) {
+      requestType = "schedule_change";
+    } else if (requestTypeName.includes("course")) {
+      requestType = "course_change";
+    } else if (requestTypeName.includes("refund")) {
+      requestType = "refund";
+    }
+
+    // Map priority from API response (default to "medium" if not provided)
+    const priorityName = (apiRequest.priorityName || "medium").toLowerCase();
+    let priority: "low" | "medium" | "high" = "medium";
+    if (priorityName.includes("high")) {
+      priority = "high";
+    } else if (priorityName.includes("low")) {
+      priority = "low";
+    } else {
+      priority = "medium";
+    }
+
+    return {
+      id: apiRequest.id,
+      studentName: apiRequest.studentName || "Unknown",
+      studentEmail: apiRequest.studentEmail || "",
+      requestType,
+      description: apiRequest.reason || "",
+      status,
+      submittedDate: apiRequest.createdAt,
+      priority,
+      reason: apiRequest.reason,
+      staffResponse: apiRequest.staffResponse,
+      processedByName: apiRequest.processedByName,
+      processedAt: apiRequest.processedAt,
+      attachmentUrl: apiRequest.attachmentUrl,
+      // Class transfer fields
+      fromClassID: apiRequest.fromClassID,
+      fromClassName: apiRequest.fromClassName,
+      toClassID: apiRequest.toClassID,
+      toClassName: apiRequest.toClassName,
+      effectiveDate: apiRequest.effectiveDate,
+      // For class transfer - specific meeting details
+      fromMeetingDate: apiRequest.fromMeetingDate,
+      fromSlotID: apiRequest.fromSlotID,
+      fromSlotName: apiRequest.fromSlotName,
+      toMeetingDate: apiRequest.toMeetingDate,
+      toSlotID: apiRequest.toSlotID,
+      toSlotName: apiRequest.toSlotName,
+      // Meeting reschedule fields
+      classMeetingID: apiRequest.classMeetingID,
+      meetingInfo: apiRequest.meetingInfo,
+      // Original meeting details
+      // New meeting details (for meeting reschedule, uses toMeetingDate and toSlotID)
+      newRoomID: apiRequest.newRoomID,
+      newRoomName: apiRequest.newRoomName,
+    };
+  }, [statusLookups]);
+
+  // Fetch status lookups
   useEffect(() => {
-    const mockRequests: Request[] = [
-      {
-        id: "1",
-        studentName: "Nguyen Van A",
-        studentEmail: "nguyenvana@email.com",
-        requestType: "course_change",
-        description: "Request to change from IELTS Foundation to TOEIC Advanced",
-        status: "pending",
-        submittedDate: "2024-01-15",
-        priority: "medium",
-        note: "I have been studying IELTS for 3 months but I think TOEIC would be more suitable for my career goals. Please consider my request."
-      },
-      {
-        id: "2",
-        studentName: "Tran Thi B",
-        studentEmail: "tranthib@email.com",
-        requestType: "schedule_change",
-        description: "Need to reschedule class from Monday to Wednesday",
-        status: "approved",
-        submittedDate: "2024-01-14",
-        priority: "high",
-        note: "I have a work meeting that conflicts with my current class schedule. I would appreciate if you could help me reschedule to Wednesday evening."
-      },
-      {
-        id: "3",
-        studentName: "Le Van C",
-        studentEmail: "levanc@email.com",
-        requestType: "refund",
-        description: "Request refund due to personal reasons",
-        status: "rejected",
-        submittedDate: "2024-01-13",
-        priority: "low",
-        note: "I need to withdraw from the course due to family emergency. I understand the refund policy but hope you can make an exception."
-      },
-      {
-        id: "4",
-        studentName: "Pham Thi D",
-        studentEmail: "phamthid@email.com",
-        requestType: "other",
-        description: "Request for additional study materials",
-        status: "pending",
-        submittedDate: "2024-01-12",
-        priority: "low",
-        note: "I would like to request additional practice materials for the upcoming exam. The current materials are helpful but I need more practice questions."
-      },
-      {
-        id: "5",
-        studentName: "Hoang Van E",
-        studentEmail: "hoangvane@email.com",
-        requestType: "course_change",
-        description: "Want to upgrade to higher level course",
-        status: "approved",
-        submittedDate: "2024-01-11",
-        priority: "medium"
-      },
-      {
-        id: "6",
-        studentName: "Nguyen Thi F",
-        studentEmail: "nguyenthif@email.com",
-        requestType: "schedule_change",
-        description: "Need to change class time due to work schedule",
-        status: "pending",
-        submittedDate: "2024-01-10",
-        priority: "high"
-      },
-      {
-        id: "7",
-        studentName: "Tran Van G",
-        studentEmail: "tranvang@email.com",
-        requestType: "refund",
-        description: "Request partial refund for unused sessions",
-        status: "pending",
-        submittedDate: "2024-01-09",
-        priority: "medium"
-      },
-      {
-        id: "8",
-        studentName: "Le Thi H",
-        studentEmail: "lethih@email.com",
-        requestType: "other",
-        description: "Request for certificate of completion",
-        status: "approved",
-        submittedDate: "2024-01-08",
-        priority: "low"
-      },
-      {
-        id: "9",
-        studentName: "Vo Van I",
-        studentEmail: "vovani@email.com",
-        requestType: "course_change",
-        description: "Request to switch from TOEIC to IELTS",
-        status: "pending",
-        submittedDate: "2024-01-20",
-        priority: "medium",
-        note: "I want to switch to IELTS as it's more recognized internationally for my study abroad plans."
-      },
-      {
-        id: "10",
-        studentName: "Dang Thi J",
-        studentEmail: "dangthij@email.com",
-        requestType: "schedule_change",
-        description: "Need to change class from evening to morning",
-        status: "pending",
-        submittedDate: "2024-01-18",
-        priority: "high",
-        note: "My work schedule has changed and I can only attend morning classes now."
-      },
-      {
-        id: "11",
-        studentName: "Bui Van K",
-        studentEmail: "buivank@email.com",
-        requestType: "refund",
-        description: "Request full refund due to relocation",
-        status: "approved",
-        submittedDate: "2024-01-16",
-        priority: "low",
-        note: "I have to move to another city for work and cannot continue the course."
-      },
-      {
-        id: "12",
-        studentName: "Ngo Thi L",
-        studentEmail: "ngothil@email.com",
-        requestType: "other",
-        description: "Request for study materials in digital format",
-        status: "rejected",
-        submittedDate: "2024-01-05",
-        priority: "low",
-        note: "I prefer digital materials over physical books for easier access."
+    const fetchStatusLookups = async () => {
+      try {
+        const response = await getLookupsByTypeCode("AcademicRequestStatus");
+        const lookups = response.data.map((lookup: any) => ({
+          id: lookup.lookUpId || lookup.LookUpId || lookup.id,
+          name: lookup.name,
+          code: lookup.code?.toLowerCase() || "",
+        }));
+        setStatusLookups(lookups);
+        
+        // Create a map for quick lookup
+        const map = new Map<string, string>();
+        lookups.forEach((lookup: { id: string; code: string }) => {
+          map.set(lookup.code, lookup.id);
+        });
+        setStatusMap(map);
+      } catch (error) {
+        console.error("Error fetching status lookups:", error);
       }
-    ];
+    };
 
-    setRequests(mockRequests);
-    setLoading(false);
+    fetchStatusLookups();
   }, []);
+
+  // Fetch academic requests
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        setLoading(true);
+        let response;
+        
+        if (filterStatus !== "all" && statusMap.has(filterStatus)) {
+          const statusId = statusMap.get(filterStatus)!;
+          response = await getAcademicRequestsByStatus(statusId);
+        } else {
+          response = await getAllAcademicRequests();
+        }
+        
+        const mappedRequests = response.data.map(mapToRequest);
+        setRequests(mappedRequests);
+      } catch (error) {
+        console.error("Error fetching academic requests:", error);
+        setRequests([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (statusMap.size > 0 || filterStatus === "all") {
+      fetchRequests();
+    }
+  }, [filterStatus, statusMap, mapToRequest]);
 
   // Statistics calculations
   const stats = {
@@ -196,7 +190,7 @@ export default function StaffRequestPage() {
   };
 
   // Sorting logic
-  const sortRequests = (requests: Request[]) => {
+  const sortRequests = (requests: AcademicRequest[]) => {
     return [...requests].sort((a, b) => {
       let aValue, bValue;
       
@@ -245,17 +239,17 @@ export default function StaffRequestPage() {
     );
   };
 
-  const handleBulkApprove = () => {
-    selectedRequests.forEach(id => {
-      handleStatusChange(id, 'approved');
-    });
+  const handleBulkApprove = async () => {
+    for (const id of selectedRequests) {
+      await handleStatusChange(id, 'approved', 'Bulk approved');
+    }
     setSelectedRequests([]);
   };
 
-  const handleBulkReject = () => {
-    selectedRequests.forEach(id => {
-      handleStatusChange(id, 'rejected');
-    });
+  const handleBulkReject = async () => {
+    for (const id of selectedRequests) {
+      await handleStatusChange(id, 'rejected', 'Bulk rejected');
+    }
     setSelectedRequests([]);
   };
 
@@ -268,7 +262,7 @@ export default function StaffRequestPage() {
       'Status': request.status,
       'Priority': request.priority,
       'Submitted Date': request.submittedDate,
-      'Note': request.note || ''
+      'Reason': request.reason || ''
     }));
     
     const csv = [
@@ -331,37 +325,106 @@ export default function StaffRequestPage() {
     setSelectedRequests([]);
   };
 
-  const handleStatusChange = (requestId: string, newStatus: "approved" | "rejected") => {
-    setRequests(requests.map(request => 
-      request.id === requestId 
-        ? { ...request, status: newStatus }
-        : request
-    ));
+  const handleStatusChange = async (requestId: string, newStatus: "approved" | "rejected", reply: string, selectedRoomID?: string) => {
+    try {
+      const userInfo = getUserInfo();
+      if (!userInfo || !userInfo.id) {
+        console.error("User info not found");
+        return;
+      }
+
+      // Find the status ID based on the status name
+      const statusName = newStatus === "approved" ? "approved" : "rejected";
+      const statusLookup = statusLookups.find(s => {
+        const code = s.code?.toLowerCase() || "";
+        const name = s.name?.toLowerCase() || "";
+        
+        // Match exact status name first
+        if (code.includes(statusName) || name.includes(statusName)) {
+          return true;
+        }
+        
+        if (newStatus === "approved") {
+          return code.includes("approve") || name.includes("approve");
+        }
+        
+        if (newStatus === "rejected") {
+          return (code.includes("rejected") || name.includes("rejected"));
+        }
+        
+        return false;
+      });
+
+      if (!statusLookup || !statusLookup.id) {
+        console.error("Status lookup not found for:", newStatus);
+        console.error("Available statuses:", statusLookups);
+        console.error("Selected status lookup:", statusLookup);
+        alert("Status lookup not found. Please refresh the page.");
+        return;
+      }
+
+      // Validate that statusID is not empty
+      if (!statusLookup.id || statusLookup.id === "00000000-0000-0000-0000-000000000000") {
+        console.error("Invalid status ID:", statusLookup.id);
+        alert("Invalid status ID. Please refresh the page.");
+        return;
+      }
+
+      await processAcademicRequest({
+        requestID: requestId,
+        statusID: statusLookup.id,
+        description: reply,
+        staffID: userInfo.id,
+        selectedRoomID: selectedRoomID,
+      });
+
+      // Show success toast
+      const actionText = newStatus === "approved" ? "approved" : "rejected";
+      showToast(`Request has been ${actionText} successfully`, 'success');
+
+      // Update local state
+      setRequests(requests.map(request => 
+        request.id === requestId 
+          ? { ...request, status: newStatus }
+          : request
+      ));
+
+      // Refresh the list
+      const response = await getAllAcademicRequests();
+      const mappedRequests = response.data.map(mapToRequest);
+      setRequests(mappedRequests);
+    } catch (error: any) {
+      console.error("Error processing request:", error);
+      const errorMessage = error.response?.data?.error || "Failed to process request. Please try again.";
+      showToast(errorMessage, 'error');
+    }
   };
 
-  const handleViewDetails = (request: Request) => {
+  const handleViewDetails = (request: AcademicRequest) => {
     setSelectedRequest(request);
     setShowDetailDialog(true);
   };
 
-  const handleApprove = (reply: string) => {
+  const handleApprove = async (reply: string, selectedRoomID?: string) => {
     if (selectedRequest) {
-      handleStatusChange(selectedRequest.id, "approved");
-      console.log("Approved with reply:", reply);
+      await handleStatusChange(selectedRequest.id, "approved", reply, selectedRoomID);
+      setShowDetailDialog(false);
+      setSelectedRequest(null);
     }
   };
 
-  const handleReject = (reply: string) => {
+  const handleReject = async (reply: string) => {
     if (selectedRequest) {
-      handleStatusChange(selectedRequest.id, "rejected");
-      console.log("Rejected with reply:", reply);
+      await handleStatusChange(selectedRequest.id, "rejected", reply);
+      setShowDetailDialog(false);
+      setSelectedRequest(null);
     }
   };
 
-  const handleConfirmAction = (reply: string) => {
+  const handleConfirmAction = async (reply: string) => {
     if (confirmRequest) {
       const status = confirmAction === "approve" ? "approved" : "rejected";
-      handleStatusChange(confirmRequest.id, status);
+      await handleStatusChange(confirmRequest.id, status, reply);
       console.log(`${status} with reply:`, reply);
     }
     setShowConfirmDialog(false);
@@ -403,16 +466,6 @@ export default function StaffRequestPage() {
       <PageHeader
         title="Student Requests"
         description="Manage and respond to student requests with comprehensive tools"
-        icon={<MessageSquare className="w-5 h-5 text-white" />}
-        controls={[
-          {
-            type: 'button',
-            label: 'Export',
-            variant: 'secondary',
-            icon: <Download className="w-4 h-4" />,
-            onClick: handleExport
-          }
-        ]}
       />
 
       <div className="space-y-6">
@@ -508,7 +561,32 @@ export default function StaffRequestPage() {
         </div>
 
       {/* Requests Table */}
-      <Card title="Student Requests Management">
+      <Card>
+        <div className="p-6">
+          {/* Card Header with Action Button */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center shadow-md bg-gradient-to-br from-blue-500 to-blue-600">
+                <Calendar className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-primary-800">
+                  Student Requests Management
+                </h3>
+                <p className="text-sm text-accent-600">
+                  View and manage all student academic requests
+                </p>
+              </div>
+            </div>
+            <Button 
+              onClick={handleExport}
+              variant="secondary"
+              iconLeft={<Download className="w-4 h-4" />}
+            >
+              Export
+            </Button>
+          </div>
+
         {/* Bulk Actions and Sorting */}
         {selectedRequests.length > 0 && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
@@ -542,11 +620,21 @@ export default function StaffRequestPage() {
 
         {/* Search and Filter Section */}
         <div className="space-y-4 mb-6">
+          {/* Search Bar and Controls */}
+          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Search by student name, email, or description..."
+                value={searchTerm}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            
           {/* Sorting Controls */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 pb-4 border-b border-gray-200">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <span className="text-sm font-medium text-gray-700">Sort by:</span>
-              <div className="flex gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Sort by:</span>
                 <Select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as 'date' | 'priority' | 'status' | 'name')}
@@ -556,7 +644,7 @@ export default function StaffRequestPage() {
                     { label: "Status", value: "status" },
                     { label: "Student Name", value: "name" }
                   ]}
-                  className="w-full sm:w-40"
+                className="w-40"
                 />
                 <Button
                   variant="secondary"
@@ -565,50 +653,32 @@ export default function StaffRequestPage() {
                   iconLeft={sortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
                   className="flex items-center gap-1 whitespace-nowrap"
                 >
-                  <span className="hidden sm:inline">{sortOrder === 'asc' ? 'Ascending' : 'Descending'}</span>
+                {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
                 </Button>
-              </div>
-            </div>
           </div>
 
-          {/* Search Bar */}
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-end">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="Search by student name, email, or description..."
-                value={searchTerm}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <div className="flex gap-2">
+            {/* Filter Buttons */}
+            <div className="flex gap-2 flex-shrink-0">
               <Button
                 variant="secondary"
                 onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 text-primary-500 flex-1 sm:flex-none"
+                className="flex items-center gap-2"
+                iconLeft={<Filter className="w-4 h-4" />}
               >
-                <span className="flex items-center gap-2">
-                  <Filter className="w-4 h-4" />
-                  <span className="sm:hidden">Filters</span>
-                  <span className="hidden sm:inline">{showFilters ? 'Hide Filters' : 'Show Filters'}</span>
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
                   {(searchTerm || filterStatus !== "all" || filterType !== "all" || filterPriority !== "all" || dateFrom || dateTo) && (
                     <span className="bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                       {[searchTerm, filterStatus, filterType, filterPriority, dateFrom, dateTo].filter(f => f !== "" && f !== "all").length}
                     </span>
                   )}
-                </span>
               </Button>
               <Button
                 variant="secondary"
                 onClick={clearFilters}
-                className="whitespace-nowrap text-red-500 flex-1 sm:flex-none"
+                className="whitespace-nowrap text-red-500 hover:text-red-600 hover:bg-red-100"
+                iconLeft={<X className="w-4 h-4" />}
               >
-                <span className="flex items-center gap-2">
-                  <X className="w-4 h-4" />
-                  <span className="sm:hidden">Clear</span>
-                  <span className="hidden sm:inline">Clear Filters</span>
-                </span>
+                Clear Filters
               </Button>
             </div>
           </div>
@@ -622,9 +692,10 @@ export default function StaffRequestPage() {
                 onChange={(e) => setFilterStatus(e.target.value)}
                 options={[
                   { label: "All Status", value: "all" },
-                  { label: "Pending", value: "pending" },
-                  { label: "Approved", value: "approved" },
-                  { label: "Rejected", value: "rejected" }
+                  ...statusLookups.map(lookup => ({
+                    label: lookup.name,
+                    value: lookup.code
+                  }))
                 ]}
               />
               <Select
@@ -748,6 +819,7 @@ export default function StaffRequestPage() {
             />
           )}
         </div>
+        </div>
       </Card>
 
       {/* Dialogs */}
@@ -767,6 +839,38 @@ export default function StaffRequestPage() {
         studentName={confirmRequest?.studentName || ""}
         requestType={confirmRequest ? getTypeLabel(confirmRequest.requestType) : ""}
       />
+
+      {/* Toast Notifications */}
+      {toasts.length > 0 &&
+        createPortal(
+          <div className="fixed top-4 right-4 z-[10000] space-y-2">
+            {toasts.map((toast) => (
+              <div
+                key={toast.id}
+                className={`flex items-start gap-3 p-4 rounded-lg border shadow-lg max-w-md w-full animate-slide-in-right ${
+                  toast.type === "success"
+                    ? "bg-green-50 border-green-200 text-green-800"
+                    : toast.type === "error"
+                    ? "bg-red-50 border-red-200 text-red-800"
+                    : toast.type === "warning"
+                    ? "bg-yellow-50 border-yellow-200 text-yellow-800"
+                    : "bg-blue-50 border-blue-200 text-blue-800"
+                }`}
+              >
+                <div className="flex-1 text-sm font-medium">
+                  {toast.message}
+                </div>
+                <button
+                  onClick={() => hideToast(toast.id)}
+                  className="flex-shrink-0 ml-2 hover:opacity-70 transition-opacity"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>,
+          document.body
+        )}
       </div>
     </div>
   );

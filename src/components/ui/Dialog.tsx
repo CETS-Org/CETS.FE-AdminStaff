@@ -30,7 +30,7 @@ export function DialogOverlay(props: ComponentPropsWithoutRef<typeof RadixDialog
   return (
     <RadixDialog.Overlay
       className={[
-        "fixed inset-0 bg-black/40 backdrop-blur-[1px] z-40",
+        "fixed inset-0 bg-black/40 backdrop-blur-[1px] z-50",
         className,
       ].join(" ")}
       {...rest}
@@ -52,7 +52,7 @@ export function DialogContent({ size = "md", className = "", children, ...props 
           "w-[85vw] rounded-lg bg-neutral-0 shadow-xl px-8",
           getSizeClasses(size),
           "max-h-[85vh] overflow-hidden",
-          "z-50",
+          "z-[60]",
           className,
         ].join(" ")}
         {...props}
