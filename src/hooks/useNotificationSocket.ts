@@ -8,7 +8,7 @@ export type NotificationHandler = (notification: UserNotification) => void;
 export function useNotificationSocket(onNotification: NotificationHandler) {
   useEffect(() => {
     const userInfo = getUserInfo();
-    const userId = userInfo?.id ?? userInfo?.accountId;
+    const userId = userInfo?.id ?? userInfo?.id;
     if (!userId) return;
 
     const url = import.meta.env.VITE_NOTIFICATION_SOCKET_URL || 'http://localhost:5001';
