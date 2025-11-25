@@ -14,9 +14,11 @@ import StaffScheduleGrid from "./StaffScheduleGrid";
 
 type ScheduleDisplayMode = 'full' | 'classOnly' | 'roomOnly';
 
-type TimeSlot = {
+// --- UPDATE: Thêm trường name và export để Grid dùng lại ---
+export type TimeSlot = {
   start: string;
   end: string;
+  name?: string; 
 };
 
 type Props = {
@@ -24,7 +26,8 @@ type Props = {
   startHour?: number;
   slots?: number;
   slotMinutes?: number;
-  timeSlots?: TimeSlot[];
+  timeSlots?: TimeSlot[]; // Nhận mảng slots tùy chỉnh
+  onSessionClick?: (session: StaffSession) => void; 
   onEdit?: (session: StaffSession) => void;
   onDelete?: (session: StaffSession) => void;
   displayMode?: ScheduleDisplayMode;
@@ -36,24 +39,18 @@ export default function StaffWeekSchedule({
   slots = 16,
   slotMinutes = 60,
   timeSlots,
+  onSessionClick,
   onEdit,
   onDelete,
   displayMode = 'full',
 }: Props) {
   const [weekStart, setWeekStart] = useState<Date>(startOfWeek(new Date()));
   const weekEnd = useMemo(() => addDays(weekStart, 6), [weekStart]);
-
-  // Ngày được chọn từ Calendar (để highlight cột & slot)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-
-  // Popup chi tiết
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsData, setDetailsData] = useState<SessionDetailsData | null>(null);
-
-  // Dialog chứa Calendar
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  // Hôm nay & index ngày hôm nay trong tuần hiện tại
   const today = new Date();
   const todayIdx = (() => {
     const s = startOfWeek(weekStart);
@@ -61,7 +58,6 @@ export default function StaffWeekSchedule({
     return -1;
   })();
 
-  // Index ngày đang chọn trong tuần hiện tại (nếu có)
   const selectedIdx = (() => {
     if (!selectedDate) return -1;
     const s = startOfWeek(weekStart);
@@ -69,7 +65,6 @@ export default function StaffWeekSchedule({
     return -1;
   })();
 
-  // Lọc sessions trong tuần
   const weekSessions = useMemo(() => {
     const s = startOfWeek(weekStart);
     const e = addDays(s, 7);
@@ -79,7 +74,7 @@ export default function StaffWeekSchedule({
     });
   }, [sessions, weekStart]);
 
-  function openDetails(s: StaffSession, startLabel: string, endLabel: string) {
+  function openDetailsInternal(s: StaffSession, startLabel: string, endLabel: string) {
     const dt = toDateAny(s.start);
     const dateStr = dt.toLocaleDateString(undefined, {
       weekday: "long",
@@ -100,6 +95,14 @@ export default function StaffWeekSchedule({
     setDetailsOpen(true);
   }
 
+  function handleSessionClickWrapper(s: StaffSession, startLabel: string, endLabel: string) {
+    if (onSessionClick) {
+        onSessionClick(s);
+    } else {
+        openDetailsInternal(s, startLabel, endLabel);
+    }
+  }
+
   function handleDateSelect(date: Date) {
     setSelectedDate(date);
     setWeekStart(startOfWeek(date));
@@ -107,15 +110,11 @@ export default function StaffWeekSchedule({
   }
 
   function handleEdit(session: StaffSession) {
-    if (onEdit) {
-      onEdit(session);
-    }
+    if (onEdit) onEdit(session);
   }
 
   function handleDelete(session: StaffSession) {
-    if (onDelete) {
-      onDelete(session);
-    }
+    if (onDelete) onDelete(session);
   }
 
   return (
@@ -137,7 +136,7 @@ export default function StaffWeekSchedule({
         timeSlots={timeSlots}
         todayIdx={todayIdx}
         selectedIdx={selectedIdx}
-        onSessionClick={openDetails}
+        onSessionClick={handleSessionClickWrapper}
         onEdit={handleEdit}
         onDelete={handleDelete}
         displayMode={displayMode}

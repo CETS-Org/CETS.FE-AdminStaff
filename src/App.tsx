@@ -5,7 +5,6 @@ import Requests from './pages/Requests'
 import Reports from './pages/Reports'
 import Dev_Dashboard from './pages/Dev_Dashboard'
 import StaffHome from './pages/staff/staffHome'
-import StaffSchedulePage from './pages/staff/staff_schedule'
 import AdminHome from './pages/admin/AdminHome'
 
 // Common pages imports

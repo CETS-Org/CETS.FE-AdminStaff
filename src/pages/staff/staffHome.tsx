@@ -6,7 +6,7 @@ import { createAcademicStaffNavbarConfig, createAccountantStaffNavbarConfig } fr
 import { academicStaffSidebarConfig, accountantStaffSidebarConfig } from "@/shared/sidebarConfigs";
 import StaffSidebar from "@/shared/StaffSidebar";
 
-import StaffSchedulePage from "./staff_schedule";
+import StaffSchedulePage from "./staff_schedule/components/StaffSchedulePage";
 import StaffStudentsPage from "./staff_students";
 import StaffCoursesPage from "./staff_courses/list/CoursesListPage";
 import TeacherManagement from "./staff_teachers";
