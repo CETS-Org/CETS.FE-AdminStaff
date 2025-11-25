@@ -3,7 +3,7 @@ import {
   BarChart3, BookOpenText, Users, GraduationCap, CalendarDays,
   UserPlus, Mail, MessageSquare, FileText, UserCheck, Percent,
   Receipt, CreditCard, TrendingUp, PieChart, School, Clock, DoorOpen, ClipboardList,
-  Package as PackageIcon
+  Package as PackageIcon, HelpCircle
 } from "lucide-react";
 import type { SidebarConfig } from "./GenericSidebar";
 
@@ -11,6 +11,7 @@ import type { SidebarConfig } from "./GenericSidebar";
 export const academicStaffSidebarConfig: SidebarConfig = {
   title: "Academic Staff",
   showUpcomingDeadlines: true,
+  submenuPathPrefix: "/staff/placement-test",
   items: [
     { id: "analytics", label: "Analytics", icon: BarChart3, path: "/staff/analytics" },
     { id: "courses", label: "Courses", icon: BookOpenText, path: "/staff/courses" },
@@ -20,7 +21,16 @@ export const academicStaffSidebarConfig: SidebarConfig = {
     { id: "timetable", label: "Timetable", icon: Clock, path: "/staff/timetable" },
     { id: "rooms", label: "Rooms", icon: DoorOpen, path: "/staff/rooms" },
     { id: "assign-teacher", label: "Assign Teacher", icon: UserPlus, path: "/staff/assign-teacher" },
-    { id: "placement-test", label: "Placement Test", icon: ClipboardList, path: "/staff/placement-test" },
+    {
+      id: "placement-test",
+      label: "Placement Test",
+      icon: ClipboardList,
+      path: "/staff/placement-test",
+      subItems: [
+        { id: "placement-test-management", label: "Test Management", icon: ClipboardList, path: "/staff/placement-test" },
+        { id: "placement-questions", label: "Questions", icon: HelpCircle, path: "/staff/placement-test/questions" },
+      ],
+    },
     { id: "complaints", label: "Complaints", icon: MessageSquare, path: "/staff/complaints" },
     { id: "requests", label: "Requests", icon: Mail, path: "/staff/requests" },
   ],
