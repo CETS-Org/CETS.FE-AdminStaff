@@ -3,13 +3,9 @@ import React from "react";
 import { addDays, fmtTime, toDateAny } from "@/components/schedule";
 import type { StaffSession } from "@/components/schedule";
 import StaffSessionCard from "./StaffSessionCard";
+import type { TimeSlot } from "./StaffWeekSchedule"; // Import Type từ file trên
 
 type ScheduleDisplayMode = 'full' | 'classOnly' | 'roomOnly';
-
-type TimeSlot = {
-  start: string;
-  end: string;
-};
 
 type Props = {
   weekStart: Date;
@@ -17,7 +13,7 @@ type Props = {
   startHour: number;
   slots: number;
   slotMinutes: number;
-  timeSlots?: TimeSlot[];
+  timeSlots?: TimeSlot[]; // Nhận danh sách slot
   todayIdx: number;
   selectedIdx: number;
   onSessionClick: (session: StaffSession, startLabel: string, endLabel: string) => void;
@@ -40,7 +36,7 @@ export default function StaffScheduleGrid({
   onDelete,
   displayMode = 'full',
 }: Props) {
-  // Tạo các mốc thời gian theo slot hoặc custom time slots
+  
   const slotTimes = timeSlots 
     ? timeSlots.map(slot => {
         const [hours, minutes] = slot.start.split(':').map(Number);
@@ -51,23 +47,24 @@ export default function StaffScheduleGrid({
         return [Math.floor(total / 60), total % 60] as const;
       });
 
-  // Map session -> ô (dayIdx-slotIdx)
   function getPosition(dt: Date) {
     const dayIdx = (dt.getDay() + 6) % 7; // Mon=0
     const minutes = dt.getHours() * 60 + dt.getMinutes();
     
     if (timeSlots) {
-      // Find which custom time slot this session belongs to
+      // Logic tìm slot: Session nằm trong khoảng start-end của slot nào
       const slotIdx = timeSlots.findIndex(slot => {
         const [startHours, startMinutes] = slot.start.split(':').map(Number);
         const [endHours, endMinutes] = slot.end.split(':').map(Number);
+        
         const slotStart = startHours * 60 + startMinutes;
         const slotEnd = endHours * 60 + endMinutes;
+        
+        // Chấp nhận sai số nhỏ hoặc trùng khớp
         return minutes >= slotStart && minutes < slotEnd;
       });
       return { dayIdx, slotIdx };
     } else {
-      // Original logic for regular slots
       const startMin = startHour * 60;
       const diff = minutes - startMin;
       const slotIdx = Math.floor(diff / slotMinutes);
@@ -79,20 +76,26 @@ export default function StaffScheduleGrid({
   for (const s of sessions) {
     const dt = toDateAny(s.start);
     if (Number.isNaN(+dt)) continue;
+    
     const { dayIdx, slotIdx } = getPosition(dt);
     const maxSlots = timeSlots ? timeSlots.length : slots;
-    if (slotIdx < 0 || slotIdx >= maxSlots) continue;
-    const key = `${dayIdx}-${slotIdx}`;
-    const list = cellMap.get(key) || [];
-    list.push(s);
-    cellMap.set(key, list);
+    
+    // Nếu tìm thấy slot hợp lệ
+    if (slotIdx >= 0 && slotIdx < maxSlots) {
+        const key = `${dayIdx}-${slotIdx}`;
+        const list = cellMap.get(key) || [];
+        list.push(s);
+        cellMap.set(key, list);
+    }
   }
 
   return (
     <div className="border-t border-accent-200">
       {/* ===== Grid Header Row ===== */}
-      <div className="grid grid-cols-[100px_repeat(7,minmax(0,1fr))] text-sm">
-        <div className="p-2 border-b border-accent-400 font-bold text-primary-800 bg-accent-200 text-center">Time</div>
+      <div className="grid grid-cols-[120px_repeat(7,minmax(0,1fr))] text-sm">
+        <div className="p-2 border-b border-accent-400 font-bold text-primary-800 bg-accent-200 text-center flex items-center justify-center">
+            Time / Slot
+        </div>
         {Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).map((d, i) => (
           <div
             key={d.toISOString()}
@@ -119,64 +122,70 @@ export default function StaffScheduleGrid({
       </div>
 
       {/* ===== Grid Body ===== */}
-      <div className="grid grid-cols-[100px_repeat(7,minmax(0,1fr))]">
+      <div className="grid grid-cols-[120px_repeat(7,minmax(0,1fr))]">
         {slotTimes.map(([h, m], row) => (
           <React.Fragment key={row}>
-            <div className="border-t border-accent-400 p-1.5 text-xs font-semibold text-primary-700 bg-accent-200 text-center">
+            
+            {/* --- CỘT HIỂN THỊ GIỜ / SLOT --- */}
+            <div className="border-t border-r border-accent-400 p-2 text-xs bg-gray-50 flex flex-col justify-center items-center text-center h-24">
               {timeSlots && timeSlots[row] ? (
-                <div>
-                  <div>{timeSlots[row].start}</div>
-                    |
-                  <div >{timeSlots[row].end}</div>
-                </div>
+                <>
+                  {/* Tên Slot (VD: Slot 1) */}
+                  {timeSlots[row].name && (
+                      <span className="font-bold text-blue-700 mb-1 text-sm block">
+                          {timeSlots[row].name}
+                      </span>
+                  )}
+                  {/* Giờ (VD: 07:00 - 09:00) */}
+                  <div className="text-gray-500 font-medium bg-white px-2 py-1 rounded border border-gray-200 shadow-sm inline-block whitespace-nowrap">
+                    {timeSlots[row].start} - {timeSlots[row].end}
+                  </div>
+                </>
               ) : (
                 fmtTime(h, m)
               )}
             </div>
 
+            {/* --- CÁC CỘT NGÀY TRONG TUẦN --- */}
             {Array.from({ length: 7 }, (_, dayIdx) => {
               const key = `${dayIdx}-${row}`;
               const items = cellMap.get(key) || [];
-
-              // Background for today's column
               const colBase = dayIdx === todayIdx ? "bg-accent-25" : "bg-white";
 
-              // Highlight slot if has session
+              // Highlight slot logic
               let slotHighlight = "";
               if (items.length > 0) {
-                if (dayIdx === selectedIdx) slotHighlight = "bg-accent-100"; // selected day
-                else if (dayIdx === todayIdx) slotHighlight = "bg-accent-50"; // today
+                if (dayIdx === selectedIdx) slotHighlight = "bg-accent-100"; 
+                else if (dayIdx === todayIdx) slotHighlight = "bg-accent-50"; 
               }
 
               return (
                 <div
                   key={key}
-                  className={`border-t border-l border-accent-200 p-1.5 h-[70px] ${colBase} ${slotHighlight} hover:bg-accent-25 transition-colors`}
+                  // h-24 (height: 6rem ~ 96px) để khớp với cột giờ bên trái
+                  className={`border-t border-l border-accent-200 p-1 h-24 ${colBase} ${slotHighlight} hover:bg-accent-25 transition-colors`}
                 >
                   <div
                     className={
                       items.length <= 1
                         ? "h-full w-full flex items-center justify-center"
-                        : "h-full space-y-1 flex flex-col"
+                        : "h-full space-y-1 flex flex-col overflow-y-auto"
                     }
                   >
                     {items.map((s) => {
-                      const startLabel = fmtTime(h, m);
-                      let endLabel: string;
+                      let startLabel = fmtTime(h, m);
+                      let endLabel = "";
                       
                       if (timeSlots && timeSlots[row]) {
-                        // Use custom time slot end time
+                        startLabel = timeSlots[row].start;
                         endLabel = timeSlots[row].end;
                       } else {
-                        // Original logic
                         const eMin = m + (s.durationMin ?? slotMinutes);
-                        endLabel = fmtTime(
-                          h + Math.floor(eMin / 60),
-                          eMin % 60
-                        );
+                        endLabel = fmtTime(h + Math.floor(eMin / 60), eMin % 60);
                       }
+
                       return (
-                        <div key={s.id} className="flex-1 min-h-0">
+                        <div key={s.id} className="w-full min-h-0 flex-1">
                           <StaffSessionCard
                             session={s}
                             startLabel={startLabel}

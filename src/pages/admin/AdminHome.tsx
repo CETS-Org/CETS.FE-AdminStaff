@@ -8,7 +8,7 @@ import ComplaintDetailPage from "../../shared/ComplaintDetailPage";
 import ComplaintResponsePage from "../../shared/ComplaintResponsePage";
 import AdminStaffPage from "./admin_staff";
 import StaffDetailPage from "./admin_staff/StaffDetailPage";
-import StaffSchedulePage from "../staff/staff_schedule";
+import StaffSchedulePage from "../staff/staff_schedule/components/StaffSchedulePage";
 import StaffStudentsPage from "../staff/staff_students";
 import EditStudentPage from "../staff/staff_students/EditStudentPage";
 import StudentDetailPage from "../staff/staff_students/StudentDetailPage";
