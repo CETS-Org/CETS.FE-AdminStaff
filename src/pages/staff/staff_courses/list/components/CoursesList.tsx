@@ -147,14 +147,23 @@ export default function CoursesList() {
       )
     },
     {
+      header: "Code",
+      className: "w-32",
+      accessor: (row) => (
+        <div className="text-sm text-gray-700">
+          {row.courseCode || 'N/A'}
+        </div>
+      )
+    },
+    {
       header: "Students",
       className: "w-32",
       accessor: (row) => (
-        <div className="space-y-1">
-          <div className="flex items-center justify-center text-sm">
-            <span className="font-medium">{row.studentsCount || 0}</span>
+        <div className="flex flex-col items-center justify-center space-y-1">
+          <div className="text-sm font-medium">
+            {row.studentsCount || 0}
           </div>
-          <div className="text-xs text-gray-500 text-center">
+          <div className="text-xs text-gray-500">
             Enrolled
           </div>
         </div>
@@ -304,9 +313,16 @@ export default function CoursesList() {
       <div className="p-5">
         {/* Course Title and Rating */}
         <div className="flex items-start justify-between mb-2">
-          <h3 className="font-bold text-lg text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-1">
-            {course.courseName}
-          </h3>
+          <div className="flex-1">
+            <h3 className="font-bold text-lg text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-1">
+              {course.courseName}
+            </h3>
+            {course.courseCode && (
+              <div className="text-xs font-mono text-gray-500 mt-0.5">
+                {course.courseCode}
+              </div>
+            )}
+          </div>
           <div className="flex items-center gap-1 text-sm text-gray-600 ml-2">
             <Star className="w-3 h-3 fill-current text-yellow-400" />
             {course.rating?.toFixed(1) || '0.0'}
@@ -394,7 +410,7 @@ export default function CoursesList() {
         description="Manage and organize your educational courses"
         data={courses}
         columns={columns}
-        searchFields={['courseName', 'description', 'categoryName']}
+        searchFields={['courseName', 'description', 'categoryName', 'courseCode']}
         filterConfigs={filterConfigs}
         bulkActions={bulkActions}
         onAdd={() => navigate("/staff/courses/add")}
