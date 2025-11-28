@@ -2,6 +2,7 @@ import { api as axiosInstance } from './api';
 import { loginAcademicStaff, loginAccountantStaff, loginAdmin } from './account.api';
 import { getCourses, getCoursesList, getCourseDetail, searchCourses, createCourse, updateCourse, deleteCourse, activateCourse, deactivateCourse, getCourseCategories, getCourseSkills, getCourseBenefits, getCourseRequirements } from './course.api';
 import { getCourseDetailById, getStudentsByCourse, getStudentEnrollments, getCourseTeachers, createCourseTeacherAssignment, deleteCourseTeacherAssignment, getCourseSyllabi, getCourseSkillsByCourse, getCourseBenefitsByCourse, getCourseRequirementsByCourse, getClassesByCourse, getCourseSchedules, createCourseSchedule, updateCourseSchedule, deleteCourseSchedule, createCourseSkill, deleteCourseSkill, createCourseBenefit, deleteCourseBenefit, createCourseRequirement, deleteCourseRequirement } from './course-relations.api';
+import { getClassDetail } from './class.api';
 import { getLookupsByTypeCode } from './core.api';
 import { createSyllabus, createSyllabusItem, getSyllabiByCourse, getSyllabusItems, updateSyllabus, updateSyllabusItem, deleteSyllabus, deleteSyllabusItem } from './syllabus.api';
 import { createLearningMaterial } from './learning-material.api';
@@ -83,6 +84,9 @@ export const api = {
   createCourseRequirement,
   deleteCourseRequirement,
   getClassesByCourse,
+
+  // Classes
+  getClassDetail,
 
   // Core
   getLookupsByTypeCode,
@@ -183,6 +187,7 @@ export {
   getCourseBenefitsByCourse,
   getCourseRequirementsByCourse,
   getClassesByCourse,
+  getClassDetail,
   getLookupsByTypeCode,
   getCourseCategories,
   createSyllabus,
