@@ -39,7 +39,7 @@ type AnalysisTab = 'dropout' | 'enrollment';
 
 export default function AdminAnalytics() {
   const [periodView, setPeriodView] = useState<PeriodView>('monthly');
-  const [chartType, setChartType] = useState<ChartType>('bar');
+  const [chartType, setChartType] = useState<ChartType>('line');
   const [analysisTab, setAnalysisTab] = useState<AnalysisTab>('dropout');
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
@@ -90,6 +90,7 @@ export default function AdminAnalytics() {
     monthlyTrend: [],
     quarterlyTrend: [],
     topGrowingCourses: [],
+    enrollmentByClass: [],
     insights: [],
   });
   
@@ -246,11 +247,22 @@ export default function AdminAnalytics() {
         <Breadcrumbs items={breadcrumbItems} />
         
         {/* Page Header */}
-        <PageHeader
-          title="Analytics Dashboard"
-          description="Comprehensive analytics with AI-powered insights"
-          icon={<BarChart3 className="w-5 h-5 text-white" />}
-        />
+        <div className="flex items-center justify-between">
+          <PageHeader
+            title="Analytics Dashboard"
+            description="Comprehensive analytics with AI-powered insights"
+            icon={<BarChart3 className="w-5 h-5 text-white" />}
+          />
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => loadDashboardData()}
+            disabled={loading}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh Data
+          </Button>
+        </div>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -307,13 +319,13 @@ export default function AdminAnalytics() {
           <Card className="p-6 bg-white/90 backdrop-blur-sm">
             <div className="flex items-center justify-between">
                   <div>
-                <p className="text-sm font-medium text-gray-600">Active Students</p>
+                <p className="text-sm font-medium text-gray-600">Total Enrollment</p>
                 <p className="text-2xl font-bold text-gray-900 mt-2">
-                  {analytics?.growthRetention.totalActiveStudents || 1580}
+                  {enrollmentData.totalEnrollments}
                 </p>
                 <p className="text-sm text-blue-600 mt-2 flex items-center gap-1">
                   <TrendingUp className="w-4 h-4" />
-                  Retention: {(100 - dropoutData.overallDropoutRate).toFixed(1)}%
+                  Growth: {enrollmentData.monthOverMonthGrowth > 0 ? '+' : ''}{enrollmentData.monthOverMonthGrowth.toFixed(1)}%
                 </p>
                   </div>
               <div className="p-3 rounded-lg bg-purple-100">
@@ -327,35 +339,17 @@ export default function AdminAnalytics() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <h2 className="text-xl font-semibold text-gray-900">Revenue Analysis</h2>
           <div className="flex flex-wrap items-center gap-3">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => loadDashboardData()}
-              disabled={loading}
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
             <Select
               value={periodView}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setPeriodView(e.target.value as PeriodView)}
               options={[
-                { value: 'monthly', label: 'Monthly' },
+                { value: 'monthly', label: 'Last 6 months' },
                 { value: 'quarterly', label: 'Quarterly' },
                 { value: 'yearly', label: 'Yearly' },
               ]}
             />
-            <Select
-              value={chartType}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setChartType(e.target.value as ChartType)}
-              options={[
-                { value: 'bar', label: 'Bar Chart' },
-                { value: 'line', label: 'Line Chart' },
-                { value: 'candlestick', label: 'Candlestick Chart' },
-              ]}
-            />
-              </div>
-            </div>
+          </div>
+        </div>
 
         {/* Revenue Chart */}
         <RevenueChart
@@ -368,33 +362,15 @@ export default function AdminAnalytics() {
         <div>
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Most Popular Courses</h2>
           <TopCoursesCard courses={topCourses.topCourses} loading={loading} />
-                    </div>
+        </div>
 
-        {/* Student Analysis Section with Tabs */}
-        {/* Note: Tab switching only changes UI display, does NOT trigger API calls */}
-        {/* Data is already loaded and stored in state */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">Student Analysis</h2>
-            <div className="flex gap-2">
-              <Button
-                variant={analysisTab === 'dropout' ? 'primary' : 'secondary'}
-                size="sm"
-                onClick={() => handleTabChange('dropout')}
-              >
-                Dropout Analysis
-              </Button>
-              <Button
-                variant={analysisTab === 'enrollment' ? 'primary' : 'secondary'}
-                size="sm"
-                onClick={() => handleTabChange('enrollment')}
-              >
-                Enrollment Analysis
-              </Button>
+        {/* Student Analysis Row: Dropout + Enrollment Side by Side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Dropout Chart */}
+          <div>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+              <h2 className="text-xl font-semibold text-gray-900">Student Dropout Analysis</h2>
             </div>
-          </div>
-
-          {analysisTab === 'dropout' ? (
             <DropoutAnalysisCard
               overallDropoutRate={dropoutData.overallDropoutRate}
               dropoutTrend={dropoutData.dropoutTrend}
@@ -403,7 +379,14 @@ export default function AdminAnalytics() {
               recommendations={dropoutData.recommendations}
               loading={loading}
             />
-          ) : (
+          </div>
+
+          {/* Enrollment Chart */}
+          <div>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+              <h2 className="text-xl font-semibold text-gray-900">Student Enrollment</h2>
+              
+            </div>
             <EnrollmentAnalysisCard
               totalEnrollments={enrollmentData.totalEnrollments}
               activeEnrollments={enrollmentData.activeEnrollments}
@@ -411,10 +394,11 @@ export default function AdminAnalytics() {
               monthOverMonthGrowth={enrollmentData.monthOverMonthGrowth}
               monthlyTrend={enrollmentData.monthlyTrend}
               topGrowingCourses={enrollmentData.topGrowingCourses}
+              enrollmentByClass={enrollmentData.enrollmentByClass}
               insights={enrollmentData.insights}
               loading={loading}
             />
-          )}
+          </div>
         </div>
               
         {/* AI Recommendations Section */}

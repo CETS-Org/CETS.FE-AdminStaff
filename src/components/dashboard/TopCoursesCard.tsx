@@ -107,9 +107,7 @@ export default function TopCoursesCard({ courses, loading = false }: TopCoursesC
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <h4 className="font-semibold text-gray-900 truncate">{course.courseName}</h4>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {course.courseCode} • {course.category}
-                  </p>
+                  <p className="text-sm text-gray-500 mt-1">{course.courseCode}</p>
                 </div>
 
                 {/* Trend Badge */}
@@ -120,20 +118,12 @@ export default function TopCoursesCard({ courses, loading = false }: TopCoursesC
               </div>
 
               {/* Stats Grid */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
+              <div className="grid grid-cols-2 gap-3 mt-4">
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-blue-600" />
                   <div>
                     <div className="text-xs text-gray-500">Total Enrolled</div>
                     <div className="text-sm font-semibold text-gray-900">{course.totalEnrollments}</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-green-600" />
-                  <div>
-                    <div className="text-xs text-gray-500">Active</div>
-                    <div className="text-sm font-semibold text-gray-900">{course.activeEnrollments}</div>
                   </div>
                 </div>
 
@@ -145,23 +135,9 @@ export default function TopCoursesCard({ courses, loading = false }: TopCoursesC
                   </div>
                 </div>
 
-                <div>
+                <div className="col-span-2">
                   <div className="text-xs text-gray-500">Revenue</div>
                   <div className="text-sm font-semibold text-gray-900">{formatCurrency(course.revenue)}</div>
-                </div>
-              </div>
-
-              {/* Completion Rate Bar */}
-              <div className="mt-3">
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-gray-600">Completion Rate</span>
-                  <span className="font-medium text-gray-900">{course.completionRate.toFixed(1)}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-green-600 h-2 rounded-full transition-all duration-500"
-                    style={{ width: `${course.completionRate}%` }}
-                  ></div>
                 </div>
               </div>
             </div>

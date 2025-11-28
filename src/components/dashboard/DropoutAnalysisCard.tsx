@@ -1,4 +1,3 @@
-import { AlertTriangle, TrendingDown, Clock } from 'lucide-react';
 import Card from '@/components/ui/Card';
 
 interface DropoutTrendPoint {
@@ -61,36 +60,8 @@ export default function DropoutAnalysisCard({
   const maxDropoutCount = Math.max(...dropoutTrend.map(d => d.droppedOut), 1);
 
   return (
-    <div className="space-y-6">
-      {/* Overall Stats */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6">Student Dropout Analysis</h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          {/* Overall Dropout Rate */}
-          <div className="flex items-start gap-3 p-4 rounded-lg bg-red-50 border border-red-200">
-            <div className="p-2 rounded-lg bg-red-100">
-              <TrendingDown className="w-5 h-5 text-red-600" />
-            </div>
-            <div>
-              <div className="text-sm text-red-600 font-medium">Overall Dropout Rate</div>
-              <div className="text-2xl font-bold text-red-700 mt-1">{overallDropoutRate.toFixed(1)}%</div>
-            </div>
-          </div>
-
-          {/* Average Time to Dropout */}
-          <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-50 border border-blue-200">
-            <div className="p-2 rounded-lg bg-blue-100">
-              <Clock className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <div className="text-sm text-blue-600 font-medium">Avg. Time to Dropout</div>
-              <div className="text-2xl font-bold text-blue-700 mt-1">{averageTimeToDropout} days</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Monthly Dropout Trend */}
+    <Card className="p-6">
+      {/* Monthly Dropout Trend */}
         <div className="mb-6">
           <h4 className="text-sm font-semibold text-gray-900 mb-4">Monthly Dropout Trend</h4>
           <div className="flex items-end justify-between gap-2 h-64">
@@ -166,29 +137,6 @@ export default function DropoutAnalysisCard({
           </div>
         </div>
       </Card>
-
-      {/* Recommendations */}
-      {recommendations.length > 0 && (
-        <Card className="p-6 bg-blue-50 border-blue-200">
-          <div className="flex items-start gap-3">
-            <div className="p-2 rounded-lg bg-blue-100">
-              <AlertTriangle className="w-5 h-5 text-blue-600" />
-            </div>
-            <div className="flex-1">
-              <h4 className="font-semibold text-blue-900 mb-3">Recommended Actions</h4>
-              <ul className="space-y-2">
-                {recommendations.map((rec, index) => (
-                  <li key={index} className="flex items-start gap-2 text-sm text-blue-800">
-                    <span className="text-blue-600 font-bold mt-0.5">•</span>
-                    <span>{rec}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </Card>
-      )}
-    </div>
   );
 }
 

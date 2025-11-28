@@ -107,6 +107,17 @@ export interface EnrollmentByCourse {
   trend: 'up' | 'down' | 'stable';
 }
 
+export interface EnrollmentByClass {
+  classId: string;
+  className: string;
+  courseName: string;
+  totalEnrollments: number;
+  activeEnrollments: number;
+  completedEnrollments: number;
+  startDate: string;
+  status: string;
+}
+
 export interface StudentEnrollmentAnalytics {
   totalEnrollments: number;
   activeEnrollments: number;
@@ -117,6 +128,7 @@ export interface StudentEnrollmentAnalytics {
   monthlyTrend: EnrollmentTrendPoint[];
   quarterlyTrend: EnrollmentTrendPoint[];
   topGrowingCourses: EnrollmentByCourse[];
+  enrollmentByClass: EnrollmentByClass[];
   insights: string[];
 }
 
@@ -190,7 +202,7 @@ export interface AIRecommendationRequest {
  */
 export const getRevenueAnalytics = async (): Promise<RevenueAnalytics> => {
   try {
-    const response = await api.get<RevenueAnalytics>('/api/Dashboard/revenue');
+    const response = await api.get<RevenueAnalytics>('/api/AdminAnalystic/revenue');
     return response.data;
   } catch (error) {
     console.error('Error fetching revenue analytics:', error);
@@ -213,7 +225,7 @@ export const getTopEnrolledCourses = async (
       toDate: request?.toDate
     };
     
-    const response = await api.get<CourseEnrollmentStats>('/api/Dashboard/top-courses', {
+    const response = await api.get<CourseEnrollmentStats>('/api/AdminAnalystic/top-courses', {
       params
     });
     return response.data;
