@@ -1,12 +1,12 @@
 // src/pages/staff/StaffHome.tsx
 import { useState, useEffect } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import GenericNavbar from "@/shared/GenericNavbar";
 import { createAcademicStaffNavbarConfig, createAccountantStaffNavbarConfig } from "@/shared/navbarConfigs";
 import { academicStaffSidebarConfig, accountantStaffSidebarConfig } from "@/shared/sidebarConfigs";
 import StaffSidebar from "@/shared/StaffSidebar";
 
-import StaffSchedulePage from "./staff_schedule";
+import StaffSchedulePage from "./staff_schedule/components/StaffSchedulePage";
 import StaffStudentsPage from "./staff_students";
 import StaffCoursesPage from "./staff_courses/list/CoursesListPage";
 import TeacherManagement from "./staff_teachers";
@@ -35,12 +35,17 @@ import StaffRoomsPage from "./staff_rooms";
 import StaffContractsPage from "./staff_contracts";
 import StaffTransactionsPage from "./staff_transactions";
 import { PackagesListPage, PackageDetailPage, AddPackagePage, EditPackagePage } from "./staff_packages";
+import PlacementTestManagementPage from "./staff_placement_test";
+import PlacementQuestionManagementPage from "./staff_placement_test/PlacementQuestionManagementPage";
+import CreatePlacementTestPage from "./staff_placement_test/CreatePlacementTestPage";
+import StaffPlacementTestTaking from "./staff_placement_test/StaffPlacementTestTaking";
 
 export default function StaffHome() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true); 
   const [userAccount, setUserAccount] = useState(null);
   const [userRole, setUserRole] = useState<string>('');
+  const location = useLocation();
 
   const contentShiftClass = collapsed ? "lg:ml-16" : "lg:ml-64";
 
@@ -154,6 +159,11 @@ export default function StaffHome() {
             <Route path="packages/add" element={<AddPackagePage />} />
             <Route path="packages/edit/:id" element={<EditPackagePage />} />
             <Route path="packages/:id" element={<PackageDetailPage />} />
+            <Route path="placement-test" element={<PlacementTestManagementPage />} />
+            <Route path="placement-test/questions" element={<PlacementQuestionManagementPage />} />
+            <Route path="placement-test/create" element={<CreatePlacementTestPage />} />
+            <Route path="placement-test/edit/:id" element={<CreatePlacementTestPage />} />
+            <Route path="placement-test/try/:testId" element={<StaffPlacementTestTaking />} />
           </Routes>
         </div>
       </div>

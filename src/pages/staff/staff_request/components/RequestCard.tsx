@@ -1,21 +1,10 @@
-import { Calendar, Flag, Clock, CheckCircle, XCircle } from "lucide-react";
-import Button from "@/components/ui/Button";
-
-interface Request {
-  id: string;
-  studentName: string;
-  studentEmail: string;
-  requestType: "course_change" | "schedule_change" | "refund" | "other";
-  description: string;
-  status: "pending" | "approved" | "rejected";
-  submittedDate: string;
-  priority: "low" | "medium" | "high";
-  note?: string;
-}
+import { Calendar, ChevronRight, Clock, CheckCircle, XCircle, CalendarClock, ArrowRightLeft, GraduationCap, DollarSign, FileText, UserMinus, PauseCircle } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import type { AcademicRequest } from "@/types/academicRequest.type";
 
 interface RequestCardProps {
-  request: Request;
-  onViewDetails: (request: Request) => void;
+  request: AcademicRequest;
+  onViewDetails: (request: AcademicRequest) => void;
   isSelected?: boolean;
   onSelect?: (requestId: string) => void;
 }
@@ -27,6 +16,14 @@ export default function RequestCard({ request, onViewDetails, isSelected = false
         return "Course Change";
       case "schedule_change":
         return "Schedule Change";
+      case "class_transfer":
+        return "Class Transfer";
+      case "meeting_reschedule":
+        return "Meeting Reschedule";
+      case "enrollment_cancellation":
+        return "Enrollment Cancellation";
+      case "suspension":
+        return "Suspension";
       case "refund":
         return "Refund";
       case "other":
@@ -36,43 +33,89 @@ export default function RequestCard({ request, onViewDetails, isSelected = false
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "approved":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "rejected":
-        return "bg-red-100 text-red-800 border-red-200";
+  const getTypeIcon = (type: string): { Icon: LucideIcon; gradient: string } => {
+    switch (type) {
+      case "meeting_reschedule":
+        return { Icon: CalendarClock, gradient: "from-purple-500 to-purple-600" };
+      case "class_transfer":
+        return { Icon: ArrowRightLeft, gradient: "from-blue-500 to-blue-600" };
+      case "course_change":
+        return { Icon: GraduationCap, gradient: "from-indigo-500 to-indigo-600" };
+      case "schedule_change":
+        return { Icon: Clock, gradient: "from-cyan-500 to-cyan-600" };
+      case "enrollment_cancellation":
+        return { Icon: UserMinus, gradient: "from-red-500 to-red-600" };
+      case "suspension":
+        return { Icon: PauseCircle, gradient: "from-orange-500 to-orange-600" };
+      case "refund":
+        return { Icon: DollarSign, gradient: "from-green-500 to-green-600" };
+      case "other":
+        return { Icon: FileText, gradient: "from-gray-500 to-gray-600" };
       default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
+        return { Icon: Calendar, gradient: "from-blue-500 to-blue-600" };
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Clock className="w-4 h-4" />;
-      case "approved":
-        return <CheckCircle className="w-4 h-4" />;
-      case "rejected":
-        return <XCircle className="w-4 h-4" />;
-      default:
-        return <Clock className="w-4 h-4" />;
+  const getStatusConfig = (status: string) => {
+    const statusLower = status?.toLowerCase() || '';
+    
+    if (statusLower === "pending") {
+      return {
+        badge: "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-sm",
+        border: "border-orange-200",
+        hover: "hover:bg-gradient-to-r hover:from-orange-25 hover:to-orange-50 hover:border-orange-300",
+        icon: "text-orange-500"
+      };
     }
+    
+    if (statusLower === "approved") {
+      return {
+        badge: "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-sm",
+        border: "border-green-200",
+        hover: "hover:bg-gradient-to-r hover:from-green-25 hover:to-green-50 hover:border-green-300",
+        icon: "text-green-500"
+      };
+    }
+    
+    if (statusLower === "rejected") {
+      return {
+        badge: "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-sm",
+        border: "border-red-200",
+        hover: "hover:bg-gradient-to-r hover:from-red-25 hover:to-red-50 hover:border-red-300",
+        icon: "text-red-500"
+      };
+    }
+    
+    return {
+      badge: "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm",
+      border: "border-blue-200",
+      hover: "hover:bg-gradient-to-r hover:from-blue-25 hover:to-blue-50 hover:border-blue-300",
+      icon: "text-blue-500"
+    };
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "high":
-        return "bg-red-100 text-red-800 border-red-200";
-      case "medium":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "low":
-        return "bg-green-100 text-green-800 border-green-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
+  const getPriorityConfig = (priority: string) => {
+    const priorityLower = priority?.toLowerCase() || 'medium';
+    
+    if (priorityLower === "high") {
+      return {
+        badge: "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-sm",
+        text: "High"
+      };
     }
+    
+    if (priorityLower === "low") {
+      return {
+        badge: "bg-gradient-to-r from-gray-400 to-gray-500 text-white shadow-sm",
+        text: "Low"
+      };
+    }
+    
+    // Default to medium
+    return {
+      badge: "bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-sm",
+      text: "Medium"
+    };
   };
 
   const formatDate = (dateString: string) => {
@@ -84,68 +127,57 @@ export default function RequestCard({ request, onViewDetails, isSelected = false
     });
   };
 
+  const statusConfig = getStatusConfig(request.status);
+  const priorityConfig = getPriorityConfig(request.priority);
+  const typeIcon = getTypeIcon(request.requestType);
+
   return (
-    <div className={`bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-all duration-200 ${
-      isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-    }`}>
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-start gap-3 flex-1">
-          {onSelect && (
-            <input
-              type="checkbox"
-              checked={isSelected}
-              onChange={() => onSelect(request.id)}
-              className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            />
-          )}
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-lg font-semibold text-gray-900">
-                {request.description}
-              </h3>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(request.priority)}`}>
-                {request.priority.toUpperCase()}
-              </span>
-            </div>
-            <p className="text-sm text-gray-600">
+    <div
+      onClick={() => onViewDetails(request)}
+      className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer transition-all duration-200 border-l-4 ${
+        isSelected ? 'border-blue-500 bg-blue-50' : statusConfig.border
+      } ${statusConfig.hover} hover:shadow-md`}
+    >
+      <div className="flex items-center gap-4 flex-1">
+        {onSelect && (
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={(e) => {
+              e.stopPropagation();
+              onSelect?.(request.id);
+            }}
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            onClick={(e) => e.stopPropagation()}
+          />
+        )}
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br ${typeIcon.gradient} shadow-md`}>
+          <typeIcon.Icon className="w-5 h-5 text-white" />
+        </div>
+        <div className="flex-1">
+          <h4 className="font-semibold text-primary-800 mb-1">{getTypeLabel(request.requestType)}</h4>
+          <p className="text-sm text-neutral-600 mb-2 line-clamp-1">{request.description || request.reason}</p>
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-xs text-neutral-600">
               From: {request.studentName}
-            </p>
-            <p className="text-xs text-gray-500">
+            </span>
+            <span className="text-xs text-neutral-500">
               {request.studentEmail}
-            </p>
+            </span>
+            <span className="text-xs text-neutral-500">
+              • {formatDate(request.submittedDate)}
+            </span>
+            <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${priorityConfig.badge}`}>
+              {priorityConfig.text}
+            </span>
+            <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${statusConfig.badge}`}>
+              {request.status}
+            </span>
           </div>
         </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => onViewDetails(request)}
-          className="ml-4 flex-shrink-0"
-        >
-          View Details
-        </Button>
       </div>
-
-      {/* Details */}
-      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-700">
-        {/* Type */}
-        <div className="flex items-center gap-2">
-          <Flag className="w-4 h-4 text-gray-500" />
-          <span className="hidden sm:inline">{getTypeLabel(request.requestType)}</span>
-          <span className="sm:hidden">{getTypeLabel(request.requestType).split(' ')[0]}</span>
-        </div>
-
-        {/* Date */}
-        <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-gray-500" />
-          <span>{formatDate(request.submittedDate)}</span>
-        </div>
-
-        {/* Status */}
-        <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(request.status)}`}>
-          {getStatusIcon(request.status)}
-          <span className="uppercase">{request.status}</span>
-        </div>
+      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${statusConfig.icon} bg-accent-50`}>
+        <ChevronRight className="w-4 h-4" />
       </div>
     </div>
   );

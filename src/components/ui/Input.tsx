@@ -12,11 +12,13 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   ref
 ) {
   const inputId = id || props.name || undefined;
+  const isRequired = props.required;
   return (
     <div className={"w-full"}>
       {label && (
         <label htmlFor={inputId} className="block text-sm font-medium text-neutral-700 mb-1">
           {label}
+          {isRequired && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
       <input

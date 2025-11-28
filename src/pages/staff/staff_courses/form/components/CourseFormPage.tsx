@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -6,9 +6,11 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import PageHeader from "@/components/ui/PageHeader";
 import Label from "@/components/ui/Label";
-import { Trash2, BookOpen, ArrowLeft, Upload, Camera, Save, FileText, Link as LinkIcon, CheckCircle, AlertCircle, Clock, DollarSign, Calendar, Loader2, PlusCircle, MinusCircle, Target, Zap, Gift, X, ChevronDown, ChevronUp, FileSpreadsheet, Download } from "lucide-react";
+import { Trash2, BookOpen, ArrowLeft, Upload, Camera, Save, FileText, Link as LinkIcon, CheckCircle, AlertCircle, Clock, DollarSign, Calendar, Loader2, PlusCircle, MinusCircle, Target, Zap, Gift, X, ChevronDown, ChevronUp, FileSpreadsheet, Download, Users, Search } from "lucide-react";
 import { createCourse, updateCourse } from "@/api/course.api";
-import { createSyllabus, createSyllabusItem, updateSyllabus, updateSyllabusItem, deleteSyllabus, deleteSyllabusItem, getCourseDetailById, getCourseSchedules, createCourseSchedule, updateCourseSchedule, deleteCourseSchedule, createCourseSkill, deleteCourseSkill, createCourseBenefit, deleteCourseBenefit, createCourseRequirement, deleteCourseRequirement } from "@/api";
+import { createSyllabus, createSyllabusItem, updateSyllabus, updateSyllabusItem, deleteSyllabus, deleteSyllabusItem, getCourseDetailById, getCourseSchedules, createCourseSchedule, updateCourseSchedule, deleteCourseSchedule, createCourseSkill, deleteCourseSkill, createCourseBenefit, deleteCourseBenefit, createCourseRequirement, deleteCourseRequirement, getCourseTeachers, createCourseTeacherAssignment, deleteCourseTeacherAssignment } from "@/api";
+import { getTeachers } from "@/api/teacher.api";
+import type { Teacher } from "@/types/teacher.type";
 import type { CourseFormData } from "@/types/course.types";
 import { 
   useCourseSchedules, 
@@ -16,7 +18,8 @@ import {
   useToast, 
   useLookupOptions, 
   useCourseRelationships, 
-  useCourseObjectives 
+  useCourseObjectives,
+  useCourseTeachers
 } from '../../shared/hooks';
 import { formatVND, getOptionLabel, getLabelsFromIds, dayNames } from '../../shared/utils/course-form.utils';
 import CourseScheduleSection from './CourseScheduleSection';
@@ -89,6 +92,19 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
     resetRelationships
   } = useCourseRelationships();
 
+  const {
+    selectedTeachers,
+    originalTeacherAssignments,
+    toggleTeacher,
+    loadTeachers,
+    resetTeachers
+  } = useCourseTeachers();
+
+  const [teachersList, setTeachersList] = useState<Teacher[]>([]);
+  const [loadingTeachers, setLoadingTeachers] = useState(false);
+  const [teacherSearchTerm, setTeacherSearchTerm] = useState("");
+  const [debouncedTeacherSearch, setDebouncedTeacherSearch] = useState("");
+
   // Form state
   const [formData, setFormData] = useState<Omit<CourseFormData, 'id'>>({
     name: "",
@@ -146,8 +162,47 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
       resetObjectives();
       resetRelationships();
       resetSchedules();
+      resetTeachers();
     }
   }, [isEdit, id]);
+
+  // Load teachers list on mount
+  useEffect(() => {
+    const fetchTeachers = async () => {
+      try {
+        setLoadingTeachers(true);
+        const teachers = await getTeachers();
+        setTeachersList(teachers);
+      } catch (error) {
+        console.error("Error loading teachers:", error);
+        showErrorMessage("Failed to load teachers list");
+      } finally {
+        setLoadingTeachers(false);
+      }
+    };
+    fetchTeachers();
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedTeacherSearch(teacherSearchTerm);
+    }, 250);
+
+    return () => clearTimeout(timeoutId);
+  }, [teacherSearchTerm]);
+
+  const filteredTeachers = useMemo(() => {
+    const query = debouncedTeacherSearch.trim().toLowerCase();
+    if (!query) return teachersList;
+
+    return teachersList.filter((teacher) => {
+      const name = (teacher.fullName || teacher.teacherInfo?.fullName || "").toLowerCase();
+      const email = (teacher.email || teacher.teacherInfo?.email || "").toLowerCase();
+      const code = (teacher.teacherInfo?.teacherCode || "").toLowerCase();
+
+      return name.includes(query) || email.includes(query) || code.includes(query);
+    });
+  }, [teachersList, debouncedTeacherSearch]);
 
   // Set default values when lookup options are loaded (for create mode)
   useEffect(() => {
@@ -213,6 +268,16 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
       } catch (error) {
         console.warn("Could not load course schedules:", error);
         resetSchedules();
+      }
+
+      // Load course teachers
+      try {
+        const teachersRes = await getCourseTeachers(_courseId);
+        const apiTeachers = teachersRes.data || [];
+        loadTeachers(apiTeachers);
+      } catch (error) {
+        console.warn("Could not load course teachers:", error);
+        resetTeachers();
       }
     } catch (error) {
       console.error("Error loading course data:", error);
@@ -1006,7 +1071,7 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
                         TopicTitle: it.topicTitle || 'Overview',
                         TotalSlots: it.totalSlots,
                         Required: !!it.required,
-                        Objectives: (it.objectives && it.objectives.length) ? it.objectives.join('\n') : undefined,
+                        Objectives: Array.isArray(it.objectives) ? it.objectives.join('\n') : undefined,
                         ContentSummary: it.contentSummary || undefined,
                         PreReadingUrl: it.preReadingUrl || undefined,
                         UpdatedBy: currentUserId,
@@ -1020,7 +1085,7 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
                       topicTitle: it.topicTitle || 'Overview',
                       totalSlots: it.totalSlots,
                       required: !!it.required,
-                      objectives: (it.objectives && it.objectives.length) ? it.objectives.join('\n') : undefined,
+                      objectives: Array.isArray(it.objectives) ? it.objectives.join('\n') : undefined,
                       contentSummary: it.contentSummary || undefined,
                       preReadingUrl: it.preReadingUrl || undefined,
                       createdBy: currentUserId,
@@ -1206,8 +1271,58 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
               }
             }
           }
+
+          // Teacher Assignments
+          const currentTeacherIds = new Set(selectedTeachers);
+          const originalTeacherIds = new Set(originalTeacherAssignments.map(a => a.teacherId));
+          
+          // Delete removed teacher assignments
+          for (const assignment of originalTeacherAssignments) {
+            if (!currentTeacherIds.has(assignment.teacherId)) {
+              try {
+                await deleteCourseTeacherAssignment(assignment.assignmentId);
+                console.log(`Deleted teacher assignment: ${assignment.assignmentId}`);
+              } catch (err) {
+                console.error(`Failed to delete teacher assignment ${assignment.assignmentId}:`, err);
+              }
+            }
+          }
+          
+          // Create new teacher assignments
+          for (const teacherId of selectedTeachers) {
+            if (!originalTeacherIds.has(teacherId)) {
+              try {
+                await createCourseTeacherAssignment({
+                  courseID: savedCourseId,
+                  teacherID: teacherId
+                });
+                console.log(`Created teacher assignment for teacher: ${teacherId}`);
+              } catch (err) {
+                console.error(`Failed to create teacher assignment for ${teacherId}:`, err);
+              }
+            }
+          }
         } catch (err) {
           console.error("Error managing course relationships:", err);
+        }
+      }
+
+      // Handle teacher assignments in create mode
+      if (!isEdit && savedCourseId && selectedTeachers.length > 0) {
+        try {
+          for (const teacherId of selectedTeachers) {
+            try {
+              await createCourseTeacherAssignment({
+                courseID: savedCourseId,
+                teacherID: teacherId
+              });
+              console.log(`Created teacher assignment for teacher: ${teacherId}`);
+            } catch (err) {
+              console.error(`Failed to create teacher assignment for ${teacherId}:`, err);
+            }
+          }
+        } catch (err) {
+          console.error("Error managing teacher assignments:", err);
         }
       }
 
@@ -1868,6 +1983,120 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
 
                </div>
              </Card>
+
+             {/* Teachers Section */}
+             <Card className="overflow-hidden">
+               <div className="p-6">
+                 <div className="flex items-center gap-3 mb-6">
+                   <Users className="w-6 h-6 text-indigo-600" />
+                   <h2 className="text-xl font-semibold">Assigned Teachers</h2>
+                 </div>
+                 <div className="space-y-4">
+                   <div className="flex items-center gap-3 mb-4">
+                     <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                       <Users className="w-4 h-4 text-white" />
+                     </div>
+                     <div>
+                       <h3 className="text-lg font-semibold text-gray-800">Course Teachers</h3>
+                       <p className="text-sm text-gray-500">Select teachers to assign to this course</p>
+                     </div>
+                   </div>
+
+                   {loadingTeachers && (
+                     <div className="flex items-center justify-center py-8">
+                       <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
+                       <span className="ml-2 text-gray-600">Loading teachers...</span>
+                     </div>
+                   )}
+
+                   {!loadingTeachers && teachersList.length === 0 && (
+                     <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-6 text-center">
+                       <Users className="w-12 h-12 text-indigo-400 mx-auto mb-3" />
+                       <p className="text-gray-600 font-medium">No teachers available</p>
+                       <p className="text-sm text-gray-500 mt-1">Teachers will appear here once they are added to the system</p>
+                     </div>
+                   )}
+
+                   {!loadingTeachers && teachersList.length > 0 && (
+                    <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4">
+                      <div className="relative">
+                        <Input
+                          value={teacherSearchTerm}
+                          onChange={(e) => setTeacherSearchTerm(e.target.value)}
+                          placeholder="Search by name, email, or code"
+                          className="pl-10"
+                        />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      </div>
+
+                      {filteredTeachers.length === 0 && teacherSearchTerm.trim().length > 0 && (
+                        <p className="text-sm text-gray-500">No teachers match "{teacherSearchTerm}".</p>
+                      )}
+                      <div className="max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pr-2">
+                          {filteredTeachers.map((teacher) => {
+                            const teacherId = teacher.accountId;
+                            const teacherName = teacher.fullName || teacher.teacherInfo?.fullName || 'Unknown Teacher';
+                            const teacherEmail = teacher.email || teacher.teacherInfo?.email || '';
+
+                            return (
+                              <label
+                                key={teacherId}
+                                className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 cursor-pointer transition-all duration-200 group"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selectedTeachers.includes(teacherId)}
+                                  onChange={() => toggleTeacher(teacherId)}
+                                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 mt-1"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <span className="text-sm font-medium text-gray-700 group-hover:text-indigo-700 block truncate">
+                                    {teacherName}
+                                  </span>
+                                  {teacherEmail && (
+                                    <span className="text-xs text-gray-500 block truncate">{teacherEmail}</span>
+                                  )}
+                                </div>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {selectedTeachers.length > 0 && (
+                        <div className="pt-4 border-t border-gray-200">
+                          <p className="text-sm text-gray-600 mb-2">Selected teachers ({selectedTeachers.length}):</p>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedTeachers.map((teacherId) => {
+                              const teacher = teachersList.find(t => t.accountId === teacherId);
+                              const teacherName = teacher?.fullName || teacher?.teacherInfo?.fullName || 'Unknown Teacher';
+
+                              return (
+                                <span
+                                  key={teacherId}
+                                  className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full font-medium"
+                                >
+                                  {teacherName}
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleTeacher(teacherId)}
+                                    className="ml-1 text-indigo-600 hover:text-indigo-800"
+                                  >
+                                    ×
+                                  </button>
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                 </div>
+               </div>
+             </Card>
+
              {/* Course Content */}
              <Card className="overflow-hidden">
                <div className="p-6">
