@@ -61,6 +61,24 @@ export default function RequestCard({ request, onViewDetails, isSelected = false
     
     if (statusLower === "pending") {
       return {
+        badge: "bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-sm",
+        border: "border-yellow-200",
+        hover: "hover:bg-gradient-to-r hover:from-yellow-25 hover:to-yellow-50 hover:border-yellow-300",
+        icon: "text-yellow-500"
+      };
+    }
+    
+    if (statusLower === "underreview") {
+      return {
+        badge: "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm",
+        border: "border-blue-200",
+        hover: "hover:bg-gradient-to-r hover:from-blue-25 hover:to-blue-50 hover:border-blue-300",
+        icon: "text-blue-500"
+      };
+    }
+    
+    if (statusLower === "needinfo") {
+      return {
         badge: "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-sm",
         border: "border-orange-200",
         hover: "hover:bg-gradient-to-r hover:from-orange-25 hover:to-orange-50 hover:border-orange-300",
@@ -87,10 +105,10 @@ export default function RequestCard({ request, onViewDetails, isSelected = false
     }
     
     return {
-      badge: "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm",
-      border: "border-blue-200",
-      hover: "hover:bg-gradient-to-r hover:from-blue-25 hover:to-blue-50 hover:border-blue-300",
-      icon: "text-blue-500"
+      badge: "bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-sm",
+      border: "border-gray-200",
+      hover: "hover:bg-gradient-to-r hover:from-gray-25 hover:to-gray-50 hover:border-gray-300",
+      icon: "text-gray-500"
     };
   };
 
@@ -170,8 +188,10 @@ export default function RequestCard({ request, onViewDetails, isSelected = false
             <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${priorityConfig.badge}`}>
               {priorityConfig.text}
             </span>
-            <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${statusConfig.badge}`}>
-              {request.status}
+            <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full capitalize ${statusConfig.badge}`}>
+              {request.status === "underreview" ? "Under Review" : 
+               request.status === "needinfo" ? "Need Info" : 
+               request.status}
             </span>
           </div>
         </div>
