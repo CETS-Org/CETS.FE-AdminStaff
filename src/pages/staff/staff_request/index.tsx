@@ -515,7 +515,7 @@ export default function StaffRequestPage() {
   // Breadcrumb items
   const breadcrumbItems = [
     { label: "Staff Dashboard", href: "/staff" },
-    { label: "Student Requests", href: "/staff/requests" }
+    { label: "Academic Requests", href: "/staff/requests" }
   ];
 
   if (loading) {
@@ -529,8 +529,8 @@ export default function StaffRequestPage() {
       
       {/* Page Header */}
       <PageHeader
-        title="Student Requests"
-        description="Manage and respond to student requests with comprehensive tools"
+        title="Academic Requests"
+        description="Manage and respond to academic requests with comprehensive tools"
       />
 
       <div className="space-y-6">

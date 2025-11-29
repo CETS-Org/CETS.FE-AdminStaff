@@ -61,7 +61,7 @@ export interface AcademicRequest {
   studentEmail: string;
   requestType: "course_change" | "schedule_change" | "refund" | "other" | "class_transfer" | "meeting_reschedule" | "enrollment_cancellation" | "suspension" | "dropout";
   description: string;
-  status: "pending" | "underreview" | "needinfo" | "approved" | "rejected";
+  status: "pending" | "submitted" | "underreview" | "needinfo" | "approved" | "rejected" | "resolved" | "completed";
   submittedDate: string;
   priority: "low" | "medium" | "high";
   reason: string;

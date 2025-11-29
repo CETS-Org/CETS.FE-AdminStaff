@@ -461,11 +461,13 @@ export default function RequestDetailDialog({
                     <div className="flex items-center gap-2">
                       {getStatusIcon(request.status)}
                       <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${
-                        request.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                        request.status === "underreview" ? "bg-blue-100 text-blue-800" :
-                        request.status === "needinfo" ? "bg-orange-100 text-orange-800" :
-                        request.status === "approved" ? "bg-green-100 text-green-800" :
-                        "bg-red-100 text-red-800"
+                        request.status === "pending" || request.status === "submitted" ? "bg-yellow-100 text-yellow-800" :
+                        request.status === "underreview" ? "bg-purple-100 text-purple-800" :
+                        request.status === "needinfo" ? "bg-blue-100 text-blue-800" :
+                        request.status === "approved" || request.status === "resolved" ? "bg-green-100 text-green-800" :
+                        request.status === "rejected" ? "bg-red-100 text-red-800" :
+                        request.status === "completed" ? "bg-gray-100 text-gray-800" :
+                        "bg-gray-100 text-gray-800"
                       }`}>
                         {request.status === "underreview" ? "Under Review" : 
                          request.status === "needinfo" ? "Need Info" : 

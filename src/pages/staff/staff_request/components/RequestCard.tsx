@@ -63,55 +63,64 @@ export default function RequestCard({ request, onViewDetails, isSelected = false
   const getStatusConfig = (status: string) => {
     const statusLower = status?.toLowerCase() || '';
     
-    if (statusLower === "pending") {
+    if (statusLower === "pending" || statusLower === "submitted") {
       return {
-        badge: "bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-sm",
+        badge: "bg-yellow-100 text-yellow-800",
         border: "border-yellow-200",
-        hover: "hover:bg-gradient-to-r hover:from-yellow-25 hover:to-yellow-50 hover:border-yellow-300",
+        hover: "hover:bg-yellow-50 hover:border-yellow-300",
         icon: "text-yellow-500"
       };
     }
     
     if (statusLower === "underreview") {
       return {
-        badge: "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm",
+        badge: "bg-purple-100 text-purple-800",
+        border: "border-purple-200",
+        hover: "hover:bg-purple-50 hover:border-purple-300",
+        icon: "text-purple-500"
+      };
+    }
+    
+    if (statusLower === "needinfo" || statusLower === "need info") {
+      return {
+        badge: "bg-blue-100 text-blue-800",
         border: "border-blue-200",
-        hover: "hover:bg-gradient-to-r hover:from-blue-25 hover:to-blue-50 hover:border-blue-300",
+        hover: "hover:bg-blue-50 hover:border-blue-300",
         icon: "text-blue-500"
       };
     }
     
-    if (statusLower === "needinfo") {
+    if (statusLower === "approved" || statusLower === "resolved") {
       return {
-        badge: "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-sm",
-        border: "border-orange-200",
-        hover: "hover:bg-gradient-to-r hover:from-orange-25 hover:to-orange-50 hover:border-orange-300",
-        icon: "text-orange-500"
-      };
-    }
-    
-    if (statusLower === "approved") {
-      return {
-        badge: "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-sm",
+        badge: "bg-green-100 text-green-800",
         border: "border-green-200",
-        hover: "hover:bg-gradient-to-r hover:from-green-25 hover:to-green-50 hover:border-green-300",
+        hover: "hover:bg-green-50 hover:border-green-300",
         icon: "text-green-500"
       };
     }
     
     if (statusLower === "rejected") {
       return {
-        badge: "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-sm",
+        badge: "bg-red-100 text-red-800",
         border: "border-red-200",
-        hover: "hover:bg-gradient-to-r hover:from-red-25 hover:to-red-50 hover:border-red-300",
+        hover: "hover:bg-red-50 hover:border-red-300",
         icon: "text-red-500"
       };
     }
     
+    if (statusLower === "completed") {
+      return {
+        badge: "bg-gray-100 text-gray-800",
+        border: "border-gray-200",
+        hover: "hover:bg-gray-50 hover:border-gray-300",
+        icon: "text-gray-500"
+      };
+    }
+    
     return {
-      badge: "bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-sm",
+      badge: "bg-gray-100 text-gray-800",
       border: "border-gray-200",
-      hover: "hover:bg-gradient-to-r hover:from-gray-25 hover:to-gray-50 hover:border-gray-300",
+      hover: "hover:bg-gray-50 hover:border-gray-300",
       icon: "text-gray-500"
     };
   };
