@@ -46,6 +46,17 @@ import {
   getAIRecommendations,
   getDashboardData
 } from './admin-dashboard.api';
+import {
+  getAllComplaints,
+  getComplaintById,
+  getComplaintsByStatus,
+  createComplaint,
+  updateComplaint,
+  deleteComplaint,
+  getComplaintDownloadUrl,
+  getReportTypes,
+  getReportStatuses
+} from './complaint.api';
 
 export const apiClient = axiosInstance;
 export { endpoint } from './api';
@@ -154,6 +165,17 @@ export const api = {
   getStudentDropoutAnalytics,
   getAIRecommendations,
   getDashboardData,
+
+  // Complaints
+  getAllComplaints,
+  getComplaintById,
+  getComplaintsByStatus,
+  createComplaint,
+  updateComplaint,
+  deleteComplaint,
+  getComplaintDownloadUrl,
+  getReportTypes,
+  getReportStatuses,
 };
 
 export {
@@ -238,6 +260,15 @@ export {
   getStudentDropoutAnalytics,
   getAIRecommendations,
   getDashboardData,
+  getAllComplaints,
+  getComplaintById,
+  getComplaintsByStatus,
+  createComplaint,
+  updateComplaint,
+  deleteComplaint,
+  getComplaintDownloadUrl,
+  getReportTypes,
+  getReportStatuses,
 };
 
 
