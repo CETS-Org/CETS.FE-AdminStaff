@@ -134,7 +134,7 @@ export default function StaffRequestPage() {
       expectedReturnDate: apiRequest.expectedReturnDate,
       // Dropout fields
       completedExitSurvey: apiRequest.completedExitSurvey,
-      exitSurveyUrl: apiRequest.exitSurveyUrl,
+      exitSurveyId: apiRequest.exitSurveyId,
     };
   }, [statusLookups]);
 

@@ -41,7 +41,7 @@ export interface AcademicRequestResponse {
   expectedReturnDate?: string;
   // For dropout requests
   completedExitSurvey?: boolean;
-  exitSurveyUrl?: string;
+  exitSurveyId?: string;
 }
 
 export interface ProcessAcademicRequest {
@@ -95,6 +95,6 @@ export interface AcademicRequest {
   expectedReturnDate?: string;
   // For dropout requests
   completedExitSurvey?: boolean;
-  exitSurveyUrl?: string;
+  exitSurveyId?: string;
 }
 

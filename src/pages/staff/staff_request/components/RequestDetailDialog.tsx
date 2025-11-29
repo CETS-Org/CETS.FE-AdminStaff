@@ -355,20 +355,29 @@ export default function RequestDetailDialog({
     }
   };
 
-  // Load exit survey data for dropout requests
+  // Load exit survey data for dropout requests from MongoDB
   const handleViewExitSurvey = async () => {
-    if (!request.exitSurveyUrl) {
-      showToast('Exit survey URL not available', 'error');
+    if (!request.exitSurveyId) {
+      showToast('Exit survey not available', 'error');
       return;
     }
 
     setIsLoadingExitSurvey(true);
     try {
-      const response = await getAttachmentDownloadUrl(request.exitSurveyUrl);
-      const downloadUrl = response.data.downloadUrl;
-
-      const surveyResponse = await fetch(downloadUrl);
-      const surveyData: ExitSurveyData = await surveyResponse.json();
+      const { getExitSurveyById } = await import('@/api/exitSurvey.api');
+      const surveyResponse = await getExitSurveyById(request.exitSurveyId);
+      
+      // Map MongoDB response to ExitSurveyData format
+      const surveyData: ExitSurveyData = {
+        studentID: surveyResponse.studentId,
+        reasonCategory: surveyResponse.reasonCategory as any,
+        reasonDetail: surveyResponse.reasonDetail,
+        feedback: surveyResponse.feedback,
+        futureIntentions: surveyResponse.futureIntentions,
+        comments: surveyResponse.comments,
+        acknowledgesPermanent: surveyResponse.acknowledgesPermanent,
+        completedAt: surveyResponse.completedAt,
+      };
       
       setExitSurveyData(surveyData);
       setShowExitSurvey(true);
@@ -589,7 +598,7 @@ export default function RequestDetailDialog({
                         <div className="text-sm font-medium text-gray-900 mb-2">
                           {request.completedExitSurvey ? 'Completed' : 'Not Completed'}
                         </div>
-                        {request.completedExitSurvey && request.exitSurveyUrl && (
+                        {request.completedExitSurvey && request.exitSurveyId && (
                           <Button
                             variant="secondary"
                             size="sm"
@@ -602,9 +611,9 @@ export default function RequestDetailDialog({
                           </Button>
                         )}
                         {/* Debug info - remove after testing */}
-                        {!request.exitSurveyUrl && request.completedExitSurvey && (
+                        {!request.exitSurveyId && request.completedExitSurvey && (
                           <p className="text-xs text-red-600 mt-2">
-                            Exit survey URL is missing from the request data
+                            Exit survey data is missing from the request
                           </p>
                         )}
                       </div>
