@@ -19,19 +19,25 @@ import TopCoursesCard from '@/components/dashboard/TopCoursesCard';
 import DropoutAnalysisCard from '@/components/dashboard/DropoutAnalysisCard';
 import EnrollmentAnalysisCard from '@/components/dashboard/EnrollmentAnalysisCard';
 import AIRecommendationsCard from '@/components/dashboard/AIRecommendationsCard';
+import { ExitSurveyReasonCard } from '@/components/dashboard/ExitSurveyReasonCard';
 import { 
   getRevenueAnalytics, 
   getTopEnrolledCourses, 
   getStudentDropoutAnalytics,
   getEnrollmentAnalytics,
-  getAIRecommendations,
-  type RevenueAnalytics,
-  type CourseEnrollmentStats,
-  type StudentDropoutAnalytics,
-  type StudentEnrollmentAnalytics,
-  type AIAnalysisResponse
+  getAIRecommendations
 } from '@/api/admin-dashboard.api';
-import { getAdminAnalytics, type AnalyticsResponse } from '@/api/analytics.api';
+import type { 
+  RevenueAnalytics,
+  CourseEnrollmentStats,
+  StudentDropoutAnalytics,
+  StudentEnrollmentAnalytics,
+  AIAnalysisResponse
+} from '@/api/admin-dashboard.api';
+import { getExitSurveyAnalytics } from '@/api/exitSurvey.api';
+import type { ExitSurveyAnalyticsResponse } from '@/api/exitSurvey.api';
+import { getAdminAnalytics } from '@/api/analytics.api';
+import type { AnalyticsResponse } from '@/api/analytics.api';
 
 type PeriodView = 'monthly' | 'quarterly' | 'yearly';
 type ChartType = 'bar' | 'line' | 'candlestick';
@@ -94,6 +100,14 @@ export default function AdminAnalytics() {
     insights: [],
   });
   
+  const [exitSurveyData, setExitSurveyData] = useState<ExitSurveyAnalyticsResponse>({
+    totalSurveys: 0,
+    reasonCategoryStatistics: {},
+    averageFeedbackRatings: {},
+    surveysThisMonth: 0,
+    surveysThisYear: 0,
+  });
+  
   const [aiRecommendations, setAiRecommendations] = useState<AIAnalysisResponse>({
     recommendations: [],
     summary: '',
@@ -118,7 +132,7 @@ export default function AdminAnalytics() {
     setLoading(true);
     try {
       // Fetch real data from backend (excluding AI recommendations)
-      const [analyticsRes, revenueRes, coursesRes, dropoutRes, enrollmentRes] = await Promise.allSettled([
+      const [analyticsRes, revenueRes, coursesRes, dropoutRes, enrollmentRes, exitSurveyRes] = await Promise.allSettled([
         getAdminAnalytics(),
         getRevenueAnalytics(),
         getTopEnrolledCourses({ topN: 10 }),
@@ -127,6 +141,7 @@ export default function AdminAnalytics() {
           includeRecommendations: true 
         }),
         getEnrollmentAnalytics(),
+        getExitSurveyAnalytics(),
       ]);
 
       // Update analytics if successful
@@ -160,6 +175,13 @@ export default function AdminAnalytics() {
         setEnrollmentData(enrollmentRes.value);
       } else {
         console.error('Failed to load enrollment data:', enrollmentRes.reason);
+      }
+
+      // Update exit survey data
+      if (exitSurveyRes.status === 'fulfilled') {
+        setExitSurveyData(exitSurveyRes.value);
+      } else {
+        console.error('Failed to load exit survey data:', exitSurveyRes.reason);
       }
 
       setLastUpdated(new Date());
@@ -401,6 +423,12 @@ export default function AdminAnalytics() {
           </div>
         </div>
               
+        {/* Exit Survey Analytics */}
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Exit Survey Analysis</h2>
+          <ExitSurveyReasonCard data={exitSurveyData} />
+        </div>
+
         {/* AI Recommendations Section */}
         <div>
           <AIRecommendationsCard

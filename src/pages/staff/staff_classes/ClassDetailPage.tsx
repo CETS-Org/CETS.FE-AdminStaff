@@ -1,12 +1,15 @@
 // src/pages/staff/staff_courses/ClassDetailPage.tsx
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, Users, Clock, Calendar, MapPin, User, BookOpen, Award } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Users, Clock, Calendar, MapPin, User, BookOpen, Award, FileSpreadsheet } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import DeleteClassDialog from '../staff_classes/components/DeleteClassDialog';
-import { api } from '@/api';
-import type { ClassDetailResponse, StudentInClass } from '@/api/class.api';
+import BulkFinalGradeImportPopup from '../staff_classes/components/BulkFinalGradeImportPopup';
+import type { FinalGradeImportData } from '../staff_classes/components/BulkFinalGradeImportPopup';
+import { api, bulkUpdateFinalGrades } from '@/api';
+import type { FinalGradeUpdate, ClassDetailResponse, StudentInClass } from '@/api/class.api';
+import { useToast } from '@/hooks/useToast';
 
 // Types
 interface Class {
@@ -30,6 +33,7 @@ interface Class {
 
 interface Student {
   id: string;
+  enrollmentId: string;
   studentCode: string;
   name: string;
   email: string;
@@ -37,6 +41,7 @@ interface Student {
   joinDate: string;
   attendance: number;
   progress: number;
+  finalGrade?: number | null;
 }
 
 export default function ClassDetailPage() {
@@ -47,6 +52,8 @@ export default function ClassDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteDialog, setDeleteDialog] = useState(false);
+  const [finalGradeImportDialog, setFinalGradeImportDialog] = useState(false);
+  const { success, error: showError } = useToast();
 
   // Handle both route patterns: /staff/classes/:id and /staff/courses/:courseId/classes/:classId
   const classId = params.id || params.classId;
@@ -88,6 +95,7 @@ export default function ClassDetailPage() {
 
         const mappedStudents: Student[] = response.students.map((student: StudentInClass) => ({
           id: student.id,
+          enrollmentId: student.enrollmentId,
           studentCode: student.studentCode,
           name: student.name,
           email: student.email,
@@ -95,6 +103,7 @@ export default function ClassDetailPage() {
           joinDate: student.joinDate,
           attendance: student.attendanceRate,
           progress: student.progressPercentage,
+          finalGrade: student.finalGrade,
         }));
 
         setClassData(mappedClass);
@@ -137,6 +146,59 @@ export default function ClassDetailPage() {
       navigate(`/staff/classes`);
     } else {
       navigate(`/staff/courses`);
+    }
+  };
+
+  const handleImportFinalGrades = () => {
+    setFinalGradeImportDialog(true);
+  };
+
+  const handleFinalGradeImport = async (gradesData: FinalGradeImportData[]) => {
+    try {
+      // Format data for API
+      const finalGrades: FinalGradeUpdate[] = gradesData.map((grade) => ({
+        enrollmentId: grade.enrollmentId,
+        finalGrade: grade.finalGrade,
+      }));
+
+      // Call bulk update API
+      const response = await bulkUpdateFinalGrades(finalGrades);
+      
+      // Handle response
+      if (response.success) {
+        if (response.data.failedCount > 0) {
+          // Partial success
+          success(`Updated ${response.data.updatedCount} record(s). ${response.data.failedCount} failed.`);
+        } else {
+          // Complete success
+          success(`Successfully imported ${response.data.updatedCount} final grade(s)!`);
+        }
+        
+        // Refresh class detail to get updated final grades
+        if (classId) {
+          const updatedResponse = await api.getClassDetail(classId);
+          const updatedStudents: Student[] = updatedResponse.students.map((student: StudentInClass) => ({
+            id: student.id,
+            enrollmentId: student.enrollmentId,
+            studentCode: student.studentCode,
+            name: student.name,
+            email: student.email,
+            phone: student.phone,
+            joinDate: student.joinDate,
+            attendance: student.attendanceRate,
+            progress: student.progressPercentage,
+            finalGrade: student.finalGrade,
+          }));
+          setStudents(updatedStudents);
+        }
+      }
+    } catch (error: any) {
+      console.error('Error importing final grades:', error);
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          'Failed to import final grades. Please try again.';
+      showError(errorMessage);
+      throw error; // Re-throw to let the popup handle it
     }
   };
 
@@ -359,10 +421,20 @@ export default function ClassDetailPage() {
 
         {/* Students List */}
         <Card className="p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <Users className="w-6 h-6 text-blue-600" />
-            <h2 className="text-xl font-semibold">Students</h2>
-            <span className="ml-auto text-sm text-gray-500">{students.length} students</span>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <Users className="w-6 h-6 text-blue-600" />
+              <h2 className="text-xl font-semibold">Students</h2>
+              <span className="ml-2 text-sm text-gray-500">{students.length} students</span>
+            </div>
+            <Button
+              variant="primary"
+              onClick={handleImportFinalGrades}
+              iconLeft={<FileSpreadsheet className="w-4 h-4" />}
+              className="!bg-blue-500 hover:!bg-blue-600"
+            >
+              Import Final Grades
+            </Button>
           </div>
 
           <div className="overflow-x-auto">
@@ -374,6 +446,7 @@ export default function ClassDetailPage() {
                   <th className="text-left py-3 px-4 font-medium text-gray-900">Join Date</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-900">Attendance</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-900">Progress</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-900">Final Grade</th>
                 </tr>
               </thead>
               <tbody>
@@ -412,6 +485,20 @@ export default function ClassDetailPage() {
                         </span>
                       </div>
                     </td>
+                    <td className="py-3 px-4">
+                      {student.finalGrade !== null && student.finalGrade !== undefined ? (
+                        <span className={`font-medium ${
+                          student.finalGrade >= 85 ? 'text-green-600' :
+                          student.finalGrade >= 70 ? 'text-blue-600' :
+                          student.finalGrade >= 50 ? 'text-yellow-600' :
+                          'text-red-600'
+                        }`}>
+                          {student.finalGrade}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-sm">Not graded</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -426,6 +513,21 @@ export default function ClassDetailPage() {
           onConfirm={handleConfirmDelete}
           classData={classData}
         />
+
+        {/* Final Grade Import Dialog */}
+        {classData && (
+          <BulkFinalGradeImportPopup
+            open={finalGradeImportDialog}
+            onOpenChange={setFinalGradeImportDialog}
+            onSubmit={handleFinalGradeImport}
+            className={classData.name}
+            students={students.map((s) => ({
+              enrollmentId: s.enrollmentId,
+              studentCode: s.studentCode,
+              studentName: s.name,
+            }))}
+          />
+        )}
       </div>
     </div>
   );

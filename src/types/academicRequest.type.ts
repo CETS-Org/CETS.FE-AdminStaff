@@ -34,6 +34,14 @@ export interface AcademicRequestResponse {
   // New meeting details (for meeting reschedule, uses toMeetingDate and toSlotID)
   newRoomID?: string;
   newRoomName?: string;
+  // For suspension requests
+  suspensionStartDate?: string;
+  suspensionEndDate?: string;
+  reasonCategory?: string;
+  expectedReturnDate?: string;
+  // For dropout requests
+  completedExitSurvey?: boolean;
+  exitSurveyId?: string;
 }
 
 export interface ProcessAcademicRequest {
@@ -51,9 +59,9 @@ export interface AcademicRequest {
   id: string;
   studentName: string;
   studentEmail: string;
-  requestType: "course_change" | "schedule_change" | "refund" | "other" | "class_transfer" | "meeting_reschedule" | "enrollment_cancellation" | "suspension";
+  requestType: "course_change" | "schedule_change" | "refund" | "other" | "class_transfer" | "meeting_reschedule" | "enrollment_cancellation" | "suspension" | "dropout";
   description: string;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "underreview" | "needinfo" | "approved" | "rejected";
   submittedDate: string;
   priority: "low" | "medium" | "high";
   reason: string;
@@ -80,5 +88,13 @@ export interface AcademicRequest {
   // New meeting details (for meeting reschedule, uses toMeetingDate and toSlotID)
   newRoomID?: string;
   newRoomName?: string;
+  // For suspension requests
+  suspensionStartDate?: string;
+  suspensionEndDate?: string;
+  reasonCategory?: string;
+  expectedReturnDate?: string;
+  // For dropout requests
+  completedExitSurvey?: boolean;
+  exitSurveyId?: string;
 }
 

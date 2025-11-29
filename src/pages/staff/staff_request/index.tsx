@@ -8,7 +8,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import RequestCard from "./components/RequestCard";
 import Pagination from "@/shared/pagination";
-import { Search, Filter, Clock, CheckCircle, XCircle, Calendar, X, TrendingUp, Download, SortAsc, SortDesc, FileText, Zap, MessageSquare } from "lucide-react";
+import { Search, Filter, Clock, CheckCircle, XCircle, Calendar, X, TrendingUp, Download, SortAsc, SortDesc, FileText, Zap, MessageSquare, AlertCircle } from "lucide-react";
 import RequestDetailDialog from "./components/RequestDetailDialog";
 import ConfirmRequestDialog from "./components/ConfirmRequestDialog";
 import { getAllAcademicRequests, getAcademicRequestsByStatus, processAcademicRequest } from "@/api/academicRequest.api";
@@ -45,21 +45,25 @@ export default function StaffRequestPage() {
   const mapToRequest = useCallback((apiRequest: AcademicRequestResponse): AcademicRequest => {
     const statusName = apiRequest.statusName?.toLowerCase() || "";
     const statusCode = statusLookups.find(s => s.id === apiRequest.academicRequestStatusID)?.code?.toLowerCase() || "";
-    let status: "pending" | "approved" | "rejected" = "pending";
+    let status: "pending" | "underreview" | "needinfo" | "approved" | "rejected" = "pending";
     
     // Check both status name and code
     const combinedStatus = `${statusName} ${statusCode}`;
-    if (combinedStatus.includes("approved") || combinedStatus.includes("accept") || combinedStatus.includes("approved")) {
+    if (combinedStatus.includes("approved") || combinedStatus.includes("accept")) {
       status = "approved";
     } else if (combinedStatus.includes("rejected") || combinedStatus.includes("reject") || combinedStatus.includes("denied") || combinedStatus.includes("declined")) {
       status = "rejected";
+    } else if (combinedStatus.includes("underreview") || combinedStatus.includes("under review") || combinedStatus.includes("reviewing")) {
+      status = "underreview";
+    } else if (combinedStatus.includes("needinfo") || combinedStatus.includes("need info") || combinedStatus.includes("more info")) {
+      status = "needinfo";
     } else {
       status = "pending";
     }
 
     // Map request type - you may need to adjust based on your actual request type names
     const requestTypeName = apiRequest.requestTypeName?.toLowerCase() || "";
-    let requestType: "course_change" | "schedule_change" | "refund" | "other" | "class_transfer" | "meeting_reschedule" | "enrollment_cancellation" | "suspension" = "other";
+    let requestType: "course_change" | "schedule_change" | "refund" | "other" | "class_transfer" | "meeting_reschedule" | "enrollment_cancellation" | "suspension" | "dropout" = "other";
     if (requestTypeName.includes("class transfer") || requestTypeName.includes("classtransfer")) {
       requestType = "class_transfer";
     } else if (requestTypeName.includes("meeting reschedule") || requestTypeName.includes("meetingreschedule")) {
@@ -68,6 +72,8 @@ export default function StaffRequestPage() {
       requestType = "enrollment_cancellation";
     } else if (requestTypeName.includes("suspension") || requestTypeName.includes("suspend")) {
       requestType = "suspension";
+    } else if (requestTypeName.includes("dropout") || requestTypeName.includes("drop out") || requestTypeName.includes("dropping out")) {
+      requestType = "dropout";
     } else if (requestTypeName.includes("schedule")) {
       requestType = "schedule_change";
     } else if (requestTypeName.includes("course")) {
@@ -121,6 +127,14 @@ export default function StaffRequestPage() {
       // New meeting details (for meeting reschedule, uses toMeetingDate and toSlotID)
       newRoomID: apiRequest.newRoomID,
       newRoomName: apiRequest.newRoomName,
+      // Suspension fields
+      suspensionStartDate: apiRequest.suspensionStartDate,
+      suspensionEndDate: apiRequest.suspensionEndDate,
+      reasonCategory: apiRequest.reasonCategory,
+      expectedReturnDate: apiRequest.expectedReturnDate,
+      // Dropout fields
+      completedExitSurvey: apiRequest.completedExitSurvey,
+      exitSurveyId: apiRequest.exitSurveyId,
     };
   }, [statusLookups]);
 
@@ -179,19 +193,21 @@ export default function StaffRequestPage() {
     }
   }, [filterStatus, statusMap, mapToRequest]);
 
-  // Statistics calculations
-  const stats = {
-    total: requests.length,
-    pending: requests.filter(r => r.status === 'pending').length,
-    approved: requests.filter(r => r.status === 'approved').length,
-    rejected: requests.filter(r => r.status === 'rejected').length,
-    highPriority: requests.filter(r => r.priority === 'high').length,
-    thisWeek: requests.filter(r => {
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      return new Date(r.submittedDate) >= weekAgo;
-    }).length
-  };
+    // Statistics calculations
+    const stats = {
+      total: requests.length,
+      pending: requests.filter(r => r.status === 'pending').length,
+      underReview: requests.filter(r => r.status === 'underreview').length,
+      needInfo: requests.filter(r => r.status === 'needinfo').length,
+      approved: requests.filter(r => r.status === 'approved').length,
+      rejected: requests.filter(r => r.status === 'rejected').length,
+      highPriority: requests.filter(r => r.priority === 'high').length,
+      thisWeek: requests.filter(r => {
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        return new Date(r.submittedDate) >= weekAgo;
+      }).length
+    };
 
   // Sorting logic
   const sortRequests = (requests: AcademicRequest[]) => {
@@ -329,7 +345,7 @@ export default function StaffRequestPage() {
     setSelectedRequests([]);
   };
 
-  const handleStatusChange = async (requestId: string, newStatus: "approved" | "rejected", reply: string, selectedRoomID?: string) => {
+  const handleStatusChange = async (requestId: string, newStatus: "pending" | "underreview" | "needinfo" | "approved" | "rejected", reply: string, selectedRoomID?: string) => {
     try {
       const userInfo = getUserInfo();
       if (!userInfo || !userInfo.id) {
@@ -338,22 +354,30 @@ export default function StaffRequestPage() {
       }
 
       // Find the status ID based on the status name
-      const statusName = newStatus === "approved" ? "approved" : "rejected";
       const statusLookup = statusLookups.find(s => {
         const code = s.code?.toLowerCase() || "";
         const name = s.name?.toLowerCase() || "";
         
-        // Match exact status name first
-        if (code.includes(statusName) || name.includes(statusName)) {
-          return true;
-        }
-        
         if (newStatus === "approved") {
-          return code.includes("approve") || name.includes("approve");
+          return code.includes("approved") || code.includes("approve") || name.includes("approved") || name.includes("approve");
         }
         
         if (newStatus === "rejected") {
-          return (code.includes("rejected") || name.includes("rejected"));
+          return code.includes("rejected") || code.includes("reject") || name.includes("rejected") || name.includes("reject");
+        }
+        
+        if (newStatus === "underreview") {
+          return code.includes("underreview") || code.includes("under review") || code.includes("reviewing") || 
+                 name.includes("underreview") || name.includes("under review") || name.includes("reviewing");
+        }
+        
+        if (newStatus === "needinfo") {
+          return code.includes("needinfo") || code.includes("need info") || code.includes("more info") ||
+                 name.includes("needinfo") || name.includes("need info") || name.includes("more info");
+        }
+        
+        if (newStatus === "pending") {
+          return code.includes("pending") || name.includes("pending");
         }
         
         return false;
@@ -383,7 +407,13 @@ export default function StaffRequestPage() {
       });
 
       // Show success toast
-      const actionText = newStatus === "approved" ? "approved" : "rejected";
+      let actionText = "";
+      if (newStatus === "approved") actionText = "approved";
+      else if (newStatus === "rejected") actionText = "rejected";
+      else if (newStatus === "underreview") actionText = "set to under review";
+      else if (newStatus === "needinfo") actionText = "marked as needing more information";
+      else if (newStatus === "pending") actionText = "returned to pending";
+      
       showToast(`Request has been ${actionText} successfully`, 'success');
 
       // Update local state
@@ -407,6 +437,27 @@ export default function StaffRequestPage() {
   const handleViewDetails = (request: AcademicRequest) => {
     setSelectedRequest(request);
     setShowDetailDialog(true);
+  };
+
+  const handleStartReview = async () => {
+    if (selectedRequest) {
+      await handleStatusChange(selectedRequest.id, "underreview", "");
+      // Refresh the selected request
+      const response = await getAllAcademicRequests();
+      const mappedRequests = response.data.map(mapToRequest);
+      const updatedRequest = mappedRequests.find(r => r.id === selectedRequest.id);
+      if (updatedRequest) {
+        setSelectedRequest(updatedRequest);
+      }
+    }
+  };
+
+  const handleNeedInfo = async (reply: string) => {
+    if (selectedRequest) {
+      await handleStatusChange(selectedRequest.id, "needinfo", reply);
+      setShowDetailDialog(false);
+      setSelectedRequest(null);
+    }
   };
 
   const handleApprove = async (reply: string, selectedRoomID?: string) => {
@@ -449,6 +500,8 @@ export default function StaffRequestPage() {
         return "Enrollment Cancellation";
       case "suspension":
         return "Suspension";
+      case "dropout":
+        return "Dropout";
       case "refund":
         return "Refund";
       case "other":
@@ -484,23 +537,6 @@ export default function StaffRequestPage() {
 
         {/* Enhanced Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <FileText className="w-7 h-7 text-white" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-blue-700">Total Requests</p>
-                <p className="text-3xl font-bold text-blue-900 group-hover:text-blue-600 transition-colors">
-                  {stats.total}
-                </p>
-                <p className="text-xs text-blue-600 mt-1">
-                  All submissions
-                </p>
-              </div>
-            </div>
-          </Card>
-
           <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
@@ -513,6 +549,40 @@ export default function StaffRequestPage() {
                 </p>
                 <p className="text-xs text-yellow-600 mt-1">
                   Awaiting review
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <Clock className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-blue-700">Under Review</p>
+                <p className="text-3xl font-bold text-blue-900 group-hover:text-blue-600 transition-colors">
+                  {stats.underReview}
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  In progress
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <AlertCircle className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-orange-700">Need Info</p>
+                <p className="text-3xl font-bold text-orange-900 group-hover:text-orange-600 transition-colors">
+                  {stats.needInfo}
+                </p>
+                <p className="text-xs text-orange-600 mt-1">
+                  Awaiting response
                 </p>
               </div>
             </div>
@@ -551,25 +621,6 @@ export default function StaffRequestPage() {
               </div>
             </div>
           </Card>
-
-          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <Zap className="w-7 h-7 text-white" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-purple-700">High Priority</p>
-                <p className="text-3xl font-bold text-purple-900 group-hover:text-purple-600 transition-colors">
-                  {stats.highPriority}
-                </p>
-                <p className="text-xs text-purple-600 mt-1">
-                  Urgent attention
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          
         </div>
 
       {/* Requests Table */}
@@ -678,11 +729,6 @@ export default function StaffRequestPage() {
                 iconLeft={<Filter className="w-4 h-4" />}
               >
                 {showFilters ? 'Hide Filters' : 'Show Filters'}
-                  {(searchTerm || filterStatus !== "all" || filterType !== "all" || filterPriority !== "all" || dateFrom || dateTo) && (
-                    <span className="bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      {[searchTerm, filterStatus, filterType, filterPriority, dateFrom, dateTo].filter(f => f !== "" && f !== "all").length}
-                    </span>
-                  )}
               </Button>
               <Button
                 variant="secondary"
@@ -704,10 +750,11 @@ export default function StaffRequestPage() {
                 onChange={(e) => setFilterStatus(e.target.value)}
                 options={[
                   { label: "All Status", value: "all" },
-                  ...statusLookups.map(lookup => ({
-                    label: lookup.name,
-                    value: lookup.code
-                  }))
+                  { label: "Pending", value: "pending" },
+                  { label: "Under Review", value: "underreview" },
+                  { label: "Need Info", value: "needinfo" },
+                  { label: "Approved", value: "approved" },
+                  { label: "Rejected", value: "rejected" }
                 ]}
               />
               <Select
@@ -718,6 +765,11 @@ export default function StaffRequestPage() {
                   { label: "All Types", value: "all" },
                   { label: "Course Change", value: "course_change" },
                   { label: "Schedule Change", value: "schedule_change" },
+                  { label: "Class Transfer", value: "class_transfer" },
+                  { label: "Meeting Reschedule", value: "meeting_reschedule" },
+                  { label: "Enrollment Cancellation", value: "enrollment_cancellation" },
+                  { label: "Suspension", value: "suspension" },
+                  { label: "Dropout", value: "dropout" },
                   { label: "Refund", value: "refund" },
                   { label: "Other", value: "other" }
                 ]}
@@ -839,8 +891,11 @@ export default function StaffRequestPage() {
         isOpen={showDetailDialog}
         onClose={() => setShowDetailDialog(false)}
         request={selectedRequest}
+        onStartReview={handleStartReview}
+        onNeedInfo={handleNeedInfo}
         onApprove={handleApprove}
         onReject={handleReject}
+        onRequestUpdate={(updatedRequest) => setSelectedRequest(updatedRequest)}
       />
 
       <ConfirmRequestDialog
