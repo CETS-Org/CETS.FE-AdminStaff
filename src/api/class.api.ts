@@ -34,6 +34,7 @@ export interface ClassStatistics {
 // Student in class detail
 export interface StudentInClass {
   id: string;
+  enrollmentId: string;
   studentCode: string;
   name: string;
   email: string;
@@ -41,6 +42,7 @@ export interface StudentInClass {
   joinDate: string;
   attendanceRate: number;
   progressPercentage: number;
+  finalGrade?: number | null;
 }
 
 // Class detail response
@@ -138,5 +140,51 @@ export const calculateClassStatistics = (classes: ClassData[]): ClassStatistics 
     fullClasses: classes.filter(c => c.status === "full" || c.currentStudents >= c.maxStudents).length,
     totalStudents: classes.reduce((sum, c) => sum + c.currentStudents, 0),
   };
+};
+
+// ==================== Final Grade Management ====================
+
+// Types for bulk final grade update
+export interface FinalGradeUpdate {
+  enrollmentId: string;
+  finalGrade: number | null;
+}
+
+export interface BulkUpdateFinalGradesRequest {
+  finalGrades: FinalGradeUpdate[];
+}
+
+export interface FinalGradeUpdateResult {
+  enrollmentId: string;
+  status: 'success' | 'failed';
+  error?: string;
+}
+
+export interface BulkUpdateFinalGradesData {
+  updatedCount: number;
+  failedCount: number;
+  results: FinalGradeUpdateResult[];
+}
+
+export interface BulkUpdateFinalGradesResponse {
+  success: boolean;
+  message?: string;
+  data: BulkUpdateFinalGradesData;
+}
+
+// Bulk update final grades
+export const bulkUpdateFinalGrades = async (
+  finalGrades: FinalGradeUpdate[]
+): Promise<BulkUpdateFinalGradesResponse> => {
+  try {
+    const response = await api.put<BulkUpdateFinalGradesResponse>(
+      '/api/ACAD_Enrollment/bulk-update-final-grades',
+      { finalGrades } as BulkUpdateFinalGradesRequest
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error bulk updating final grades:', error);
+    throw error;
+  }
 };
 
