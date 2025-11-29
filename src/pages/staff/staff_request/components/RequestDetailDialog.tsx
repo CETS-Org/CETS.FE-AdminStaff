@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from "@/components/ui/Dialog";
 import Button from "@/components/ui/Button";
-import { CheckCircle, XCircle, Clock, User, Mail, Calendar, AlertCircle, File, Download, MapPin, PauseCircle } from "lucide-react";
+import { CheckCircle, XCircle, Clock, User, Mail, Calendar, AlertCircle, File, Download, MapPin, PauseCircle, AlertTriangle, ExternalLink, Star } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { getAttachmentDownloadUrl } from "@/api/academicRequest.api";
 import { getRooms } from "@/api/room.api";
 import type { AcademicRequest } from "@/types/academicRequest.type";
 import { SuspensionReasonCategoryLabels } from "@/types/suspensionRequest.type";
+import { DropoutReasonCategoryLabels, type ExitSurveyData } from "@/types/dropoutRequest.type";
 import { AcademicRequestReasonCategoryLabels } from "@/types/academicRequestReasonCategories";
 
 interface RequestDetailDialogProps {
@@ -36,6 +37,9 @@ export default function RequestDetailDialog({
   const [selectedRoomID, setSelectedRoomID] = useState<string>("");
   const [availableRooms, setAvailableRooms] = useState<any[]>([]);
   const [isLoadingRooms, setIsLoadingRooms] = useState(false);
+  const [exitSurveyData, setExitSurveyData] = useState<ExitSurveyData | null>(null);
+  const [isLoadingExitSurvey, setIsLoadingExitSurvey] = useState(false);
+  const [showExitSurvey, setShowExitSurvey] = useState(false);
   const { showToast } = useToast();
 
   const fetchAvailableRooms = async () => {
@@ -173,6 +177,8 @@ export default function RequestDetailDialog({
         return "Enrollment Cancellation";
       case "suspension":
         return "Suspension";
+      case "dropout":
+        return "Dropout";
       case "refund":
         return "Refund";
       case "other":
@@ -196,6 +202,8 @@ export default function RequestDetailDialog({
         return "Approving this request will cancel the student's enrollment. Please verify the cancellation policy and any refund implications.";
       case "suspension":
         return "Approving this request will suspend the student's enrollment for the specified period. The student's account status will be set to 'Suspended' on the start date.\n\nPlease verify:\n(1) Student has no unpaid tuition\n(2) Student has not exceeded 2 suspensions this year\n(3) Proper documentation is provided if required\n(4) Dates meet policy requirements (7-90 days, 7-day notice)";
+      case "dropout":
+        return "Approving this request will PERMANENTLY terminate the student's enrollment. This action is IRREVERSIBLE and the student will be marked as 'Dropped Out' on the effective date.\n\nPlease verify:\n(1) Student has completed the exit survey\n(2) Student has no outstanding financial obligations\n(3) Student has been informed this is permanent\n(4) All required documents are provided\n(5) This is not a temporary leave (use Suspension for temporary)";
       case "refund":
         return "Approving this request will process a refund for the student. Please verify the refund amount and policy compliance.";
       case "other":
@@ -286,6 +294,29 @@ export default function RequestDetailDialog({
             )}
           </>
         );
+      case "dropout":
+        return (
+          <>
+            {req.effectiveDate && (
+              <p><span className="font-medium">Effective Date:</span> {new Date(req.effectiveDate).toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}</p>
+            )}
+            {req.completedExitSurvey !== undefined && (
+              <p><span className="font-medium">Exit Survey:</span> {req.completedExitSurvey ? 'Completed ✓' : 'Not Completed ✗'}</p>
+            )}
+            {req.reasonCategory && (
+              <p><span className="font-medium">Reason Category:</span> {
+                req.reasonCategory in DropoutReasonCategoryLabels
+                  ? DropoutReasonCategoryLabels[req.reasonCategory as keyof typeof DropoutReasonCategoryLabels]
+                  : req.reasonCategory
+              }</p>
+            )}
+          </>
+        );
       case "refund":
         return (
           <p><span className="font-medium">Reason:</span> {req.reason}</p>
@@ -322,6 +353,50 @@ export default function RequestDetailDialog({
       console.error("Download attachment error:", error);
       showToast(`Failed to download attachment: ${error.response?.data?.error || error.message || "Unknown error"}`, 'error');
     }
+  };
+
+  // Load exit survey data for dropout requests
+  const handleViewExitSurvey = async () => {
+    if (!request.exitSurveyUrl) {
+      showToast('Exit survey URL not available', 'error');
+      return;
+    }
+
+    setIsLoadingExitSurvey(true);
+    try {
+      const response = await getAttachmentDownloadUrl(request.exitSurveyUrl);
+      const downloadUrl = response.data.downloadUrl;
+
+      const surveyResponse = await fetch(downloadUrl);
+      const surveyData: ExitSurveyData = await surveyResponse.json();
+      
+      setExitSurveyData(surveyData);
+      setShowExitSurvey(true);
+    } catch (error: any) {
+      console.error('Error loading exit survey:', error);
+      showToast('Failed to load exit survey', 'error');
+    } finally {
+      setIsLoadingExitSurvey(false);
+    }
+  };
+
+  // Render rating stars for exit survey
+  const renderRatingStars = (rating: number) => {
+    return (
+      <div className="flex items-center gap-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            className={`w-4 h-4 ${
+              star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
+            }`}
+          />
+        ))}
+        <span className="ml-2 text-sm text-gray-600">
+          {rating}/5
+        </span>
+      </div>
+    );
   };
 
   return (
@@ -404,7 +479,9 @@ export default function RequestDetailDialog({
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Reason Category</label>
                   <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md">
-                    {request.reasonCategory in SuspensionReasonCategoryLabels
+                    {request.reasonCategory in DropoutReasonCategoryLabels
+                      ? DropoutReasonCategoryLabels[request.reasonCategory as keyof typeof DropoutReasonCategoryLabels]
+                      : request.reasonCategory in SuspensionReasonCategoryLabels
                       ? SuspensionReasonCategoryLabels[request.reasonCategory as keyof typeof SuspensionReasonCategoryLabels]
                       : request.reasonCategory in AcademicRequestReasonCategoryLabels
                       ? AcademicRequestReasonCategoryLabels[request.reasonCategory as keyof typeof AcademicRequestReasonCategoryLabels]
@@ -459,6 +536,97 @@ export default function RequestDetailDialog({
                         </div>
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* Dropout Details */}
+              {request.requestType === "dropout" && (
+                <div className="space-y-4">
+                  <div className="border-l-4 border-red-500 bg-red-50/50 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <AlertTriangle className="w-5 h-5 text-red-600" />
+                      <span className="font-semibold text-red-900">Dropout Request Details</span>
+                    </div>
+                    <div className="space-y-4">
+                      {/* Effective Date */}
+                      {request.effectiveDate && (
+                        <div className="bg-white rounded-md p-3 border border-red-200">
+                          <div className="text-xs font-semibold text-red-700 mb-2 flex items-center gap-2">
+                            <Calendar className="w-3 h-3" />
+                            Effective Date
+                          </div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {new Date(request.effectiveDate).toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </div>
+                          <p className="text-xs text-red-600 mt-1">
+                            Student enrollment will be terminated on this date
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Exit Survey Status - Always show for dropout requests */}
+                      <div className={`rounded-md p-3 border ${
+                        request.completedExitSurvey 
+                          ? 'bg-green-50 border-green-200' 
+                          : 'bg-yellow-50 border-yellow-200'
+                      }`}>
+                        <div className={`text-xs font-semibold mb-2 flex items-center gap-2 ${
+                          request.completedExitSurvey ? 'text-green-700' : 'text-yellow-700'
+                        }`}>
+                          {request.completedExitSurvey ? (
+                            <CheckCircle className="w-3 h-3" />
+                          ) : (
+                            <AlertCircle className="w-3 h-3" />
+                          )}
+                          Exit Survey Status
+                        </div>
+                        <div className="text-sm font-medium text-gray-900 mb-2">
+                          {request.completedExitSurvey ? 'Completed' : 'Not Completed'}
+                        </div>
+                        {request.completedExitSurvey && request.exitSurveyUrl && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={handleViewExitSurvey}
+                            loading={isLoadingExitSurvey}
+                            iconLeft={<ExternalLink className="w-4 h-4 mr-1" />}
+                          >
+                          
+                            View Exit Survey
+                          </Button>
+                        )}
+                        {/* Debug info - remove after testing */}
+                        {!request.exitSurveyUrl && request.completedExitSurvey && (
+                          <p className="text-xs text-red-600 mt-2">
+                            Exit survey URL is missing from the request data
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Important Notice for Staff */}
+                      <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                          <div className="text-xs text-red-800">
+                            <p className="font-semibold mb-1">⚠️ PERMANENT ACTION - Review Checklist:</p>
+                            <ul className="space-y-1 list-disc list-inside">
+                              <li>Verify exit survey is completed</li>
+                              <li>Check for outstanding financial obligations</li>
+                              <li>Confirm student understands this is permanent</li>
+                              <li>Verify all required documentation is provided</li>
+                              <li>Ensure this is not a temporary leave (use Suspension instead)</li>
+                              <li>Review exit survey feedback for improvement areas</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -861,6 +1029,135 @@ export default function RequestDetailDialog({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Exit Survey Viewing Modal */}
+      {showExitSurvey && exitSurveyData && (
+        <Dialog open={showExitSurvey} onOpenChange={setShowExitSurvey}>
+          <DialogContent size="xl" className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <File className="w-5 h-5 text-blue-600" />
+                </div>
+                Exit Survey Response
+              </DialogTitle>
+            </DialogHeader>
+            <DialogBody>
+              <div className="space-y-6">
+                {/* Basic Information */}
+                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 mb-1">Reason Category</div>
+                    <div className="text-sm text-gray-900 font-medium">
+                      {DropoutReasonCategoryLabels[exitSurveyData.reasonCategory as keyof typeof DropoutReasonCategoryLabels] || exitSurveyData.reasonCategory}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 mb-1">Reason Detail</div>
+                    <div className="text-sm text-gray-900">{exitSurveyData.reasonDetail}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 mb-1">Completed At</div>
+                    <div className="text-sm text-gray-900">
+                      {new Date(exitSurveyData.completedAt).toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit'
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ratings */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">Feedback Ratings</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="bg-white border rounded-lg p-4">
+                      <div className="text-sm font-medium text-gray-700 mb-2">Teacher Quality</div>
+                      {renderRatingStars(exitSurveyData.feedback.teacherQuality)}
+                    </div>
+
+                    <div className="bg-white border rounded-lg p-4">
+                      <div className="text-sm font-medium text-gray-700 mb-2">Class Pacing</div>
+                      {renderRatingStars(exitSurveyData.feedback.classPacing)}
+                    </div>
+
+                    <div className="bg-white border rounded-lg p-4">
+                      <div className="text-sm font-medium text-gray-700 mb-2">Materials Quality</div>
+                      {renderRatingStars(exitSurveyData.feedback.materials)}
+                    </div>
+
+                    <div className="bg-white border rounded-lg p-4">
+                      <div className="text-sm font-medium text-gray-700 mb-2">Staff Service</div>
+                      {renderRatingStars(exitSurveyData.feedback.staffService)}
+                    </div>
+
+                    <div className="bg-white border rounded-lg p-4">
+                      <div className="text-sm font-medium text-gray-700 mb-2">Schedule Flexibility</div>
+                      {renderRatingStars(exitSurveyData.feedback.schedule)}
+                    </div>
+
+                    <div className="bg-white border rounded-lg p-4">
+                      <div className="text-sm font-medium text-gray-700 mb-2">Facilities</div>
+                      {renderRatingStars(exitSurveyData.feedback.facilities)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Comments & Future Intentions */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">Additional Information</h3>
+                  
+                  <div className="bg-white border rounded-lg p-4">
+                    <div className="text-xs font-semibold text-gray-500 mb-2">Comments</div>
+                    <div className="text-sm text-gray-900 whitespace-pre-wrap">
+                      {exitSurveyData.comments || 'No comments provided'}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="bg-white border rounded-lg p-4">
+                      <div className="text-xs font-semibold text-gray-500 mb-2">
+                        Would recommend to others?
+                      </div>
+                      <div className={`text-sm font-medium ${
+                        exitSurveyData.futureIntentions.wouldRecommendToOthers ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {exitSurveyData.futureIntentions.wouldRecommendToOthers ? 'Yes ✓' : 'No ✗'}
+                      </div>
+                    </div>
+
+                    <div className="bg-white border rounded-lg p-4">
+                      <div className="text-xs font-semibold text-gray-500 mb-2">
+                        Would return in future?
+                      </div>
+                      <div className={`text-sm font-medium ${
+                        exitSurveyData.futureIntentions.wouldReturnInFuture ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {exitSurveyData.futureIntentions.wouldReturnInFuture ? 'Yes ✓' : 'No ✗'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Close Button */}
+                <div className="flex justify-end pt-4 border-t">
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowExitSurvey(false)}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </DialogBody>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }

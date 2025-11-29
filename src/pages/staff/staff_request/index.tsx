@@ -63,7 +63,7 @@ export default function StaffRequestPage() {
 
     // Map request type - you may need to adjust based on your actual request type names
     const requestTypeName = apiRequest.requestTypeName?.toLowerCase() || "";
-    let requestType: "course_change" | "schedule_change" | "refund" | "other" | "class_transfer" | "meeting_reschedule" | "enrollment_cancellation" | "suspension" = "other";
+    let requestType: "course_change" | "schedule_change" | "refund" | "other" | "class_transfer" | "meeting_reschedule" | "enrollment_cancellation" | "suspension" | "dropout" = "other";
     if (requestTypeName.includes("class transfer") || requestTypeName.includes("classtransfer")) {
       requestType = "class_transfer";
     } else if (requestTypeName.includes("meeting reschedule") || requestTypeName.includes("meetingreschedule")) {
@@ -72,6 +72,8 @@ export default function StaffRequestPage() {
       requestType = "enrollment_cancellation";
     } else if (requestTypeName.includes("suspension") || requestTypeName.includes("suspend")) {
       requestType = "suspension";
+    } else if (requestTypeName.includes("dropout") || requestTypeName.includes("drop out") || requestTypeName.includes("dropping out")) {
+      requestType = "dropout";
     } else if (requestTypeName.includes("schedule")) {
       requestType = "schedule_change";
     } else if (requestTypeName.includes("course")) {
@@ -130,6 +132,9 @@ export default function StaffRequestPage() {
       suspensionEndDate: apiRequest.suspensionEndDate,
       reasonCategory: apiRequest.reasonCategory,
       expectedReturnDate: apiRequest.expectedReturnDate,
+      // Dropout fields
+      completedExitSurvey: apiRequest.completedExitSurvey,
+      exitSurveyUrl: apiRequest.exitSurveyUrl,
     };
   }, [statusLookups]);
 
@@ -495,6 +500,8 @@ export default function StaffRequestPage() {
         return "Enrollment Cancellation";
       case "suspension":
         return "Suspension";
+      case "dropout":
+        return "Dropout";
       case "refund":
         return "Refund";
       case "other":
@@ -762,6 +769,7 @@ export default function StaffRequestPage() {
                   { label: "Meeting Reschedule", value: "meeting_reschedule" },
                   { label: "Enrollment Cancellation", value: "enrollment_cancellation" },
                   { label: "Suspension", value: "suspension" },
+                  { label: "Dropout", value: "dropout" },
                   { label: "Refund", value: "refund" },
                   { label: "Other", value: "other" }
                 ]}

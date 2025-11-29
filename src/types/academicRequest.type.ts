@@ -39,6 +39,9 @@ export interface AcademicRequestResponse {
   suspensionEndDate?: string;
   reasonCategory?: string;
   expectedReturnDate?: string;
+  // For dropout requests
+  completedExitSurvey?: boolean;
+  exitSurveyUrl?: string;
 }
 
 export interface ProcessAcademicRequest {
@@ -56,7 +59,7 @@ export interface AcademicRequest {
   id: string;
   studentName: string;
   studentEmail: string;
-  requestType: "course_change" | "schedule_change" | "refund" | "other" | "class_transfer" | "meeting_reschedule" | "enrollment_cancellation" | "suspension";
+  requestType: "course_change" | "schedule_change" | "refund" | "other" | "class_transfer" | "meeting_reschedule" | "enrollment_cancellation" | "suspension" | "dropout";
   description: string;
   status: "pending" | "underreview" | "needinfo" | "approved" | "rejected";
   submittedDate: string;
@@ -90,5 +93,8 @@ export interface AcademicRequest {
   suspensionEndDate?: string;
   reasonCategory?: string;
   expectedReturnDate?: string;
+  // For dropout requests
+  completedExitSurvey?: boolean;
+  exitSurveyUrl?: string;
 }
 

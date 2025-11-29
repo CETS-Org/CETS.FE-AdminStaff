@@ -1,4 +1,4 @@
-import { Calendar, ChevronRight, Clock, CheckCircle, XCircle, CalendarClock, ArrowRightLeft, GraduationCap, DollarSign, FileText, UserMinus, PauseCircle } from "lucide-react";
+import { Calendar, ChevronRight, Clock, CheckCircle, XCircle, CalendarClock, ArrowRightLeft, GraduationCap, DollarSign, FileText, UserMinus, PauseCircle, AlertTriangle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { AcademicRequest } from "@/types/academicRequest.type";
 
@@ -24,6 +24,8 @@ export default function RequestCard({ request, onViewDetails, isSelected = false
         return "Enrollment Cancellation";
       case "suspension":
         return "Suspension";
+      case "dropout":
+        return "Dropout";
       case "refund":
         return "Refund";
       case "other":
@@ -47,6 +49,8 @@ export default function RequestCard({ request, onViewDetails, isSelected = false
         return { Icon: UserMinus, gradient: "from-red-500 to-red-600" };
       case "suspension":
         return { Icon: PauseCircle, gradient: "from-orange-500 to-orange-600" };
+      case "dropout":
+        return { Icon: AlertTriangle, gradient: "from-red-600 to-red-700" };
       case "refund":
         return { Icon: DollarSign, gradient: "from-green-500 to-green-600" };
       case "other":
