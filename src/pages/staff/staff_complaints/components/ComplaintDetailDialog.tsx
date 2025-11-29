@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from '@/components/ui/Dialog';
 import Button from '@/components/ui/Button';
 import { 
@@ -14,30 +14,26 @@ import {
   AlertCircle,
   FileText
 } from 'lucide-react';
+import { useToast } from '@/hooks/useToast';
+import { getComplaintDownloadUrl } from '@/api/complaint.api';
 
-interface Complaint {
+export interface Complaint {
   id: string;
   complaintId: string;
   user: {
     name: string;
     avatar?: string;
   };
-  type: 'Payment' | 'Schedule' | 'Technical' | 'Course' | 'Faculty';
-  status: 'Pending' | 'In Progress' | 'Resolved' | 'Rejected';
-  priority: 'Low' | 'Medium' | 'High';
+  type: string;
+  status: string;
+  priority: string;
   date: string;
   description: string;
-  attachments?: {
-    name: string;
-    type: 'PDF' | 'JPEG' | 'PNG';
-    size: string;
-    url?: string;
-  }[];
-  activityLog?: {
-    action: string;
-    user: string;
-    timestamp: string;
-  }[];
+  submitterEmail?: string;
+  attachmentUrl?: string;
+  resolvedByName?: string;
+  resolvedAt?: string;
+  adminResponse?: string;
 }
 
 interface ComplaintDetailDialogProps {
@@ -53,22 +49,35 @@ export default function ComplaintDetailDialog({
   complaint,
   onStatusChange
 }: ComplaintDetailDialogProps) {
-  const [response, setResponse] = useState('');
-  const [showResponseDialog, setShowResponseDialog] = useState(false);
-  const [selectedAction, setSelectedAction] = useState<'resolve' | 'reject' | 'in-progress'>('resolve');
+  const [reply, setReply] = useState('');
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<'resolve' | 'closed' | 'in-progress'>('resolve');
+  const [selectedNextStatus, setSelectedNextStatus] = useState<'in-progress' | 'closed' | 'resolve' | null>(null);
+  const { showToast } = useToast();
+
+  // Reset reply when dialog opens/closes or complaint changes
+  useEffect(() => {
+    if (!isOpen || !complaint) {
+      setReply('');
+      setShowConfirmDialog(false);
+      setSelectedNextStatus(null);
+    }
+  }, [isOpen, complaint?.id]);
 
   if (!complaint) return null;
 
   const getStatusIcon = (status: string) => {
     switch (status) {
+      case 'Open':
       case 'Pending':
         return <Clock className="w-5 h-5 text-yellow-600" />;
       case 'In Progress':
         return <AlertCircle className="w-5 h-5 text-blue-600" />;
       case 'Resolved':
         return <CheckCircle className="w-5 h-5 text-green-600" />;
+      case 'Closed':
       case 'Rejected':
-        return <XCircle className="w-5 h-5 text-red-600" />;
+        return <XCircle className="w-5 h-5 text-gray-600" />;
       default:
         return <AlertCircle className="w-5 h-5 text-gray-600" />;
     }
@@ -76,14 +85,16 @@ export default function ComplaintDetailDialog({
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'Open':
       case 'Pending':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'In Progress':
         return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'Resolved':
         return 'bg-green-100 text-green-800 border-green-200';
+      case 'Closed':
       case 'Rejected':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-gray-100 text-gray-800 border-gray-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -156,41 +167,62 @@ export default function ComplaintDetailDialog({
     }
   };
 
-  const handleActionClick = (action: 'resolve' | 'reject' | 'in-progress') => {
-    setSelectedAction(action);
-    setShowResponseDialog(true);
+  const handleActionClick = (action: 'resolve' | 'closed' | 'in-progress') => {
+    // For Resolved or Closed, require reply
+    if ((action === 'resolve' || action === 'closed') && !reply.trim()) {
+      showToast('Please provide an admin response', 'error');
+      return;
+    }
+    // For in-progress, reply is optional but we still show confirm dialog
+    setConfirmAction(action);
+    setShowConfirmDialog(true);
   };
 
   const handleConfirmAction = () => {
-    const statusMap = {
+    const statusMap: Record<'resolve' | 'closed' | 'in-progress', string> = {
       'resolve': 'Resolved',
-      'reject': 'Rejected',
+      'closed': 'Closed',
       'in-progress': 'In Progress'
     };
     
-    onStatusChange(complaint.id, statusMap[selectedAction], response);
-    setShowResponseDialog(false);
-    setResponse('');
-    onClose();
+    // For Resolved or Closed, require reply
+    if ((confirmAction === 'resolve' || confirmAction === 'closed') && !reply.trim()) {
+      showToast('Please provide an admin response', 'error');
+      return;
+    }
+    
+    const newStatus = statusMap[confirmAction];
+    onStatusChange(complaint.id, newStatus, reply || undefined);
+    setShowConfirmDialog(false);
+    setReply('');
+    setSelectedNextStatus(null); // Reset selected status after change
   };
 
-  const mockAttachments = [
-    { name: 'screenshot.png', type: 'PNG' as const, size: '1.2 MB' },
-    { name: 'receipt.pdf', type: 'PDF' as const, size: '245 KB' }
-  ];
+  const handleDownloadAttachment = async () => {
+    if (!complaint.attachmentUrl) {
+      showToast('No attachment available to download', 'error');
+      return;
+    }
 
-  const mockActivityLog = [
-    {
-      action: 'Complaint submitted',
-      user: complaint.user.name,
-      timestamp: complaint.date + ' 14:30'
-    },
-    ...(complaint.status !== 'Pending' ? [{
-      action: `Status changed to ${complaint.status}`,
-      user: 'Admin Staff',
-      timestamp: complaint.date + ' 16:45'
-    }] : [])
-  ];
+    try {
+      showToast('Preparing download...', 'info');
+      const response = await getComplaintDownloadUrl(complaint.id);
+      const downloadUrl = response.downloadUrl;
+
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      showToast('Download started!', 'success');
+    } catch (error: any) {
+      console.error('Download attachment error:', error);
+      showToast(`Failed to download attachment: ${error.response?.data?.error || error.message || 'Unknown error'}`, 'error');
+    }
+  };
 
   return (
     <>
@@ -263,10 +295,12 @@ export default function ComplaintDetailDialog({
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-gray-900">{complaint.user.name}</span>
                     </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Mail className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm text-gray-600">user@example.com</span>
-                    </div>
+                    {complaint.submitterEmail && (
+                      <div className="flex items-center gap-2 mt-1">
+                        <Mail className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">{complaint.submitterEmail}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -283,156 +317,224 @@ export default function ComplaintDetailDialog({
               </div>
 
               {/* Attachments */}
-              <div>
-                <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  Attachments ({mockAttachments.length})
-                </h3>
-                <div className="space-y-2">
-                  {mockAttachments.map((attachment, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        {getFileIcon(attachment.type)}
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{attachment.name}</p>
-                          <p className="text-xs text-gray-500">{attachment.type} • {attachment.size}</p>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="sm">
-                        <Download className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Activity Log */}
-              <div>
-                <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-                  <Clock className="w-5 h-5" />
-                  Activity Log
-                </h3>
-                <div className="space-y-3">
-                  {mockActivityLog.map((activity, index) => (
-                    <div key={index} className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                        <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                      </div>
+              {complaint.attachmentUrl && (
+                <div>
+                  <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Attachment
+                  </h3>
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex items-center gap-3">
+                      <FileText className="w-5 h-5 text-gray-500" />
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{activity.action}</p>
-                        <p className="text-xs text-gray-500">by {activity.user} • {activity.timestamp}</p>
+                        <p className="text-sm font-medium text-gray-700">
+                          {complaint.attachmentUrl.split('/').pop() || 'Attachment'}
+                        </p>
+                        <p className="text-xs text-gray-500">Supporting document</p>
                       </div>
                     </div>
-                  ))}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleDownloadAttachment}
+                      className="flex items-center gap-2"
+                      iconLeft={<Download className="w-4 h-4" />}
+                    >
+                      Download
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Admin Response */}
+              {complaint.adminResponse && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Admin Response</label>
+                  <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                    <p className="text-gray-800 whitespace-pre-wrap">{complaint.adminResponse}</p>
+                    {complaint.resolvedByName && (
+                      <p className="text-xs text-gray-600 mt-2">
+                        By {complaint.resolvedByName}
+                        {complaint.resolvedAt && ` on ${new Date(complaint.resolvedAt).toLocaleDateString()}`}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Reply Section - Show for all status changes */}
+              {selectedNextStatus && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Admin Response {(selectedNextStatus === 'resolve' || selectedNextStatus === 'closed') ? <span className="text-red-500">*</span> : <span className="text-gray-500">(Optional)</span>}
+                  </label>
+                  <textarea
+                    value={reply}
+                    onChange={(e) => setReply(e.target.value)}
+                    placeholder="Enter your response to the complainant..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                    rows={4}
+                  />
+                </div>
+              )}
             </div>
           </DialogBody>
           
           <DialogFooter>
-            <div className="flex items-center gap-3">
-              <Button variant="secondary" onClick={onClose}>
-                Close
-              </Button>
-              {complaint.status === 'Pending' && (
-                <>
-                  <Button
-                    variant="secondary"
-                    onClick={() => handleActionClick('in-progress')}
-                    className="!bg-blue-500 text-blue-700 border-blue-200 hover:!bg-blue-400"
-                  >
-                    Mark In Progress
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => handleActionClick('reject')}
-                    className="!bg-red-500 text-red-700 border-red-200 hover:!bg-red-400"
-                  >
-                    Reject
-                  </Button>
-                  <Button
-                    onClick={() => handleActionClick('resolve')}
-                    className="!bg-green-500 hover:!bg-green-400 text-white"
-                  >
-                    Resolve
-                  </Button>
-                </>
-              )}
-              {complaint.status === 'In Progress' && (
-                <>
-                  <Button
-                    variant="secondary"
-                    onClick={() => handleActionClick('reject')}
-                    className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
-                  >
-                    Reject
-                  </Button>
-                  <Button
-                    onClick={() => handleActionClick('resolve')}
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    Resolve
-                  </Button>
-                </>
-              )}
-            </div>
+            <Button
+              variant="secondary"
+              onClick={onClose}
+            >
+              Close
+            </Button>
+            {/* Show buttons for Open status - only if no action selected yet */}
+            {complaint.status === 'Open' && !selectedNextStatus && (
+              <>
+                <Button
+                  onClick={() => {
+                    setSelectedNextStatus('in-progress');
+                    setReply('');
+                  }}
+                  iconLeft={<Clock className="w-4 h-4 mr-2" />}
+                  className="!bg-blue-600 hover:!bg-blue-700 !text-white"
+                >
+                  Mark In Progress
+                </Button>
+              </>
+            )}
+            {/* Show buttons for In Progress status - only if no action selected yet */}
+            {complaint.status === 'In Progress' && !selectedNextStatus && (
+              <>
+                <Button
+                  onClick={() => {
+                    setSelectedNextStatus('resolve');
+                    setReply('');
+                  }}
+                  iconLeft={<CheckCircle className="w-4 h-4 mr-2" />}
+                  className="!bg-green-600 hover:!bg-green-700 !text-white"
+                >
+                  Resolve
+                </Button>
+              </>
+            )}
+            {/* When status is Resolved or Closed, only show Close button to close dialog */}
+            {/* Show buttons when any status change is selected */}
+            {selectedNextStatus && (
+              <>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setSelectedNextStatus(null);
+                    setReply('');
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => handleActionClick(selectedNextStatus)}
+                  iconLeft={
+                    selectedNextStatus === 'resolve' ? <CheckCircle className="w-4 h-4 mr-2" /> : 
+                    selectedNextStatus === 'closed' ? <XCircle className="w-4 h-4 mr-2" /> : 
+                    <Clock className="w-4 h-4 mr-2" />
+                  }
+                  className={
+                    selectedNextStatus === 'resolve' ? '!bg-green-600 hover:!bg-green-700 !text-white' : 
+                    selectedNextStatus === 'closed' ? '!bg-gray-600 hover:!bg-gray-700 !text-white' : 
+                    '!bg-blue-600 hover:!bg-blue-700 !text-white'
+                  }
+                  disabled={(selectedNextStatus === 'resolve' || selectedNextStatus === 'closed') && !reply.trim()}
+                >
+                  {selectedNextStatus === 'resolve' ? 'Confirm Resolve' : 
+                   selectedNextStatus === 'closed' ? 'Confirm Close' : 
+                   'Confirm In Progress'}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Response Dialog */}
-      <Dialog open={showResponseDialog} onOpenChange={(open) => !open && setShowResponseDialog(false)}>
-        <DialogContent>
+      {/* Confirm Dialog */}
+      <Dialog open={showConfirmDialog} onOpenChange={(open) => !open && setShowConfirmDialog(false)}>
+        <DialogContent size="lg" className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>
-              {selectedAction === 'resolve' ? 'Resolve Complaint' : 
-               selectedAction === 'reject' ? 'Reject Complaint' : 
-               'Update Status'}
+              {confirmAction === 'resolve' ? 'Resolve Complaint' : 
+               confirmAction === 'closed' ? 'Close Complaint' : 
+               'Mark as In Progress'}
             </DialogTitle>
             <DialogDescription>
-              {selectedAction === 'resolve' ? 'Provide a resolution message for this complaint.' :
-               selectedAction === 'reject' ? 'Explain why this complaint is being rejected.' :
-               'Add a note about the status change.'}
+              {confirmAction === 'resolve' 
+                ? 'Are you sure you want to resolve this complaint? The complainant will be notified.'
+                : confirmAction === 'closed'
+                ? 'Are you sure you want to close this complaint? Please provide a reason for closing.'
+                : 'This will mark the complaint as in progress and assign it for further processing.'}
             </DialogDescription>
           </DialogHeader>
-          
-          <DialogBody>
+          <DialogBody className="flex-1 overflow-y-auto max-h-none">
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Response Message
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  {confirmAction === 'resolve' ? (
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                  ) : confirmAction === 'closed' ? (
+                    <XCircle className="w-5 h-5 text-gray-600" />
+                  ) : (
+                    <Clock className="w-5 h-5 text-blue-600" />
+                  )}
+                  <span className="font-medium">Complaint Details</span>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <p><span className="font-medium">Complainant:</span> {complaint.user.name}</p>
+                  <p><span className="font-medium">Type:</span> {complaint.type}</p>
+                  <p><span className="font-medium">Priority:</span> {complaint.priority}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="confirm-reply" className="block text-sm font-medium text-gray-700">
+                  Reply to Complainant {(confirmAction === 'closed' || confirmAction === 'resolve') ? '(Required)' : '(Optional)'}
                 </label>
                 <textarea
-                  value={response}
-                  onChange={(e) => setResponse(e.target.value)}
-                  placeholder={
-                    selectedAction === 'resolve' ? 'Describe how the complaint was resolved...' :
-                    selectedAction === 'reject' ? 'Explain the reason for rejection...' :
-                    'Add any relevant notes...'
-                  }
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  id="confirm-reply"
+                  value={reply}
+                  readOnly
+                  disabled
+                  placeholder={`Enter your ${confirmAction === 'resolve' ? 'resolution' : confirmAction === 'closed' ? 'closing' : 'progress'} message...`}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm resize-none bg-gray-50 text-gray-700 cursor-not-allowed"
                   rows={4}
                 />
+                <p className="text-xs text-gray-500 italic">Reply is entered in the complaint details dialog</p>
+                {(confirmAction === 'closed' || confirmAction === 'resolve') && !reply.trim() && (
+                  <p className="text-sm text-red-600">Please provide an admin response in the complaint details dialog</p>
+                )}
               </div>
             </div>
           </DialogBody>
-          
           <DialogFooter>
-            <Button variant="secondary" onClick={() => setShowResponseDialog(false)}>
+            <Button
+              variant="secondary"
+              onClick={() => setShowConfirmDialog(false)}
+            >
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleConfirmAction}
-              disabled={!response.trim()}
-              className={
-                selectedAction === 'resolve' ? 'bg-green-600 hover:bg-green-700' :
-                selectedAction === 'reject' ? 'bg-red-600 hover:bg-red-700' :
+              className={`${
+                confirmAction === 'resolve' ? 'bg-green-600 hover:bg-green-700' : 
+                confirmAction === 'closed' ? 'bg-gray-600 hover:bg-gray-700' : 
                 'bg-blue-600 hover:bg-blue-700'
+              } text-white`}
+              disabled={
+                (confirmAction === 'closed' && !reply.trim()) ||
+                (confirmAction === 'resolve' && !reply.trim())
               }
             >
-              {selectedAction === 'resolve' ? 'Resolve' : 
-               selectedAction === 'reject' ? 'Reject' : 
-               'Update Status'}
+              {confirmAction === 'resolve' 
+                ? 'Resolve Complaint'
+                : confirmAction === 'closed'
+                ? 'Close Complaint'
+                : 'Mark as In Progress'}
             </Button>
           </DialogFooter>
         </DialogContent>

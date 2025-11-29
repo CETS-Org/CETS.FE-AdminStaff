@@ -29,7 +29,8 @@ export const endpoint ={
   classReservation: '/api/class-reservations',
   classMeetings: '/api/ACAD_ClassMeetings',
   courseShedule: '/api/ACAD_CourseSchedule',
-  room: '/api/FAC_Room'
+  room: '/api/FAC_Room',
+  report: '/api/RPT_Report'
 }
 
   // Request interceptor to add auth token

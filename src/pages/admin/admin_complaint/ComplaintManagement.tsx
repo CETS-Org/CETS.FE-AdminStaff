@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Eye, Filter, Download, CheckSquare, Square, MoreVertical, MessageSquare, Clock, CheckCircle, XCircle } from 'lucide-react';
 import Button from '@/components/ui/Button';
@@ -6,100 +6,62 @@ import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import Card from '@/components/ui/Card';
 import PageHeader from '@/components/ui/PageHeader';
-import ComplaintDetailDialog from '../../staff/staff_complaints/components/ComplaintDetailDialog';
+import ComplaintDetailDialog, { type Complaint } from '../../staff/staff_complaints/components/ComplaintDetailDialog';
+import { getAllComplaints, updateComplaint, getComplaintsByStatus, type SystemComplaint } from '@/api/complaint.api';
+import { getLookupsByTypeCode } from '@/api/core.api';
+import { useToast } from '@/hooks/useToast';
+import Spinner from '@/components/ui/Spinner';
 
-interface Complaint {
-  id: string;
-  complaintId: string;
-  user: {
-    name: string;
-    avatar?: string;
-  };
-  type: 'Payment' | 'Schedule' | 'Technical' | 'Course' | 'Faculty';
-  status: 'Pending' | 'In Progress' | 'Resolved' | 'Rejected';
-  priority: 'Low' | 'Medium' | 'High';
-  date: string;
-  description: string;
+interface ComplaintLocal extends Complaint {
+  reportStatusID?: string;
+  statusName?: string;
 }
 
-const mockComplaints: Complaint[] = [
-  {
-    id: '1',
-    complaintId: 'CMP-001',
+// Helper function to map API response to UI format
+const mapApiComplaintToUI = (apiComplaint: SystemComplaint, index: number): ComplaintLocal => {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+
+  // Extract type from reportTypeName or default
+  const type = apiComplaint.reportTypeName || 'General';
+  
+  // Use status name directly from API
+  const status = apiComplaint.statusName || 'Open';
+
+  return {
+    id: apiComplaint.id,
+    complaintId: `CMP-${String(index + 1).padStart(3, '0')}`,
     user: {
-      name: 'John Smith',
+      name: apiComplaint.submitterName || 'Unknown User',
       avatar: undefined
     },
-    type: 'Course',
-    status: 'Pending',
-    priority: 'High',
-    date: '20/08/2025',
-    description: 'Unable to access course materials for Math 101'
-  },
-  {
-    id: '2',
-    complaintId: 'CMP-002',
-    user: {
-      name: 'Sarah Johnson',
-      avatar: undefined
-    },
-    type: 'Schedule',
-    status: 'In Progress',
-    priority: 'Medium',
-    date: '21/08/2025',
-    description: 'Class time conflict with another subject'
-  },
-  {
-    id: '3',
-    complaintId: 'CMP-003',
-    user: {
-      name: 'Mike Wilson',
-      avatar: undefined
-    },
-    type: 'Technical',
-    status: 'Resolved',
-    priority: 'Low',
-    date: '22/08/2025',
-    description: 'Login issues with student portal'
-  },
-  {
-    id: '4',
-    complaintId: 'CMP-004',
-    user: {
-      name: 'Emma Davis',
-      avatar: undefined
-    },
-    type: 'Faculty',
-    status: 'Pending',
-    priority: 'Medium',
-    date: '23/08/2025',
-    description: 'Teacher availability concern'
-  },
-  {
-    id: '5',
-    complaintId: 'CMP-005',
-    user: {
-      name: 'Alex Brown',
-      avatar: undefined
-    },
-    type: 'Payment',
-    status: 'Rejected',
-    priority: 'Low',
-    date: '24/08/2025',
-    description: 'Fee payment processing issue'
-  }
-];
+    type: type,
+    status: status,
+    priority: apiComplaint.priority || 'Medium', // Use priority from API, default to Medium if not provided
+    date: formatDate(apiComplaint.createdAt),
+    description: apiComplaint.description,
+    reportStatusID: apiComplaint.reportStatusID,
+    statusName: apiComplaint.statusName,
+    submitterEmail: apiComplaint.submitterEmail,
+    attachmentUrl: apiComplaint.attachmentUrl,
+    resolvedByName: apiComplaint.resolvedByName,
+    resolvedAt: apiComplaint.resolvedAt,
+    adminResponse: apiComplaint.adminResponse
+  };
+};
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case 'Pending':
+    case 'Open':
       return 'bg-yellow-100 text-yellow-800 border-yellow-200';
     case 'In Progress':
       return 'bg-blue-100 text-blue-800 border-blue-200';
     case 'Resolved':
       return 'bg-green-100 text-green-800 border-green-200';
-    case 'Rejected':
-      return 'bg-red-100 text-red-800 border-red-200';
+    case 'Closed':
+      return 'bg-gray-100 text-gray-800 border-gray-200';
     default:
       return 'bg-gray-100 text-gray-800 border-gray-200';
   }
@@ -136,19 +98,82 @@ const getPriorityColor = (priority: string) => {
 };
 
 export default function ComplaintManagement() {
+  const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
   const [typeFilter, setTypeFilter] = useState('All Types');
   const [priorityFilter, setPriorityFilter] = useState('All Priority');
-  const [complaints, setComplaints] = useState<Complaint[]>(mockComplaints);
+  const [complaints, setComplaints] = useState<ComplaintLocal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [statusLookups, setStatusLookups] = useState<any[]>([]);
+  const [reportTypes, setReportTypes] = useState<any[]>([]);
+  const [statusMap, setStatusMap] = useState<Record<string, string>>({}); // statusId -> statusName
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
-  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
+  const [selectedComplaint, setSelectedComplaint] = useState<ComplaintLocal | null>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedComplaints, setSelectedComplaints] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+
+  // Helper to get status by code
+  const getStatusByCode = (code: string) => {
+    return statusLookups.find((s: any) => s.code?.toUpperCase() === code.toUpperCase())?.name || code;
+  };
+
+  // Fetch complaints and status lookups on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch status lookups
+        try {
+          const statusResponse = await getLookupsByTypeCode('ReportStatus');
+          const statuses = statusResponse.data || [];
+          setStatusLookups(statuses);
+          
+          // Create status map for quick lookup
+          const map: Record<string, string> = {};
+          statuses.forEach((status: any) => {
+            map[status.id] = status.name;
+          });
+          setStatusMap(map);
+        } catch (error) {
+          console.error('Error fetching status lookups:', error);
+        }
+
+        // Fetch report types
+        try {
+          const typeResponse = await getLookupsByTypeCode('ReportType');
+          const types = typeResponse.data || [];
+          setReportTypes(types);
+        } catch (error) {
+          console.error('Error fetching report types:', error);
+        }
+
+        // Fetch complaints
+        const complaintsData = await getAllComplaints();
+        const mappedComplaints = complaintsData.map((complaint, index) => 
+          mapApiComplaintToUI(complaint, index)
+        );
+        setComplaints(mappedComplaints);
+      } catch (error: any) {
+        console.error('Error fetching complaints:', error);
+        showToast('Failed to load complaints', 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [showToast]);
+
+  // Get unique priorities from complaints data
+  const availablePriorities = Array.from(
+    new Set(complaints.map(c => c.priority).filter(p => p))
+  ).sort();
 
   const filteredComplaints = complaints.filter(complaint => {
     const matchesSearch = complaint.complaintId.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -170,7 +195,7 @@ export default function ComplaintManagement() {
   const showingEnd = Math.min(endIndex, totalItems);
 
   // Get user avatar or initials
-  const getUserAvatar = (user: Complaint['user']) => {
+  const getUserAvatar = (user: ComplaintLocal['user']) => {
     if (user.avatar) {
       return <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full" />;
     }
@@ -205,17 +230,67 @@ export default function ComplaintManagement() {
   };
 
   // Handle complaint actions
-  const handleViewComplaint = (complaint: Complaint) => {
+  const handleViewComplaint = (complaint: ComplaintLocal) => {
     setSelectedComplaint(complaint);
     setShowDetailDialog(true);
   };
 
-  const handleStatusChange = (complaintId: string, newStatus: string) => {
-    setComplaints(prev => prev.map(complaint => 
-      complaint.id === complaintId 
-        ? { ...complaint, status: newStatus as Complaint['status'] }
-        : complaint
-    ));
+  const handleStatusChange = async (complaintId: string, newStatus: string, response?: string) => {
+    try {
+      const complaint = complaints.find(c => c.id === complaintId);
+      if (!complaint) return;
+
+      // Find status ID from statusLookups by matching name directly from API
+      const statusEntry = statusLookups.find((s: any) => s.name === newStatus);
+
+      if (!statusEntry) {
+        showToast('Status not found', 'error');
+        return;
+      }
+
+      // Get original complaint from API
+      const originalComplaints = await getAllComplaints();
+      const originalComplaint = originalComplaints.find(c => c.id === complaintId);
+      if (!originalComplaint) return;
+
+      // Update complaint via API
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      
+      // Prepare update payload
+      const updatePayload: any = {
+        reportTypeID: originalComplaint.reportTypeID,
+        submittedBy: originalComplaint.submittedBy,
+        title: originalComplaint.title,
+        description: originalComplaint.description,
+        attachmentUrl: originalComplaint.attachmentUrl || undefined,
+        reportStatusID: statusEntry.lookUpId, // Always include reportStatusID
+        reportUrl: originalComplaint.reportUrl || undefined,
+        priority: originalComplaint.priority || undefined,
+        adminResponse: response || undefined, // Store admin response
+        resolvedBy: statusEntry.code === 'RESOLVED' || statusEntry.code === 'CLOSED' ? userData.id : undefined,
+        resolvedAt: statusEntry.code === 'RESOLVED' || statusEntry.code === 'CLOSED' ? new Date().toISOString() : undefined
+      };
+
+      console.log('Updating complaint with payload:', updatePayload);
+      
+      await updateComplaint(complaintId, updatePayload);
+
+      // Refresh complaints list
+      const updatedComplaints = await getAllComplaints();
+      const mappedComplaints = updatedComplaints.map((c, idx) => mapApiComplaintToUI(c, idx));
+      setComplaints(mappedComplaints);
+
+      // Update selectedComplaint if dialog is open
+      const updatedComplaint = mappedComplaints.find(c => c.id === complaintId);
+      if (updatedComplaint) {
+        setSelectedComplaint(updatedComplaint);
+      }
+
+      showToast('Complaint status updated successfully', 'success');
+    } catch (error: any) {
+      console.error('Error updating complaint status:', error);
+      showToast('Failed to update complaint status', 'error');
+    }
   };
 
   // Handle bulk actions
@@ -235,13 +310,54 @@ export default function ComplaintManagement() {
     }
   };
 
-  const handleBulkStatusChange = (newStatus: string) => {
-    setComplaints(prev => prev.map(complaint => 
-      selectedComplaints.includes(complaint.id)
-        ? { ...complaint, status: newStatus as Complaint['status'] }
-        : complaint
-    ));
-    setSelectedComplaints([]);
+  const handleBulkStatusChange = async (newStatus: string) => {
+    try {
+      // Find status ID from statusLookups by matching name directly from API
+      // Status names from API: "Closed", "In Progress", "Resolved", "Open"
+      const statusEntry = statusLookups.find((s: any) => s.name === newStatus);
+
+      if (!statusEntry) {
+        showToast('Status not found', 'error');
+        return;
+      }
+
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      
+      // Update all selected complaints
+      const updatePromises = selectedComplaints.map(async (complaintId) => {
+        const originalComplaints = await getAllComplaints();
+        const originalComplaint = originalComplaints.find(c => c.id === complaintId);
+        if (!originalComplaint) return;
+
+        await updateComplaint(complaintId, {
+          reportTypeID: originalComplaint.reportTypeID,
+          submittedBy: originalComplaint.submittedBy,
+          title: originalComplaint.title,
+          description: originalComplaint.description,
+          attachmentUrl: originalComplaint.attachmentUrl || undefined,
+          reportStatusID: statusEntry.lookUpId || statusEntry.id, // Always include reportStatusID
+          reportUrl: originalComplaint.reportUrl || undefined,
+          priority: originalComplaint.priority || undefined,
+          resolvedBy: statusEntry.code === 'RESOLVED' || statusEntry.code === 'CLOSED' ? userData.id : undefined,
+          resolvedAt: statusEntry.code === 'RESOLVED' || statusEntry.code === 'CLOSED' ? new Date().toISOString() : undefined
+        });
+      });
+
+      await Promise.all(updatePromises);
+
+      // Update local state
+      setComplaints(prev => prev.map(complaint => 
+        selectedComplaints.includes(complaint.id)
+          ? { ...complaint, status: newStatus, statusName: statusEntry.name, reportStatusID: statusEntry.id }
+          : complaint
+      ));
+      
+      setSelectedComplaints([]);
+      showToast(`${selectedComplaints.length} complaints updated successfully`, 'success');
+    } catch (error: any) {
+      console.error('Error updating complaints:', error);
+      showToast('Failed to update complaints', 'error');
+    }
   };
 
   const handleExportComplaints = () => {
@@ -265,6 +381,14 @@ export default function ComplaintManagement() {
       setCurrentPage(currentPage + 1);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50/50 pt-16 flex items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50/50 pt-16">
@@ -307,9 +431,9 @@ export default function ComplaintManagement() {
                 <Clock className="w-7 h-7 text-white" />
               </div>
               <div>
-                <p className="text-sm font-medium text-yellow-700">Pending</p>
+                <p className="text-sm font-medium text-yellow-700">Open</p>
                 <p className="text-3xl font-bold text-yellow-900 group-hover:text-yellow-600 transition-colors">
-                  {complaints.filter(c => c.status === 'Pending').length}
+                  {complaints.filter(c => c.status === 'Open').length}
                 </p>
                 <p className="text-xs text-yellow-600 mt-1">
                   Awaiting review
@@ -382,10 +506,10 @@ export default function ComplaintManagement() {
                       </Button>
                       <Button
                         size="sm"
-                        onClick={() => handleBulkStatusChange('Rejected')}
-                        className="text-xs !bg-red-500 text-red-700 border-red-200 hover:!bg-red-300"
+                        onClick={() => handleBulkStatusChange('Closed')}
+                        className="text-xs !bg-gray-500 text-gray-700 border-gray-200 hover:!bg-gray-300"
                       >
-                        Reject
+                        Close
                       </Button>
                     </div>
                   </div>
@@ -422,10 +546,12 @@ export default function ComplaintManagement() {
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleStatusFilterChange(e.target.value)}
                     options={[
                       { value: 'All Status', label: 'All Status' },
-                      { value: 'Pending', label: 'Pending' },
-                      { value: 'In Progress', label: 'In Progress' },
-                      { value: 'Resolved', label: 'Resolved' },
-                      { value: 'Rejected', label: 'Rejected' }
+                      ...statusLookups
+                        .filter((status: any) => status.isActive)
+                        .map((status: any) => ({
+                          value: status.name,
+                          label: status.name
+                        }))
                     ]}
                     className="w-full sm:w-44"
                   />
@@ -434,11 +560,12 @@ export default function ComplaintManagement() {
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleTypeFilterChange(e.target.value)}
                     options={[
                       { value: 'All Types', label: 'All Types' },
-                      { value: 'Payment', label: 'Payment' },
-                      { value: 'Schedule', label: 'Schedule' },
-                      { value: 'Technical', label: 'Technical' },
-                      { value: 'Course', label: 'Course' },
-                      { value: 'Faculty', label: 'Faculty' }
+                      ...reportTypes
+                        .filter((type: any) => type.isActive)
+                        .map((type: any) => ({
+                          value: type.name,
+                          label: type.name
+                        }))
                     ]}
                     className="w-full sm:w-44"
                   />
@@ -447,9 +574,10 @@ export default function ComplaintManagement() {
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handlePriorityFilterChange(e.target.value)}
                     options={[
                       { value: 'All Priority', label: 'All Priority' },
-                      { value: 'High', label: 'High' },
-                      { value: 'Medium', label: 'Medium' },
-                      { value: 'Low', label: 'Low' }
+                      ...availablePriorities.map((priority: string) => ({
+                        value: priority,
+                        label: priority
+                      }))
                     ]}
                     className="w-full sm:w-44"
                   />
@@ -529,19 +657,16 @@ export default function ComplaintManagement() {
                     </button>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     User
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Type
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Priority
+                    Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                    Priority
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Date
@@ -567,19 +692,11 @@ export default function ComplaintManagement() {
                       </button>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900 font-mono">
-                        {complaint.complaintId}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
                       <div className="flex items-center">
                         {getUserAvatar(complaint.user)}
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">
                             {complaint.user.name}
-                          </div>
-                          <div className="text-sm text-gray-500 truncate max-w-48">
-                            {complaint.description}
                           </div>
                         </div>
                       </div>
@@ -590,14 +707,18 @@ export default function ComplaintManagement() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getPriorityColor(complaint.priority)}`}>
-                        {complaint.priority}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(complaint.status)}`}>
                         {complaint.status}
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {complaint.priority ? (
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getPriorityColor(complaint.priority)}`}>
+                          {complaint.priority}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-gray-400">-</span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900">{complaint.date}</div>
@@ -684,7 +805,7 @@ export default function ComplaintManagement() {
         <ComplaintDetailDialog
           isOpen={showDetailDialog}
           onClose={() => setShowDetailDialog(false)}
-          complaint={selectedComplaint}
+          complaint={selectedComplaint as Complaint | null}
           onStatusChange={handleStatusChange}
         />
       </div>

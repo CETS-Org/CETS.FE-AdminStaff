@@ -2,7 +2,8 @@ import { api as axiosInstance } from './api';
 import { loginAcademicStaff, loginAccountantStaff, loginAdmin } from './account.api';
 import { getCourses, getCoursesList, getCourseDetail, searchCourses, createCourse, updateCourse, deleteCourse, activateCourse, deactivateCourse, getCourseCategories, getCourseSkills, getCourseBenefits, getCourseRequirements } from './course.api';
 import { getCourseDetailById, getStudentsByCourse, getStudentEnrollments, getCourseTeachers, createCourseTeacherAssignment, deleteCourseTeacherAssignment, getCourseSyllabi, getCourseSkillsByCourse, getCourseBenefitsByCourse, getCourseRequirementsByCourse, getClassesByCourse, getCourseSchedules, createCourseSchedule, updateCourseSchedule, deleteCourseSchedule, createCourseSkill, deleteCourseSkill, createCourseBenefit, deleteCourseBenefit, createCourseRequirement, deleteCourseRequirement } from './course-relations.api';
-import { getClassDetail } from './class.api';
+import { getClassDetail, bulkUpdateFinalGrades } from './class.api';
+import type { FinalGradeUpdate } from './class.api';
 import { getLookupsByTypeCode } from './core.api';
 import { createSyllabus, createSyllabusItem, getSyllabiByCourse, getSyllabusItems, updateSyllabus, updateSyllabusItem, deleteSyllabus, deleteSyllabusItem } from './syllabus.api';
 import { createLearningMaterial } from './learning-material.api';
@@ -46,6 +47,17 @@ import {
   getAIRecommendations,
   getDashboardData
 } from './admin-dashboard.api';
+import {
+  getAllComplaints,
+  getComplaintById,
+  getComplaintsByStatus,
+  createComplaint,
+  updateComplaint,
+  deleteComplaint,
+  getComplaintDownloadUrl,
+  getReportTypes,
+  getReportStatuses
+} from './complaint.api';
 
 export const apiClient = axiosInstance;
 export { endpoint } from './api';
@@ -87,6 +99,7 @@ export const api = {
 
   // Classes
   getClassDetail,
+  bulkUpdateFinalGrades,
 
   // Core
   getLookupsByTypeCode,
@@ -154,6 +167,17 @@ export const api = {
   getStudentDropoutAnalytics,
   getAIRecommendations,
   getDashboardData,
+
+  // Complaints
+  getAllComplaints,
+  getComplaintById,
+  getComplaintsByStatus,
+  createComplaint,
+  updateComplaint,
+  deleteComplaint,
+  getComplaintDownloadUrl,
+  getReportTypes,
+  getReportStatuses,
 };
 
 export {
@@ -188,6 +212,7 @@ export {
   getCourseRequirementsByCourse,
   getClassesByCourse,
   getClassDetail,
+  bulkUpdateFinalGrades,
   getLookupsByTypeCode,
   getCourseCategories,
   createSyllabus,
@@ -238,6 +263,15 @@ export {
   getStudentDropoutAnalytics,
   getAIRecommendations,
   getDashboardData,
+  getAllComplaints,
+  getComplaintById,
+  getComplaintsByStatus,
+  createComplaint,
+  updateComplaint,
+  deleteComplaint,
+  getComplaintDownloadUrl,
+  getReportTypes,
+  getReportStatuses,
 };
 
 
