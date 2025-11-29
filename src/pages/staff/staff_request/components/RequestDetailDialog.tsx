@@ -1,33 +1,45 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from "@/components/ui/Dialog";
 import Button from "@/components/ui/Button";
-import { CheckCircle, XCircle, Clock, User, Mail, Calendar, AlertCircle, File, Download, MapPin } from "lucide-react";
+import { CheckCircle, XCircle, Clock, User, Mail, Calendar, AlertCircle, File, Download, MapPin, PauseCircle, AlertTriangle, ExternalLink, Star } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { getAttachmentDownloadUrl } from "@/api/academicRequest.api";
 import { getRooms } from "@/api/room.api";
 import type { AcademicRequest } from "@/types/academicRequest.type";
+import { SuspensionReasonCategoryLabels } from "@/types/suspensionRequest.type";
+import { DropoutReasonCategoryLabels, type ExitSurveyData } from "@/types/dropoutRequest.type";
+import { AcademicRequestReasonCategoryLabels } from "@/types/academicRequestReasonCategories";
 
 interface RequestDetailDialogProps {
   isOpen: boolean;
   onClose: () => void;
   request: AcademicRequest | null;
+  onStartReview?: () => void;
+  onNeedInfo?: (reply: string) => void;
   onApprove: (reply: string, selectedRoomID?: string) => void;
   onReject: (reply: string) => void;
+  onRequestUpdate?: (updatedRequest: AcademicRequest) => void;
 }
 
 export default function RequestDetailDialog({
   isOpen,
   onClose,
   request,
+  onStartReview,
+  onNeedInfo,
   onApprove,
-  onReject
+  onReject,
+  onRequestUpdate
 }: RequestDetailDialogProps) {
   const [reply, setReply] = useState("");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<"approve" | "reject">("approve");
+  const [confirmAction, setConfirmAction] = useState<"approve" | "reject" | "needinfo">("approve");
   const [selectedRoomID, setSelectedRoomID] = useState<string>("");
   const [availableRooms, setAvailableRooms] = useState<any[]>([]);
   const [isLoadingRooms, setIsLoadingRooms] = useState(false);
+  const [exitSurveyData, setExitSurveyData] = useState<ExitSurveyData | null>(null);
+  const [isLoadingExitSurvey, setIsLoadingExitSurvey] = useState(false);
+  const [showExitSurvey, setShowExitSurvey] = useState(false);
   const { showToast } = useToast();
 
   const fetchAvailableRooms = async () => {
@@ -54,9 +66,17 @@ export default function RequestDetailDialog({
     }
   };
 
+  // Reset reply when dialog opens/closes or request changes
+  useEffect(() => {
+    if (!isOpen) {
+      setReply("");
+      setShowConfirmDialog(false);
+    }
+  }, [isOpen]);
+
   // Fetch available rooms for meeting reschedule
   useEffect(() => {
-    if (request && request.requestType === "meeting_reschedule" && request.status === "pending" && request.toMeetingDate && request.toSlotID) {
+    if (request && request.requestType === "meeting_reschedule" && (request.status === "pending" || request.status === "underreview") && request.toMeetingDate && request.toSlotID) {
       fetchAvailableRooms();
     } else {
       setAvailableRooms([]);
@@ -66,9 +86,24 @@ export default function RequestDetailDialog({
 
   if (!request) return null;
 
+  const handleStartReview = () => {
+    if (onStartReview) {
+      onStartReview();
+    }
+  };
+
+  const handleNeedInfo = () => {
+    if (!reply.trim()) {
+      showToast('Please provide a message explaining what information is needed', 'error');
+      return;
+    }
+    setConfirmAction("needinfo");
+    setShowConfirmDialog(true);
+  };
+
   const handleApprove = () => {
     // Validate room selection for meeting reschedule
-    if (request.requestType === "meeting_reschedule" && request.status === "pending" && !selectedRoomID) {
+    if (request.requestType === "meeting_reschedule" && request.status === "underreview" && !selectedRoomID) {
       showToast('Please select a room for the rescheduled meeting', 'error');
       return;
     }
@@ -77,6 +112,10 @@ export default function RequestDetailDialog({
   };
 
   const handleReject = () => {
+    if (!reply.trim()) {
+      showToast('Please provide a reason for rejection', 'error');
+      return;
+    }
     setConfirmAction("reject");
     setShowConfirmDialog(true);
   };
@@ -84,8 +123,10 @@ export default function RequestDetailDialog({
   const handleConfirmAction = (replyMessage: string) => {
     if (confirmAction === "approve") {
       onApprove(replyMessage, selectedRoomID || undefined);
-    } else {
+    } else if (confirmAction === "reject") {
       onReject(replyMessage);
+    } else if (confirmAction === "needinfo" && onNeedInfo) {
+      onNeedInfo(replyMessage);
     }
     setShowConfirmDialog(false);
     setReply("");
@@ -96,6 +137,10 @@ export default function RequestDetailDialog({
     switch (status) {
       case "pending":
         return <Clock className="w-5 h-5 text-yellow-600" />;
+      case "underreview":
+        return <Clock className="w-5 h-5 text-blue-600" />;
+      case "needinfo":
+        return <AlertCircle className="w-5 h-5 text-orange-600" />;
       case "approved":
         return <CheckCircle className="w-5 h-5 text-green-600" />;
       case "rejected":
@@ -132,6 +177,8 @@ export default function RequestDetailDialog({
         return "Enrollment Cancellation";
       case "suspension":
         return "Suspension";
+      case "dropout":
+        return "Dropout";
       case "refund":
         return "Refund";
       case "other":
@@ -154,7 +201,9 @@ export default function RequestDetailDialog({
       case "enrollment_cancellation":
         return "Approving this request will cancel the student's enrollment. Please verify the cancellation policy and any refund implications.";
       case "suspension":
-        return "Approving this request will suspend the student's enrollment. Please ensure proper documentation and follow institutional policies.";
+        return "Approving this request will suspend the student's enrollment for the specified period. The student's account status will be set to 'Suspended' on the start date.\n\nPlease verify:\n(1) Student has no unpaid tuition\n(2) Student has not exceeded 2 suspensions this year\n(3) Proper documentation is provided if required\n(4) Dates meet policy requirements (7-90 days, 7-day notice)";
+      case "dropout":
+        return "Approving this request will PERMANENTLY terminate the student's enrollment. This action is IRREVERSIBLE and the student will be marked as 'Dropped Out' on the effective date.\n\nPlease verify:\n(1) Student has completed the exit survey\n(2) Student has no outstanding financial obligations\n(3) Student has been informed this is permanent\n(4) All required documents are provided\n(5) This is not a temporary leave (use Suspension for temporary)";
       case "refund":
         return "Approving this request will process a refund for the student. Please verify the refund amount and policy compliance.";
       case "other":
@@ -202,6 +251,72 @@ export default function RequestDetailDialog({
             )}
           </>
         );
+      case "suspension":
+        return (
+          <>
+            {req.suspensionStartDate && (
+              <p><span className="font-medium">Start Date:</span> {new Date(req.suspensionStartDate).toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}</p>
+            )}
+            {req.suspensionEndDate && (
+              <p><span className="font-medium">End Date:</span> {new Date(req.suspensionEndDate).toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}</p>
+            )}
+            {req.suspensionStartDate && req.suspensionEndDate && (
+              <p><span className="font-medium">Duration:</span> {
+                Math.ceil((new Date(req.suspensionEndDate).getTime() - new Date(req.suspensionStartDate).getTime()) / (1000 * 60 * 60 * 24))
+              } days</p>
+            )}
+            {req.expectedReturnDate && (
+              <p><span className="font-medium">Expected Return:</span> {new Date(req.expectedReturnDate).toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}</p>
+            )}
+            {req.reasonCategory && (
+              <p><span className="font-medium">Reason Category:</span> {
+                req.reasonCategory in SuspensionReasonCategoryLabels
+                  ? SuspensionReasonCategoryLabels[req.reasonCategory as keyof typeof SuspensionReasonCategoryLabels]
+                  : req.reasonCategory in AcademicRequestReasonCategoryLabels
+                  ? AcademicRequestReasonCategoryLabels[req.reasonCategory as keyof typeof AcademicRequestReasonCategoryLabels]
+                  : req.reasonCategory
+              }</p>
+            )}
+          </>
+        );
+      case "dropout":
+        return (
+          <>
+            {req.effectiveDate && (
+              <p><span className="font-medium">Effective Date:</span> {new Date(req.effectiveDate).toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}</p>
+            )}
+            {req.completedExitSurvey !== undefined && (
+              <p><span className="font-medium">Exit Survey:</span> {req.completedExitSurvey ? 'Completed ✓' : 'Not Completed ✗'}</p>
+            )}
+            {req.reasonCategory && (
+              <p><span className="font-medium">Reason Category:</span> {
+                req.reasonCategory in DropoutReasonCategoryLabels
+                  ? DropoutReasonCategoryLabels[req.reasonCategory as keyof typeof DropoutReasonCategoryLabels]
+                  : req.reasonCategory
+              }</p>
+            )}
+          </>
+        );
       case "refund":
         return (
           <p><span className="font-medium">Reason:</span> {req.reason}</p>
@@ -238,6 +353,50 @@ export default function RequestDetailDialog({
       console.error("Download attachment error:", error);
       showToast(`Failed to download attachment: ${error.response?.data?.error || error.message || "Unknown error"}`, 'error');
     }
+  };
+
+  // Load exit survey data for dropout requests
+  const handleViewExitSurvey = async () => {
+    if (!request.exitSurveyUrl) {
+      showToast('Exit survey URL not available', 'error');
+      return;
+    }
+
+    setIsLoadingExitSurvey(true);
+    try {
+      const response = await getAttachmentDownloadUrl(request.exitSurveyUrl);
+      const downloadUrl = response.data.downloadUrl;
+
+      const surveyResponse = await fetch(downloadUrl);
+      const surveyData: ExitSurveyData = await surveyResponse.json();
+      
+      setExitSurveyData(surveyData);
+      setShowExitSurvey(true);
+    } catch (error: any) {
+      console.error('Error loading exit survey:', error);
+      showToast('Failed to load exit survey', 'error');
+    } finally {
+      setIsLoadingExitSurvey(false);
+    }
+  };
+
+  // Render rating stars for exit survey
+  const renderRatingStars = (rating: number) => {
+    return (
+      <div className="flex items-center gap-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            className={`w-4 h-4 ${
+              star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
+            }`}
+          />
+        ))}
+        <span className="ml-2 text-sm text-gray-600">
+          {rating}/5
+        </span>
+      </div>
+    );
   };
 
   return (
@@ -292,12 +451,16 @@ export default function RequestDetailDialog({
                     <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                     <div className="flex items-center gap-2">
                       {getStatusIcon(request.status)}
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${
                         request.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                        request.status === "underreview" ? "bg-blue-100 text-blue-800" :
+                        request.status === "needinfo" ? "bg-orange-100 text-orange-800" :
                         request.status === "approved" ? "bg-green-100 text-green-800" :
                         "bg-red-100 text-red-800"
                       }`}>
-                        {request.status}
+                        {request.status === "underreview" ? "Under Review" : 
+                         request.status === "needinfo" ? "Need Info" : 
+                         request.status}
                       </span>
                     </div>
                   </div>
@@ -311,11 +474,27 @@ export default function RequestDetailDialog({
                 </div>
               </div>
 
+              {/* Reason Category */}
+              {request.reasonCategory && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Reason Category</label>
+                  <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md">
+                    {request.reasonCategory in DropoutReasonCategoryLabels
+                      ? DropoutReasonCategoryLabels[request.reasonCategory as keyof typeof DropoutReasonCategoryLabels]
+                      : request.reasonCategory in SuspensionReasonCategoryLabels
+                      ? SuspensionReasonCategoryLabels[request.reasonCategory as keyof typeof SuspensionReasonCategoryLabels]
+                      : request.reasonCategory in AcademicRequestReasonCategoryLabels
+                      ? AcademicRequestReasonCategoryLabels[request.reasonCategory as keyof typeof AcademicRequestReasonCategoryLabels]
+                      : request.reasonCategory}
+                  </div>
+                </div>
+              )}
+
               {/* Description */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Reason</label>
                 <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-gray-800">{request.reason}</p>
+                  <p className="text-gray-800 whitespace-pre-wrap">{request.reason}</p>
                 </div>
               </div>
 
@@ -357,6 +536,197 @@ export default function RequestDetailDialog({
                         </div>
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* Dropout Details */}
+              {request.requestType === "dropout" && (
+                <div className="space-y-4">
+                  <div className="border-l-4 border-red-500 bg-red-50/50 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <AlertTriangle className="w-5 h-5 text-red-600" />
+                      <span className="font-semibold text-red-900">Dropout Request Details</span>
+                    </div>
+                    <div className="space-y-4">
+                      {/* Effective Date */}
+                      {request.effectiveDate && (
+                        <div className="bg-white rounded-md p-3 border border-red-200">
+                          <div className="text-xs font-semibold text-red-700 mb-2 flex items-center gap-2">
+                            <Calendar className="w-3 h-3" />
+                            Effective Date
+                          </div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {new Date(request.effectiveDate).toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </div>
+                          <p className="text-xs text-red-600 mt-1">
+                            Student enrollment will be terminated on this date
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Exit Survey Status - Always show for dropout requests */}
+                      <div className={`rounded-md p-3 border ${
+                        request.completedExitSurvey 
+                          ? 'bg-green-50 border-green-200' 
+                          : 'bg-yellow-50 border-yellow-200'
+                      }`}>
+                        <div className={`text-xs font-semibold mb-2 flex items-center gap-2 ${
+                          request.completedExitSurvey ? 'text-green-700' : 'text-yellow-700'
+                        }`}>
+                          {request.completedExitSurvey ? (
+                            <CheckCircle className="w-3 h-3" />
+                          ) : (
+                            <AlertCircle className="w-3 h-3" />
+                          )}
+                          Exit Survey Status
+                        </div>
+                        <div className="text-sm font-medium text-gray-900 mb-2">
+                          {request.completedExitSurvey ? 'Completed' : 'Not Completed'}
+                        </div>
+                        {request.completedExitSurvey && request.exitSurveyUrl && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={handleViewExitSurvey}
+                            loading={isLoadingExitSurvey}
+                            iconLeft={<ExternalLink className="w-4 h-4 mr-1" />}
+                          >
+                          
+                            View Exit Survey
+                          </Button>
+                        )}
+                        {/* Debug info - remove after testing */}
+                        {!request.exitSurveyUrl && request.completedExitSurvey && (
+                          <p className="text-xs text-red-600 mt-2">
+                            Exit survey URL is missing from the request data
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Important Notice for Staff */}
+                      <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                          <div className="text-xs text-red-800">
+                            <p className="font-semibold mb-1">⚠️ PERMANENT ACTION - Review Checklist:</p>
+                            <ul className="space-y-1 list-disc list-inside">
+                              <li>Verify exit survey is completed</li>
+                              <li>Check for outstanding financial obligations</li>
+                              <li>Confirm student understands this is permanent</li>
+                              <li>Verify all required documentation is provided</li>
+                              <li>Ensure this is not a temporary leave (use Suspension instead)</li>
+                              <li>Review exit survey feedback for improvement areas</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Suspension Details */}
+              {request.requestType === "suspension" && (request.suspensionStartDate || request.suspensionEndDate) && (
+                <div className="space-y-4">
+                  <div className="border-l-4 border-orange-500 bg-orange-50/50 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <PauseCircle className="w-5 h-5 text-orange-600" />
+                      <span className="font-semibold text-orange-900">Suspension Period Details</span>
+                    </div>
+                    <div className="space-y-4">
+                      {/* Suspension Period */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {request.suspensionStartDate && (
+                          <div className="bg-white rounded-md p-3 border border-orange-200">
+                            <div className="text-xs font-semibold text-orange-700 mb-2 flex items-center gap-2">
+                              <Calendar className="w-3 h-3" />
+                              Start Date
+                            </div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {new Date(request.suspensionStartDate).toLocaleDateString('en-US', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        {request.suspensionEndDate && (
+                          <div className="bg-white rounded-md p-3 border border-orange-200">
+                            <div className="text-xs font-semibold text-orange-700 mb-2 flex items-center gap-2">
+                              <Calendar className="w-3 h-3" />
+                              End Date
+                            </div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {new Date(request.suspensionEndDate).toLocaleDateString('en-US', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Duration */}
+                      {request.suspensionStartDate && request.suspensionEndDate && (
+                        <div className="bg-white rounded-md p-3 border border-orange-200">
+                          <div className="text-xs font-semibold text-orange-700 mb-2 flex items-center gap-2">
+                            <Clock className="w-3 h-3" />
+                            Duration
+                          </div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {Math.ceil((new Date(request.suspensionEndDate).getTime() - new Date(request.suspensionStartDate).getTime()) / (1000 * 60 * 60 * 24))} days
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Expected Return Date */}
+                      {request.expectedReturnDate && (
+                        <div className="bg-green-50 rounded-md p-3 border border-green-200">
+                          <div className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-2">
+                            <CheckCircle className="w-3 h-3" />
+                            Expected Return Date
+                          </div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {new Date(request.expectedReturnDate).toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </div>
+                          <p className="text-xs text-green-600 mt-1">
+                            Student is expected to return on this date
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Important Notice for Staff */}
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                          <div className="text-xs text-yellow-800">
+                            <p className="font-semibold mb-1">Review Checklist:</p>
+                            <ul className="space-y-1 list-disc list-inside">
+                              <li>Verify student has no unpaid tuition</li>
+                              <li>Check student suspension count this year (max 2)</li>
+                              <li>Ensure proper documentation is provided (required for 30+ days)</li>
+                              <li>Confirm dates meet policy requirements (7-90 days, 7-day notice)</li>
+                              <li>Verify no overlapping suspension periods</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -497,7 +867,7 @@ export default function RequestDetailDialog({
               )}
 
               {/* Staff Response */}
-              {request.status !== "pending" && request.staffResponse && (
+              {request.status !== "pending" && request.status !== "underreview" && request.staffResponse && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Staff Response</label>
                   <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
@@ -511,16 +881,18 @@ export default function RequestDetailDialog({
                 </div>
               )}
               
-              {/* Reply Section  */}
-              {request.status === "pending" && (
+              {/* Reply Section - Show for pending and underreview */}
+              {(request.status === "pending" || request.status === "underreview") && (
               <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Your Reply
+                    Your Reply {request.status === "underreview" && "(Required for Need Info/Reject)"}
                   </label>
                 <textarea
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
-                  placeholder="Enter your response to the student..."
+                  placeholder={request.status === "pending" 
+                    ? "Enter your response to the student..." 
+                    : "Enter your response to the student (required for Need Info and Reject actions)..."}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
                   rows={4}
                 />
@@ -529,18 +901,30 @@ export default function RequestDetailDialog({
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button
-              variant="secondary"
-              onClick={onClose}
-            >
-              Close
-            </Button>
-            {request.status === "pending" && (
+            {request.status === "pending" && onStartReview && (
+              <Button
+                onClick={handleStartReview}
+                iconLeft={<Clock className="w-4 h-4 mr-2" />}
+                className="!bg-blue-600 hover:!bg-blue-700 !text-white"
+              >
+                Start Review
+              </Button>
+            )}
+            {request.status === "underreview" && (
               <>
+                <Button
+                  onClick={handleNeedInfo}
+                  iconLeft={<AlertCircle className="w-4 h-4 mr-2" />}
+                  className="!bg-orange-600 hover:!bg-orange-700 !text-white"
+                  disabled={!reply.trim()}
+                >
+                  Need Info
+                </Button>
                 <Button
                   onClick={handleReject}
                   iconLeft={<XCircle className="w-4 h-4 mr-2" />}
                   className="!bg-red-600 hover:!bg-red-700 !text-white"
+                  disabled={!reply.trim()}
                 >
                   Reject
                 </Button>
@@ -561,11 +945,17 @@ export default function RequestDetailDialog({
       <Dialog open={showConfirmDialog} onOpenChange={(open) => !open && setShowConfirmDialog(false)}>
         <DialogContent size="lg" className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle>{`${confirmAction === "approve" ? "Approve" : "Reject"} ${getTypeLabel(request.requestType)} Request`}</DialogTitle>
-            <DialogDescription>
+            <DialogTitle>
+              {confirmAction === "approve" ? "Approve" : 
+               confirmAction === "reject" ? "Reject" : 
+               "Request More Information"} {getTypeLabel(request.requestType)} Request
+            </DialogTitle>
+            <DialogDescription className="whitespace-pre-line">
               {confirmAction === "approve" 
                 ? getApprovalDescription(request.requestType)
-                : `Are you sure you want to reject this ${getTypeLabel(request.requestType).toLowerCase()} request?`}
+                : confirmAction === "reject"
+                ? `Are you sure you want to reject this ${getTypeLabel(request.requestType).toLowerCase()} request?`
+                : `This will mark the request as needing more information and return it to pending status. The student will be notified to provide additional details.`}
             </DialogDescription>
           </DialogHeader>
           <DialogBody className="flex-1 overflow-y-auto max-h-none">
@@ -574,8 +964,10 @@ export default function RequestDetailDialog({
                 <div className="flex items-center gap-2 mb-2">
                   {confirmAction === "approve" ? (
                     <CheckCircle className="w-5 h-5 text-green-600" />
-                  ) : (
+                  ) : confirmAction === "reject" ? (
                     <XCircle className="w-5 h-5 text-red-600" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 text-orange-600" />
                   )}
                   <span className="font-medium">Request Details</span>
                 </div>
@@ -595,13 +987,13 @@ export default function RequestDetailDialog({
                   value={reply}
                   readOnly
                   disabled
-                  placeholder={`Enter your ${confirmAction === "approve" ? "approval" : "rejection"} message...`}
+                  placeholder={`Enter your ${confirmAction === "approve" ? "approval" : confirmAction === "reject" ? "rejection" : "information request"} message...`}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm resize-none bg-gray-50 text-gray-700 cursor-not-allowed"
                   rows={4}
                 />
                 <p className="text-xs text-gray-500 italic">Reply is entered in the request details dialog</p>
-                {confirmAction === "reject" && !reply.trim() && (
-                  <p className="text-sm text-red-600">Please provide a reason for rejection in the request details dialog</p>
+                {(confirmAction === "reject" || confirmAction === "needinfo") && !reply.trim() && (
+                  <p className="text-sm text-red-600">Please provide a {confirmAction === "reject" ? "reason for rejection" : "message explaining what information is needed"} in the request details dialog</p>
                 )}
                 {confirmAction === "approve" && request.requestType === "meeting_reschedule" && !selectedRoomID && (
                   <p className="text-sm text-red-600">Please select a room for the rescheduled meeting in the request details dialog</p>
@@ -618,19 +1010,154 @@ export default function RequestDetailDialog({
             </Button>
             <Button
               onClick={() => handleConfirmAction(reply)}
-              className={`${confirmAction === "approve" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"} text-white`}
+              className={`${
+                confirmAction === "approve" ? "bg-green-600 hover:bg-green-700" : 
+                confirmAction === "reject" ? "bg-red-600 hover:bg-red-700" :
+                "bg-orange-600 hover:bg-orange-700"
+              } text-white`}
               disabled={
-                (confirmAction === "reject" && !reply.trim()) ||
+                ((confirmAction === "reject" || confirmAction === "needinfo") && !reply.trim()) ||
                 (confirmAction === "approve" && request.requestType === "meeting_reschedule" && !selectedRoomID)
               }
             >
               {confirmAction === "approve" 
                 ? `Approve ${getTypeLabel(request.requestType)}`
-                : `Reject ${getTypeLabel(request.requestType)}`}
+                : confirmAction === "reject"
+                ? `Reject ${getTypeLabel(request.requestType)}`
+                : `Request More Information`}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Exit Survey Viewing Modal */}
+      {showExitSurvey && exitSurveyData && (
+        <Dialog open={showExitSurvey} onOpenChange={setShowExitSurvey}>
+          <DialogContent size="xl" className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <File className="w-5 h-5 text-blue-600" />
+                </div>
+                Exit Survey Response
+              </DialogTitle>
+            </DialogHeader>
+            <DialogBody>
+              <div className="space-y-6">
+                {/* Basic Information */}
+                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 mb-1">Reason Category</div>
+                    <div className="text-sm text-gray-900 font-medium">
+                      {DropoutReasonCategoryLabels[exitSurveyData.reasonCategory as keyof typeof DropoutReasonCategoryLabels] || exitSurveyData.reasonCategory}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 mb-1">Reason Detail</div>
+                    <div className="text-sm text-gray-900">{exitSurveyData.reasonDetail}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 mb-1">Completed At</div>
+                    <div className="text-sm text-gray-900">
+                      {new Date(exitSurveyData.completedAt).toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit'
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ratings */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">Feedback Ratings</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="bg-white border rounded-lg p-4">
+                      <div className="text-sm font-medium text-gray-700 mb-2">Teacher Quality</div>
+                      {renderRatingStars(exitSurveyData.feedback.teacherQuality)}
+                    </div>
+
+                    <div className="bg-white border rounded-lg p-4">
+                      <div className="text-sm font-medium text-gray-700 mb-2">Class Pacing</div>
+                      {renderRatingStars(exitSurveyData.feedback.classPacing)}
+                    </div>
+
+                    <div className="bg-white border rounded-lg p-4">
+                      <div className="text-sm font-medium text-gray-700 mb-2">Materials Quality</div>
+                      {renderRatingStars(exitSurveyData.feedback.materials)}
+                    </div>
+
+                    <div className="bg-white border rounded-lg p-4">
+                      <div className="text-sm font-medium text-gray-700 mb-2">Staff Service</div>
+                      {renderRatingStars(exitSurveyData.feedback.staffService)}
+                    </div>
+
+                    <div className="bg-white border rounded-lg p-4">
+                      <div className="text-sm font-medium text-gray-700 mb-2">Schedule Flexibility</div>
+                      {renderRatingStars(exitSurveyData.feedback.schedule)}
+                    </div>
+
+                    <div className="bg-white border rounded-lg p-4">
+                      <div className="text-sm font-medium text-gray-700 mb-2">Facilities</div>
+                      {renderRatingStars(exitSurveyData.feedback.facilities)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Comments & Future Intentions */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">Additional Information</h3>
+                  
+                  <div className="bg-white border rounded-lg p-4">
+                    <div className="text-xs font-semibold text-gray-500 mb-2">Comments</div>
+                    <div className="text-sm text-gray-900 whitespace-pre-wrap">
+                      {exitSurveyData.comments || 'No comments provided'}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="bg-white border rounded-lg p-4">
+                      <div className="text-xs font-semibold text-gray-500 mb-2">
+                        Would recommend to others?
+                      </div>
+                      <div className={`text-sm font-medium ${
+                        exitSurveyData.futureIntentions.wouldRecommendToOthers ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {exitSurveyData.futureIntentions.wouldRecommendToOthers ? 'Yes ✓' : 'No ✗'}
+                      </div>
+                    </div>
+
+                    <div className="bg-white border rounded-lg p-4">
+                      <div className="text-xs font-semibold text-gray-500 mb-2">
+                        Would return in future?
+                      </div>
+                      <div className={`text-sm font-medium ${
+                        exitSurveyData.futureIntentions.wouldReturnInFuture ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {exitSurveyData.futureIntentions.wouldReturnInFuture ? 'Yes ✓' : 'No ✗'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Close Button */}
+                <div className="flex justify-end pt-4 border-t">
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowExitSurvey(false)}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </DialogBody>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }
