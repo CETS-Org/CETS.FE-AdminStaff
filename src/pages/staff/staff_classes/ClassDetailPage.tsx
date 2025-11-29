@@ -5,6 +5,8 @@ import { ArrowLeft, Edit, Trash2, Users, Clock, Calendar, MapPin, User, BookOpen
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import DeleteClassDialog from '../staff_classes/components/DeleteClassDialog';
+import { api } from '@/api';
+import type { ClassDetailResponse, StudentInClass } from '@/api/class.api';
 
 // Types
 interface Class {
@@ -28,6 +30,7 @@ interface Class {
 
 interface Student {
   id: string;
+  studentCode: string;
   name: string;
   email: string;
   phone: string;
@@ -36,62 +39,13 @@ interface Student {
   progress: number;
 }
 
-// Mock data
-const mockClass: Class = {
-  id: "CL001",
-  name: "English Advanced - Morning Class",
-  courseId: "ENGO01",
-  courseName: "English Conversation",
-  teacher: "Dr. Sarah Johnson",
-  teacherId: "T001",
-  schedule: "Mon, Wed, Fri - 8:00 AM",
-  room: "Room A101",
-  currentStudents: 15,
-  maxStudents: 20,
-  status: "active",
-  startDate: "2024-01-15",
-  endDate: "2024-04-15",
-  description: "Advanced English conversation class focusing on business communication and professional development.",
-  sessions: 48,
-  completedSessions: 12
-};
-
-const mockStudents: Student[] = [
-  {
-    id: "S001",
-    name: "John Smith",
-    email: "john.smith@email.com", 
-    phone: "+1234567890",
-    joinDate: "2024-01-15",
-    attendance: 95,
-    progress: 78
-  },
-  {
-    id: "S002",
-    name: "Emily Chen",
-    email: "emily.chen@email.com",
-    phone: "+1234567891", 
-    joinDate: "2024-01-16",
-    attendance: 88,
-    progress: 82
-  },
-  {
-    id: "S003",
-    name: "Michael Brown",
-    email: "michael.brown@email.com",
-    phone: "+1234567892",
-    joinDate: "2024-01-17", 
-    attendance: 92,
-    progress: 75
-  }
-];
-
 export default function ClassDetailPage() {
   const params = useParams<{ courseId?: string; classId?: string; id?: string }>();
   const navigate = useNavigate();
-  const [classData] = useState<Class>(mockClass);
-  const [students] = useState<Student[]>(mockStudents);
-  const [loading] = useState(false);
+  const [classData, setClassData] = useState<Class | null>(null);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [deleteDialog, setDeleteDialog] = useState(false);
 
   // Handle both route patterns: /staff/classes/:id and /staff/courses/:courseId/classes/:classId
@@ -100,9 +54,61 @@ export default function ClassDetailPage() {
   const isStandaloneRoute = !courseId; // True if accessed from /staff/classes
 
   useEffect(() => {
-    // Fetch class data here
-    console.log("Fetching class data for:", { courseId, classId });
-  }, [courseId, classId]);
+    const fetchClassDetail = async () => {
+      if (!classId) {
+        setError('Class ID is required');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await api.getClassDetail(classId);
+        
+        // Map API response to component state
+        const mappedClass: Class = {
+          id: response.id,
+          name: response.className,
+          courseId: response.courseId,
+          courseName: response.courseName,
+          teacher: response.teacherName,
+          teacherId: response.teacherId || '',
+          schedule: response.schedule,
+          room: response.room,
+          currentStudents: response.enrolledCount,
+          maxStudents: response.capacity,
+          status: response.status,
+          startDate: response.startDate,
+          endDate: response.endDate,
+          description: response.description,
+          sessions: response.totalSessions,
+          completedSessions: response.completedSessions,
+        };
+
+        const mappedStudents: Student[] = response.students.map((student: StudentInClass) => ({
+          id: student.id,
+          studentCode: student.studentCode,
+          name: student.name,
+          email: student.email,
+          phone: student.phone,
+          joinDate: student.joinDate,
+          attendance: student.attendanceRate,
+          progress: student.progressPercentage,
+        }));
+
+        setClassData(mappedClass);
+        setStudents(mappedStudents);
+      } catch (err) {
+        console.error('Error fetching class detail:', err);
+        setError('Failed to load class details. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchClassDetail();
+  }, [classId]);
 
   const handleEdit = () => {
     if (isStandaloneRoute) {
@@ -166,6 +172,28 @@ export default function ClassDetailPage() {
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
             <p className="text-gray-600 mt-4">Loading class details...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !classData) {
+    return (
+      <div className="min-h-screen bg-gray-50/50">
+        <div className="p-6">
+          <div className="text-center py-12">
+            <div className="text-red-600 mb-4">
+              <p className="text-xl font-semibold">Error Loading Class</p>
+              <p className="mt-2">{error || 'Class not found'}</p>
+            </div>
+            <Button
+              variant="primary"
+              onClick={() => navigate(isStandaloneRoute ? '/staff/classes' : '/staff/courses')}
+              className="!bg-blue-500 hover:!bg-blue-600"
+            >
+              Go Back
+            </Button>
           </div>
         </div>
       </div>
@@ -354,7 +382,7 @@ export default function ClassDetailPage() {
                     <td className="py-3 px-4">
                       <div>
                         <p className="font-medium text-gray-900">{student.name}</p>
-                        <p className="text-sm text-gray-500">ID: {student.id}</p>
+                        <p className="text-sm text-gray-500">{student.studentCode}</p>
                       </div>
                     </td>
                     <td className="py-3 px-4">

@@ -31,6 +31,40 @@ export interface ClassStatistics {
   totalStudents: number;
 }
 
+// Student in class detail
+export interface StudentInClass {
+  id: string;
+  studentCode: string;
+  name: string;
+  email: string;
+  phone: string;
+  joinDate: string;
+  attendanceRate: number;
+  progressPercentage: number;
+}
+
+// Class detail response
+export interface ClassDetailResponse {
+  id: string;
+  className: string;
+  courseName: string;
+  courseId: string;
+  capacity: number;
+  enrolledCount: number;
+  teacherId?: string;
+  teacherName: string;
+  schedule: string;
+  room: string;
+  startDate: string;
+  endDate: string;
+  status: "active" | "inactive" | "full";
+  statusCode: string;
+  description?: string;
+  totalSessions: number;
+  completedSessions: number;
+  students: StudentInClass[];
+}
+
 // Get all staff classes
 export const getStaffClasses = async (): Promise<ClassData[]> => {
   try {
@@ -85,6 +119,17 @@ export const deleteClass = async (id: string): Promise<void> => {
   }
 };
 
+// Get class detail by ID
+export const getClassDetail = async (id: string): Promise<ClassDetailResponse> => {
+  try {
+    const response = await api.get<ClassDetailResponse>(`${CLASSES_ENDPOINT}/${id}/detail`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching class detail ${id}:`, error);
+    throw error;
+  }
+};
+
 // Calculate statistics from class data
 export const calculateClassStatistics = (classes: ClassData[]): ClassStatistics => {
   return {
@@ -94,5 +139,4 @@ export const calculateClassStatistics = (classes: ClassData[]): ClassStatistics 
     totalStudents: classes.reduce((sum, c) => sum + c.currentStudents, 0),
   };
 };
-
 
