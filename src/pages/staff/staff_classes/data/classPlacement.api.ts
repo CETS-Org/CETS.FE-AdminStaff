@@ -14,7 +14,8 @@ import type {
   BulkAssignClassRequestDTO,
   ClassScheduleInput,
   CreateClassCompositeRequestDTO,
-  WaitingStudentItem
+  WaitingStudentItem,
+  PostponedClassNotifyRequest
 } from "@/pages/staff/staff_classes/data/classPlacement.types";
 
 // ================== COURSE ==================
@@ -120,6 +121,16 @@ export const assignStudentsToClass = (
 ) =>
   api.put<{ message: string }>(
     `${endpoint.enrollment}/placement/assign-class`,
+    payload,
+    config
+  );
+
+  export const sendPostponedClassEmail = (
+  payload: PostponedClassNotifyRequest,
+  config?: AxiosRequestConfig
+) =>
+  api.post<{ message: string; details: any[] }>(
+    `${endpoint.email}/notify`, 
     payload,
     config
   );
