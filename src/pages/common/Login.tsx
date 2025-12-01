@@ -29,14 +29,7 @@ const adminRoles = [
     description: "Academic management and support",
     icon: BookOpen,
     color: "blue"
-  },
-  {
-    value: "accountantStaff",
-    label: "Accountant Staff", 
-    description: "Financial management and billing",
-    icon: Calculator,
-    color: "green"
-  },
+  }
 ];
 
 // Validation schema

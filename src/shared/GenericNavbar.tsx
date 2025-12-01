@@ -51,7 +51,7 @@ export default function GenericNavbar({
 
     useEffect(() => {
         const userInfo = getUserInfo();
-        const userId = userInfo?.id ?? userInfo?.accountId;
+        const userId = userInfo?.id;
         if (!userId) {
             setNotifications([]);
             return;
@@ -81,6 +81,9 @@ export default function GenericNavbar({
         clearAuthData();
         // Legacy key cleanup
         localStorage.removeItem('userData');
+
+        // Clear in-memory notifications so previous account state is not shown
+        setNotifications([]);
         
         // Close dialog and navigate to login
         setIsLogoutDialogOpen(false);
@@ -113,7 +116,7 @@ export default function GenericNavbar({
 
     const handleMarkAllAsRead = async () => {
         const userInfo = getUserInfo();
-        const userId = userInfo?.id ?? userInfo?.accountId;
+        const userId = userInfo?.id;
         if (!userId) return;
 
         setNotifications(prev => 

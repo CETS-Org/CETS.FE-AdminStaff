@@ -51,12 +51,26 @@ export const endpoint ={
   api.interceptors.response.use(
     (response) => response,
     (error) => {
-      if (error.response?.status === 401) {
-        // Handle unauthorized access
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('userData');
-        window.location.href = '/login';
+      // Safely read error response/config
+      const status = error?.response?.status;
+      const requestUrl: string | undefined = error?.config?.url;
+
+      if (status === 401) {
+        const hasToken = !!localStorage.getItem('authToken');
+        const isLoginRequest =
+          requestUrl?.includes('/login') ||
+          requestUrl?.includes('/IDN_Account/login');
+
+        // Only force logout + redirect when:
+        // - there's an existing auth token (user is logged in), AND
+        // - the 401 did NOT come from a login request (i.e., token expired / unauthorized API call)
+        if (hasToken && !isLoginRequest) {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userData');
+          window.location.href = '/login';
+        }
       }
+
       return Promise.reject(error);
     }
   );
