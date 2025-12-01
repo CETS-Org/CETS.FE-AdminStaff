@@ -42,6 +42,9 @@ export interface AcademicRequestResponse {
   // For dropout requests
   completedExitSurvey?: boolean;
   exitSurveyId?: string;
+  // Related enrollment and payment
+  enrollmentID?: string;
+  paymentID?: string;
 }
 
 export interface ProcessAcademicRequest {
@@ -96,5 +99,8 @@ export interface AcademicRequest {
   // For dropout requests
   completedExitSurvey?: boolean;
   exitSurveyId?: string;
+  // Related enrollment and payment
+  enrollmentID?: string;
+  paymentID?: string;
 }
 

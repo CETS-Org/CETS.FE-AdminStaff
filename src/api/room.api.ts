@@ -14,6 +14,19 @@ export const getRooms = async (): Promise<Room[]> => {
   }
 };
 
+// Get available rooms for a specific date and time slot
+export const getAvailableRoomsForSlot = async (date: string, slotId: string): Promise<Room[]> => {
+  try {
+    const response = await api.get<Room[]>(`${endpoint.room}/available`, {
+      params: { date, slotId }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching available rooms for slot:', error);
+    throw error;
+  }
+};
+
 // Get room statuses for filters
 export const getRoomStatuses = async (): Promise<RoomStatus[]> => {
   try {

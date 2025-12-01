@@ -4,7 +4,7 @@ import Button from "@/components/ui/Button";
 import { CheckCircle, XCircle, Clock, User, Mail, Calendar, AlertCircle, File, Download, MapPin, PauseCircle, AlertTriangle, ExternalLink, Star } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { getAttachmentDownloadUrl } from "@/api/academicRequest.api";
-import { getRooms } from "@/api/room.api";
+import { getAvailableRoomsForSlot } from "@/api/room.api";
 import type { AcademicRequest } from "@/types/academicRequest.type";
 import { SuspensionReasonCategoryLabels } from "@/types/suspensionRequest.type";
 import { DropoutReasonCategoryLabels, type ExitSurveyData } from "@/types/dropoutRequest.type";
@@ -47,11 +47,9 @@ export default function RequestDetailDialog({
     
     setIsLoadingRooms(true);
     try {
-      // TODO: Create API endpoint to get available rooms for specific date and slot
-      // For now, fetch all active rooms
-      const rooms = await getRooms();
-      const activeRooms = rooms.filter((room: any) => room.isActive);
-      setAvailableRooms(activeRooms);
+      // Fetch available rooms based on date and slot, checking against class meetings
+      const rooms = await getAvailableRoomsForSlot(request.toMeetingDate, request.toSlotID);
+      setAvailableRooms(rooms);
       
       // Pre-select the room if one was already chosen
       if (request.newRoomID) {
