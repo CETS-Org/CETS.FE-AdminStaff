@@ -3,12 +3,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import Button from "@/components/ui/Button";
 import { CheckCircle, XCircle, Clock, User, Mail, Calendar, AlertCircle, File, Download, MapPin, PauseCircle, AlertTriangle, ExternalLink, Star } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
-import { getAttachmentDownloadUrl } from "@/api/academicRequest.api";
+import { getAttachmentDownloadUrl, getAcademicRequestHistory, type AcademicRequestHistoryItem } from "@/api/academicRequest.api";
 import { getAvailableRoomsForSlot } from "@/api/room.api";
 import type { AcademicRequest } from "@/types/academicRequest.type";
 import { SuspensionReasonCategoryLabels } from "@/types/suspensionRequest.type";
 import { DropoutReasonCategoryLabels, type ExitSurveyData } from "@/types/dropoutRequest.type";
 import { AcademicRequestReasonCategoryLabels } from "@/types/academicRequestReasonCategories";
+
+interface StatusLookup {
+  id: string;
+  name: string;
+  code: string;
+}
 
 interface RequestDetailDialogProps {
   isOpen: boolean;
@@ -19,6 +25,7 @@ interface RequestDetailDialogProps {
   onApprove: (reply: string, selectedRoomID?: string) => void;
   onReject: (reply: string) => void;
   onRequestUpdate?: (updatedRequest: AcademicRequest) => void;
+  statusLookups?: StatusLookup[];
 }
 
 export default function RequestDetailDialog({
@@ -29,7 +36,8 @@ export default function RequestDetailDialog({
   onNeedInfo,
   onApprove,
   onReject,
-  onRequestUpdate
+  onRequestUpdate,
+  statusLookups = []
 }: RequestDetailDialogProps) {
   const [reply, setReply] = useState("");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -40,6 +48,8 @@ export default function RequestDetailDialog({
   const [exitSurveyData, setExitSurveyData] = useState<ExitSurveyData | null>(null);
   const [isLoadingExitSurvey, setIsLoadingExitSurvey] = useState(false);
   const [showExitSurvey, setShowExitSurvey] = useState(false);
+  const [history, setHistory] = useState<AcademicRequestHistoryItem[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const { showToast } = useToast();
 
   const fetchAvailableRooms = async () => {
@@ -81,6 +91,69 @@ export default function RequestDetailDialog({
       setSelectedRoomID("");
     }
   }, [request?.id, request?.toMeetingDate, request?.toSlotID, request?.requestType, request?.status]);
+
+  // Fetch request history when dialog opens or request changes
+  useEffect(() => {
+    const loadHistory = async () => {
+      if (!isOpen || !request?.id) {
+        setHistory([]);
+        return;
+      }
+
+      setIsLoadingHistory(true);
+      try {
+        const response = await getAcademicRequestHistory(request.id);
+        setHistory(response.data || []);
+      } catch (error: any) {
+        console.error("Error loading academic request history:", error);
+        setHistory([]);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    loadHistory();
+  }, [isOpen, request?.id]);
+
+  const getStatusLabelFromHistory = (statusID: string): string => {
+    const lookup = statusLookups.find(
+      (s) => s.id === statusID || s.id.toLowerCase() === statusID.toLowerCase()
+    );
+    if (!lookup) return "Status changed";
+    // Prefer code if it's a clean value like "Pending", otherwise use name
+    const label = lookup.name || lookup.code || "Status changed";
+    return label;
+  };
+
+  const getStatusDotColor = (statusID: string): string => {
+    const lookup = statusLookups.find(
+      (s) => s.id === statusID || s.id.toLowerCase() === statusID.toLowerCase()
+    );
+    if (!lookup) return "bg-gray-400";
+    
+    const statusName = (lookup.name || "").toLowerCase();
+    const statusCode = (lookup.code || "").toLowerCase();
+    const combinedStatus = `${statusName} ${statusCode}`;
+    
+    // Map status to appropriate colors
+    if (combinedStatus.includes("approved") || combinedStatus.includes("accept") || combinedStatus.includes("resolved")) {
+      return "bg-green-500";
+    } else if (combinedStatus.includes("rejected") || combinedStatus.includes("reject") || combinedStatus.includes("denied") || combinedStatus.includes("declined")) {
+      return "bg-red-500";
+    } else if (combinedStatus.includes("underreview") || combinedStatus.includes("under review") || combinedStatus.includes("reviewing")) {
+      return "bg-purple-500";
+    } else if (combinedStatus.includes("needinfo") || combinedStatus.includes("need info") || combinedStatus.includes("more info")) {
+      return "bg-blue-500";
+    } else if (combinedStatus.includes("pending") || combinedStatus.includes("submitted")) {
+      return "bg-yellow-500";
+    } else if (combinedStatus.includes("completed") || combinedStatus.includes("expired")) {
+      return "bg-gray-500";
+    } else if (combinedStatus.includes("suspended") || combinedStatus.includes("awaitingreturn")) {
+      return "bg-orange-500";
+    }
+    
+    return "bg-gray-400";
+  };
 
   if (!request) return null;
 
@@ -481,6 +554,52 @@ export default function RequestDetailDialog({
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Request History / Logs */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-gray-500" />
+                    Request History
+                  </h3>
+                  {isLoadingHistory && (
+                    <span className="text-xs text-gray-500">Loading...</span>
+                  )}
+                </div>
+                {history.length === 0 && !isLoadingHistory && (
+                  <p className="text-xs text-gray-500 italic">
+                    No history records found for this request yet.
+                  </p>
+                )}
+                {history.length > 0 && (
+                  <div className="border border-gray-200 rounded-lg divide-y max-h-60 overflow-y-auto bg-white">
+                    {history.map((item) => (
+                      <div key={item.id} className="px-3 py-2 text-xs flex items-center gap-3">
+                        <div className="flex items-center justify-center">
+                          <span className={`inline-block w-1.5 h-1.5 rounded-full ${getStatusDotColor(item.statusID)}`} />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-medium text-gray-800">
+                              {getStatusLabelFromHistory(item.statusID)}
+                            </span>
+                            {item.updatedAt && (
+                              <span className="text-[11px] text-gray-500">
+                                {new Date(item.updatedAt).toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                          {item.attachmentUrl && (
+                            <div className="text-[11px] text-gray-600 mt-0.5">
+                              Attachment updated
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Reason Category */}

@@ -23,6 +23,21 @@ export const getAcademicRequestDetails = (requestId: string, config?: AxiosReque
   api.get<AcademicRequestResponse>(`${ACADEMIC_REQUEST_ENDPOINT}/${requestId}`, config);
 
 /**
+ * Get academic request history (status change logs)
+ */
+export interface AcademicRequestHistoryItem {
+  id: string;
+  requestID: string;
+  statusID: string;
+  updatedBy?: string | null;
+  updatedAt?: string | null;
+  attachmentUrl?: string | null;
+}
+
+export const getAcademicRequestHistory = (requestId: string, config?: AxiosRequestConfig) =>
+  api.get<AcademicRequestHistoryItem[]>(`${ACADEMIC_REQUEST_ENDPOINT}/${requestId}/history`, config);
+
+/**
  * Process (approve/reject) an academic request (for staff)
  */
 export const processAcademicRequest = (data: ProcessAcademicRequest, config?: AxiosRequestConfig) =>

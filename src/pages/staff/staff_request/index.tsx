@@ -896,6 +896,7 @@ export default function StaffRequestPage() {
         onApprove={handleApprove}
         onReject={handleReject}
         onRequestUpdate={(updatedRequest) => setSelectedRequest(updatedRequest)}
+        statusLookups={statusLookups}
       />
 
       <ConfirmRequestDialog
