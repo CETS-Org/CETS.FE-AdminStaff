@@ -1,5 +1,5 @@
 // src/components/schedule/StaffWeekSchedule.tsx
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   ScheduleHeader,
   SessionDetailsDialog,
@@ -14,7 +14,6 @@ import StaffScheduleGrid from "./StaffScheduleGrid";
 
 type ScheduleDisplayMode = 'full' | 'classOnly' | 'roomOnly';
 
-// --- UPDATE: Thêm trường name và export để Grid dùng lại ---
 export type TimeSlot = {
   start: string;
   end: string;
@@ -26,7 +25,7 @@ type Props = {
   startHour?: number;
   slots?: number;
   slotMinutes?: number;
-  timeSlots?: TimeSlot[]; // Nhận mảng slots tùy chỉnh
+  timeSlots?: TimeSlot[]; 
   onSessionClick?: (session: StaffSession) => void; 
   onEdit?: (session: StaffSession) => void;
   onDelete?: (session: StaffSession) => void;
@@ -50,6 +49,38 @@ export default function StaffWeekSchedule({
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsData, setDetailsData] = useState<SessionDetailsData | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  // --- AUTO JUMP LOGIC START ---
+  // Tự động nhảy đến tuần có session gần nhất (Hôm nay hoặc tương lai) khi dữ liệu sessions thay đổi
+  useEffect(() => {
+    if (!sessions || sessions.length === 0) return;
+
+    const now = new Date();
+    // Đặt giờ về 0 để so sánh ngày chính xác
+    now.setHours(0, 0, 0, 0);
+
+    // 1. Parse string sang Date object để so sánh
+    const parsedSessions = sessions
+      .map((s) => ({ ...s, dateObj: toDateAny(s.start) }))
+      .filter((s) => !Number.isNaN(s.dateObj.getTime()));
+
+    // 2. Sắp xếp session theo thời gian tăng dần
+    parsedSessions.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+
+    // 3. Tìm session đầu tiên >= ngày hôm nay
+    const upcomingSession = parsedSessions.find((s) => s.dateObj >= now);
+
+    if (upcomingSession) {
+      // Nếu có session tương lai/hôm nay -> Jump đến tuần đó
+      setWeekStart(startOfWeek(upcomingSession.dateObj));
+    } else if (parsedSessions.length > 0) {
+      // Nếu tất cả session đều trong quá khứ -> Jump đến session cuối cùng
+      // (để người dùng không nhìn thấy lịch trống)
+      const lastSession = parsedSessions[parsedSessions.length - 1];
+      setWeekStart(startOfWeek(lastSession.dateObj));
+    }
+  }, [sessions]);
+  // --- AUTO JUMP LOGIC END ---
 
   const today = new Date();
   const todayIdx = (() => {

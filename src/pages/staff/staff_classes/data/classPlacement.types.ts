@@ -168,3 +168,17 @@ export interface RoomOption {
   // Các trường khác nếu cần dùng sau này
   onlineMeetingUrl?: string;
 }
+
+// [NEW] Payload cho gửi mail hoãn lớp
+export interface PostponedStudentItem {
+  enrollmentId: string;
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+}
+
+export interface PostponedClassNotifyRequest {
+  courseName: string;
+  plannedStartDate: string; // DateTime string
+  students: PostponedStudentItem[];
+}
