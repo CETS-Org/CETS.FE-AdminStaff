@@ -53,6 +53,12 @@ export const getAllComplaints = async (config?: AxiosRequestConfig): Promise<Sys
   return response.data;
 };
 
+// Get complaints by submitter (current user)
+export const getMyComplaints = async (submitterId: string, config?: AxiosRequestConfig): Promise<SystemComplaint[]> => {
+  const response = await api.get(`/api/RPT_Report/submitter/${submitterId}`, config);
+  return response.data;
+};
+
 // Get complaint by ID (using standard report endpoint)
 export const getComplaintById = async (id: string, config?: AxiosRequestConfig): Promise<SystemComplaint> => {
   const response = await api.get(`/api/RPT_Report/${id}`, config);
@@ -97,6 +103,29 @@ export const getReportTypes = async (config?: AxiosRequestConfig): Promise<Array
 // Get all report statuses for selection
 export const getReportStatuses = async (config?: AxiosRequestConfig): Promise<Array<{ id: string; code: string; name: string; isActive: boolean }>> => {
   const response = await api.get('/api/RPT_Report/report-statuses', config);
+  return response.data;
+};
+
+// Get presigned upload URL for report image
+export interface GetReportImageUploadUrlRequest {
+  fileName: string;
+  contentType: string;
+}
+
+export interface GetReportImageUploadUrlResponse {
+  uploadUrl: string;
+  filePath: string;
+}
+
+export const getReportImageUploadUrl = async (
+  data: GetReportImageUploadUrlRequest,
+  config?: AxiosRequestConfig
+): Promise<GetReportImageUploadUrlResponse> => {
+  const response = await api.post<GetReportImageUploadUrlResponse>(
+    '/api/RPT_Report/image-upload-url',
+    data,
+    config
+  );
   return response.data;
 };
 
