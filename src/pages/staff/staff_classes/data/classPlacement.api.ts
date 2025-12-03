@@ -15,7 +15,9 @@ import type {
   ClassScheduleInput,
   CreateClassCompositeRequestDTO,
   WaitingStudentItem,
-  PostponedClassNotifyRequest
+  UpdateClassCompositeRequestDTO,
+  PostponedClassNotifyRequest,
+  ClassDetailResponseDTO
 } from "@/pages/staff/staff_classes/data/classPlacement.types";
 
 // ================== COURSE ==================
@@ -131,6 +133,21 @@ export const assignStudentsToClass = (
 ) =>
   api.post<{ message: string; details: any[] }>(
     `${endpoint.email}/notify`, 
+    payload,
+    config
+  );
+  //====================Update
+  export const getClassDetailForEdit = (classId: string, config?: AxiosRequestConfig) =>
+  api.get<ClassDetailResponseDTO>(`${endpoint.classes}/${classId}/detail-for-edit`, config);
+
+// [NEW] Cập nhật Class (Composite Update)
+export const updateClassComposite = (
+  classId: string,
+  payload: UpdateClassCompositeRequestDTO,
+  config?: AxiosRequestConfig
+) =>
+  api.put<{ message: string }>(
+    `${endpoint.classes}/${classId}/composite`, // Endpoint giả định
     payload,
     config
   );

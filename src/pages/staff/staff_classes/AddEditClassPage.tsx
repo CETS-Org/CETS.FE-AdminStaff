@@ -1,4 +1,3 @@
-// src/pages/staff/staff_classes/AddEditClassPage.tsx
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
@@ -10,7 +9,7 @@ import Select from "@/components/ui/Select";
 import Label from "@/components/ui/Label";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from "@/components/ui/Dialog";
-// Import StatusDialog (Component bạn vừa tạo)
+// Hãy đảm bảo bạn đã tạo file StatusDialog.tsx như hướng dẫn trước
 import StatusDialog from "@/pages/staff/staff_classes/components/StatusDialog"; 
 
 // Icons
@@ -27,7 +26,9 @@ import {
   X,
   Search,
   Check,
-  Wand2
+  Wand2,
+  Info,
+  AlertTriangle
 } from "lucide-react";
 
 // Components
@@ -50,7 +51,9 @@ import {
   searchWaitingStudents,
   createClassComposite,
   sendPostponedClassEmail,
-  autoPickWaitingStudents
+  autoPickWaitingStudents,
+  getClassDetailForEdit,
+  updateClassComposite
 } from "@/pages/staff/staff_classes/data/classPlacement.api";
 
 import { getSyllabiByCourse, getSyllabusItems } from "@/api/syllabus.api";
@@ -63,6 +66,7 @@ import {
   type CourseScheduleRow,
   type TeacherOption,
   type CreateClassCompositeRequestDTO,
+  type UpdateClassCompositeRequestDTO,
   type ClassMeetingScheduleDTO,
   type ClassScheduleInput,
   type WaitingStudentItem,
@@ -157,8 +161,6 @@ export default function AddEditClassPage() {
   // Dialog States
   const [isWaitingListOpen, setIsWaitingListOpen] = useState(false);
   const [isPostponeOpen, setIsPostponeOpen] = useState(false);
-  
-  // [NEW] Status Dialog State
   const [statusDialog, setStatusDialog] = useState<{
     open: boolean;
     type: "success" | "error";
@@ -239,14 +241,16 @@ export default function AddEditClassPage() {
   }, [scheduleRows]);
 
   useEffect(() => {
-    if (formData.startDate && syllabusItems.length > 0 && scheduleRows.length > 0) {
+    // Chỉ auto calculate date khi KHÔNG PHẢI chế độ Edit (để tránh override dữ liệu cũ)
+    if (!isEdit && formData.startDate && syllabusItems.length > 0 && scheduleRows.length > 0) {
         const projectedEndDate = calculateClassEndDate(formData.startDate, syllabusItems.length, scheduleRows);
         if (projectedEndDate && projectedEndDate !== formData.endDate) {
              setFormData(prev => ({ ...prev, endDate: projectedEndDate, sessions: syllabusItems.length }));
         }
     }
-  }, [formData.startDate, syllabusItems, scheduleRows]);
+  }, [formData.startDate, syllabusItems, scheduleRows, isEdit]);
 
+  // INITIAL LOAD
   useEffect(() => {
     const loadInitialData = async () => {
       try {
@@ -269,39 +273,103 @@ export default function AddEditClassPage() {
     loadInitialData();
   }, []);
 
+  // LOAD DETAIL FOR EDIT
   useEffect(() => {
-    if (isEdit && classId) {
-        // TODO: Get Detail Logic
+    const loadClassDetail = async () => {
+      if (!isEdit || !classId) return;
+      try {
+        setIsLoading(true);
+        const res = await getClassDetailForEdit(classId);
+        const data = res.data;
+
+        if (data.teacherAssignmentID && (data as any).teacherName) {
+            setAvailableTeachers([{
+                id: data.teacherAssignmentID,
+                fullName: (data as any).teacherName, // Lấy từ API vừa bổ sung
+                // các trường khác có thể null
+            }]);
+        }
+
+        setFormData(prev => ({
+            ...prev,
+            courseId: data.courseId,
+            courseName: data.className,
+            teacherId: data.teacherAssignmentID,
+            teacher: (data as any).teacherName || "",
+            room: data.roomId || "",
+            maxStudents: data.capacity,
+            startDate: data.startDate,
+            endDate: data.endDate,
+            status: data.status as any,
+        }));
+
+        // Map Schedule (Chỉ để hiển thị)
+        const mappedSchedules: ScheduleRow[] = data.schedules.map((s, idx) => ({
+             dayOfWeek: "Monday", // Placeholder
+             timeSlotID: s.slotID,
+             id: `sched-${idx}`
+        }));
+        // loadSchedules(mappedSchedules); // Optional: Uncomment nếu cần
+        if (data.schedules && data.schedules.length > 0) {
+            const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            
+            // Map để lọc trùng lặp (VD: Có 10 buổi Thứ 2 slot 1 -> chỉ lấy 1 dòng mẫu)
+            const uniqueScheduleMap = new Map<string, ScheduleRow>();
+
+            data.schedules.forEach((s) => {
+                // Parse ngày: "2025-12-10" -> Date object
+                const dateObj = new Date(s.date);
+                const dayIndex = dateObj.getDay(); // 0=Sun, 1=Mon...
+                const dayName = daysOfWeek[dayIndex] as DayOfWeek;
+
+                // Tạo key duy nhất: "Monday-SlotID"
+                const uniqueKey = `${dayName}-${s.slotID}`;
+
+                if (!uniqueScheduleMap.has(uniqueKey)) {
+                    uniqueScheduleMap.set(uniqueKey, {
+                        dayOfWeek: dayName,
+                        timeSlotID: s.slotID,
+                        id: `sched-mapped-${uniqueKey}` // ID tạm
+                    });
+                }
+            });
+
+            // Chuyển Map thành mảng và load vào hook
+            const mappedSchedules = Array.from(uniqueScheduleMap.values());
+            
+            // Gọi hàm load của hook useSchedules
+            loadSchedules(mappedSchedules);
+        }
+        // Map Enrollments
+        if (data.enrollments) {
+            updateStudentLookup(data.enrollments);
+            setSelectedStudentIds(data.enrollments.map(s => s.studentId));
+        }
+
+        await handleCourseChange(data.courseId);
+
+      } catch (err) {
+        console.error(err);
+        showErrorMessage("Failed to load class details.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (isEdit) {
+        loadClassDetail();
     } else if (initialCourseIdFromRoute) {
-      handleCourseChange(initialCourseIdFromRoute);
+        handleCourseChange(initialCourseIdFromRoute);
     }
   }, [isEdit, classId, initialCourseIdFromRoute]);
 
-  // --- DIALOG DATA FETCH ---
-  useEffect(() => {
-    const fetchStudents = async () => {
-        if (!isWaitingListOpen || !formData.courseId) return;
-        
-        setIsLoadingStudents(true);
-        try {
-            const res = await searchWaitingStudents(formData.courseId, studentSearch, 1);
-            setWaitingStudents(res.data.items || []);
-            updateStudentLookup(res.data.items || []);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setIsLoadingStudents(false);
-        }
-    };
-    const timeoutId = setTimeout(() => fetchStudents(), 300);
-    return () => clearTimeout(timeoutId);
-  }, [isWaitingListOpen, studentSearch, formData.courseId, updateStudentLookup]);
-
   // --- HANDLERS ---
   const handleCourseChange = async (courseId: string) => {
-    setFormData((prev) => ({ ...prev, courseId, courseName: "", sessions: 0 }));
-    setSelectedStudentIds([]); 
-    setStudentLookup(new Map());
+    if (!isEdit) {
+        setFormData((prev) => ({ ...prev, courseId, courseName: "", sessions: 0 }));
+        setSelectedStudentIds([]); 
+        setStudentLookup(new Map());
+    }
     setCurrentSyllabusId(""); 
     setSyllabusItems([]); 
     
@@ -327,24 +395,24 @@ export default function AddEditClassPage() {
             items.sort((a: SyllabusItemModel, b: SyllabusItemModel) => a.sessionNumber - b.sessionNumber);
             setSyllabusItems(items);
         } catch (error) { console.error(error); }
-      } else {
-        showErrorMessage("Warning: This course has no syllabus configured.");
       }
 
-      const scheduleRowsFromCourse: ScheduleRow[] = (scheduleData || []).map(
-        (r: CourseScheduleRow): ScheduleRow => ({
-          dayOfWeek: r.dayOfWeek as DayOfWeek,
-          timeSlotID: r.timeSlotID,
-        })
-      );
-      setFormData((prev) => ({
-        ...prev,
-        courseId,
-        courseName: (detailData as any).courseName ?? prev.courseName,
-        maxStudents: (detailData as any).defaultMaxStudents ?? prev.maxStudents,
-        sessions: (detailData as any).totalSessions ?? prev.sessions,
-      }));
-      loadSchedules(scheduleRowsFromCourse);
+      if (!isEdit) {
+          const scheduleRowsFromCourse: ScheduleRow[] = (scheduleData || []).map(
+            (r: CourseScheduleRow): ScheduleRow => ({
+              dayOfWeek: r.dayOfWeek as DayOfWeek,
+              timeSlotID: r.timeSlotID,
+            })
+          );
+          setFormData((prev) => ({
+            ...prev,
+            courseId,
+            courseName: (detailData as any).courseName ?? prev.courseName,
+            maxStudents: (detailData as any).defaultMaxStudents ?? prev.maxStudents,
+            sessions: (detailData as any).totalSessions ?? prev.sessions,
+          }));
+          loadSchedules(scheduleRowsFromCourse);
+      }
     } catch (err) { console.error(err); } finally { setIsLoading(false); }
   };
 
@@ -411,59 +479,79 @@ export default function AddEditClassPage() {
     return dates;
   };
 
+  // --- SAVE ---
   const handleSave = async () => {
     if (!validateForm()) return;
     if (!currentSyllabusId || syllabusItems.length === 0) {
       showErrorMessage("Cannot create class: Missing Syllabus Items.");
       return;
     }
-    const CONST_STATUS_PLANED = "D5621E55-A2FB-4DAC-B0EE-B53F378405FF"; 
-    const CONST_COURSE_FORMAT = "2423c370-7205-463f-bea6-530ddc9aa544"; 
     const CURRENT_USER_ID = getCurrentUserId(); 
 
     try {
       setIsLoading(true);
-      const scheduleString = scheduleRows.map(s => {
-          const timeLabel = timeslotOptions.find((t: any) => t.value === s.timeSlotID)?.label || "";
-          return `${s.dayOfWeek} (${timeLabel})`;
-      }).join(", ");
 
-      const meetingDates = generateMeetingDates(formData.startDate, formData.endDate, scheduleRows);
-      const schedulePayloads: ClassMeetingScheduleDTO[] = meetingDates.map((m, index) => {
-          const matchedItem = syllabusItems[index] || syllabusItems[syllabusItems.length - 1];
-          return {
-              slotID: m.slotId,
-              date: m.date,
-              roomID: formData.room, 
-              syllabusItemID: matchedItem ? matchedItem.id : currentSyllabusId, 
-              scheduleDescription: scheduleString
+      if (isEdit && classId) {
+          // UPDATE
+          const enrollmentIdsForUpdate = selectedStudentIds
+            .map(studentId => studentLookup.get(studentId)?.enrollmentId)
+            .filter((id): id is string => !!id);
+          const updatePayload: UpdateClassCompositeRequestDTO = {
+              className: formData.courseName,
+              teacherAssignmentID: formData.teacherId,
+              startDate: formData.startDate,
+              endDate: formData.endDate,
+              capacity: formData.maxStudents,
+              updatedBy: CURRENT_USER_ID,
+              enrollmentIds: enrollmentIdsForUpdate
           };
-      });
+          await updateClassComposite(classId, updatePayload);
+          showStatusDialog("success", "Class Updated!", "Class updated successfully.");
 
-      const autoClassName = `${formData.courseName} - (${formData.startDate})`;
-      const enrollmentObjects = selectedStudentIds
-        .map(id => studentLookup.get(id))
-        .filter((item): item is WaitingStudentItem => !!item);
+      } else {
+          // CREATE
+          const CONST_STATUS_PLANED = "D5621E55-A2FB-4DAC-B0EE-B53F378405FF"; 
+          const CONST_COURSE_FORMAT = "2423c370-7205-463f-bea6-530ddc9aa544"; 
 
-      const compositePayload: CreateClassCompositeRequestDTO = {
-        className: autoClassName, 
-        classStatusID: CONST_STATUS_PLANED,
-        courseFormatID: CONST_COURSE_FORMAT,
-        teacherAssignmentID: formData.teacherId,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
-        capacity: formData.maxStudents,
-        createdBy: CURRENT_USER_ID,
-        schedules: schedulePayloads,
-        enrollments: enrollmentObjects 
-      };
+          const scheduleString = scheduleRows.map(s => {
+              const timeLabel = timeslotOptions.find((t: any) => t.value === s.timeSlotID)?.label || "";
+              return `${s.dayOfWeek} (${timeLabel})`;
+          }).join(", ");
 
-      await createClassComposite(compositePayload);
+          const meetingDates = generateMeetingDates(formData.startDate, formData.endDate, scheduleRows);
+          const schedulePayloads: ClassMeetingScheduleDTO[] = meetingDates.map((m, index) => {
+              const matchedItem = syllabusItems[index] || syllabusItems[syllabusItems.length - 1];
+              return {
+                  slotID: m.slotId,
+                  date: m.date,
+                  roomID: formData.room, 
+                  syllabusItemID: matchedItem ? matchedItem.id : currentSyllabusId, 
+                  scheduleDescription: scheduleString
+              };
+          });
+
+          const autoClassName = `${formData.courseName} - (${formData.startDate})`;
+          const enrollmentObjects = selectedStudentIds
+            .map(id => studentLookup.get(id))
+            .filter((item): item is WaitingStudentItem => !!item);
+
+          const compositePayload: CreateClassCompositeRequestDTO = {
+            className: autoClassName, 
+            classStatusID: CONST_STATUS_PLANED,
+            courseFormatID: CONST_COURSE_FORMAT,
+            teacherAssignmentID: formData.teacherId,
+            startDate: formData.startDate,
+            endDate: formData.endDate,
+            capacity: formData.maxStudents,
+            createdBy: CURRENT_USER_ID,
+            schedules: schedulePayloads,
+            enrollments: enrollmentObjects 
+          };
+
+          await createClassComposite(compositePayload);
+          showStatusDialog("success", "Class Created!", "Class created & students enrolled successfully!");
+      }
       
-      // Dùng Status Dialog thay vì Toast
-      showStatusDialog("success", "Class Created!", "Class created & students enrolled successfully!");
-      
-      // Delay chuyển trang để user đọc thông báo
       setTimeout(() => {
         if (isStandaloneRoute) navigate(`/staff/classes`);
         else navigate(`/staff/courses/${formData.courseId}`);
@@ -471,23 +559,32 @@ export default function AddEditClassPage() {
 
     } catch (err: any) {
       console.error(err);
-      showStatusDialog("error", "Creation Failed", err.response?.data?.message || "Failed to create class.");
+      showStatusDialog("error", "Action Failed", err.response?.data?.message || "Failed to process class.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // --- POPUP ACTIONS ---
-  
+  // --- POPUP LOGIC ---
+  useEffect(() => {
+    const fetchStudents = async () => {
+        if (!isWaitingListOpen || !formData.courseId) return;
+        setIsLoadingStudents(true);
+        try {
+            const res = await searchWaitingStudents(formData.courseId, studentSearch, 1);
+            setWaitingStudents(res.data.items || []);
+            updateStudentLookup(res.data.items || []);
+        } catch (err) { console.error(err); } finally { setIsLoadingStudents(false); }
+    };
+    const timeoutId = setTimeout(() => fetchStudents(), 300);
+    return () => clearTimeout(timeoutId);
+  }, [isWaitingListOpen, studentSearch, formData.courseId, updateStudentLookup]);
+
   const handleAutoSelect = async () => {
       if (!formData.courseId) return;
       const currentTotal = selectedStudentIds.length + tempSelectedIds.length;
       const needed = formData.maxStudents - currentTotal;
-      
-      if (needed <= 0) {
-          showErrorMessage("Class capacity is full.");
-          return;
-      }
+      if (needed <= 0) { showErrorMessage("Class capacity is full."); return; }
       try {
           setIsAutoPicking(true);
           const res = await autoPickWaitingStudents(formData.courseId, needed);
@@ -498,7 +595,6 @@ export default function AddEditClassPage() {
               updateStudentLookup(pickedStudents);
               const newIds = pickedStudents.map(s => s.studentId);
               setTempSelectedIds(prev => [...prev, ...newIds]);
-              // Toast nhẹ cho hành động này
               showSuccessMessage(`Auto-selected ${pickedStudents.length} students.`);
           }
       } catch (err) {
@@ -515,17 +611,11 @@ export default function AddEditClassPage() {
     setSelectedStudentIds(uniqueIds);
     setIsWaitingListOpen(false);
     setTempSelectedIds([]); 
-    
-    if (addedCount > 0) {
-        showStatusDialog("success", "Students Added", `Successfully added ${addedCount} students to the class.`);
-    }
+    if (addedCount > 0) showSuccessMessage(`Added ${addedCount} students to the class.`);
   };
 
   const handleRequestNotify = () => {
-    if (tempSelectedIds.length === 0) {
-        showErrorMessage("Please select students to notify.");
-        return;
-    }
+    if (tempSelectedIds.length === 0) { showErrorMessage("Please select students to notify."); return; }
     setIdsToNotify(tempSelectedIds); 
     setIsPostponeOpen(true);         
   };
@@ -551,18 +641,14 @@ export default function AddEditClassPage() {
          showStatusDialog("error", "Invalid Data", "No valid student emails found.");
          return;
       }
-
       const payload: PostponedClassNotifyRequest = {
          courseName: formData.courseName,
          plannedStartDate: formData.startDate,
          students: studentsToNotify
       };
-
       await sendPostponedClassEmail(payload);
-      
       setIsPostponeOpen(false);
       showStatusDialog("success", "Email Sent", `Sent postponement notifications to ${studentsToNotify.length} students.`);
-
     } catch (err: any) {
       console.error(err);
       showStatusDialog("error", "Sending Failed", "Failed to send notifications. Please try again.");
@@ -578,15 +664,23 @@ export default function AddEditClassPage() {
   return (
     <div className="min-h-screen bg-gray-50/50 pt-16">
       <div className="p-6 space-y-6 max-w-5xl mx-auto">
-         {/* Header */}
          <div className="flex flex-col gap-2">
             <Breadcrumbs items={[{ label: "Classes", to: "/staff/classes" }, { label: isEdit ? "Edit Class" : "New Class" }]} />
             <h1 className="text-2xl font-bold text-gray-800">{isEdit ? "Edit Class" : "Create New Class"}</h1>
             <p className="text-sm text-gray-500">Setup class schedule, location and enroll students.</p>
          </div>
+
+         {isEdit && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-md flex items-start gap-3 shadow-sm">
+                <AlertTriangle className="w-5 h-5 mt-0.5 text-amber-600" />
+                <div className="text-sm">
+                    <p className="font-bold">Restricted Edit Mode</p>
+                    <p>Only <strong>Student List</strong> and basic info can be modified here. To change schedule, please use the <strong>Schedule Management</strong> feature.</p>
+                </div>
+            </div>
+         )}
          
          <div className="space-y-6">
-                {/* CARD 1: GENERAL INFO */}
                 <Card className="p-6 border-t-4 border-t-blue-500">
                     <div className="flex items-center gap-2 mb-4 pb-2 border-b">
                         <BookOpen className="w-5 h-5 text-blue-600" />
@@ -604,7 +698,7 @@ export default function AddEditClassPage() {
                                             { label: isLoadingCourseOptions ? "Loading..." : "Select a course...", value: "" },
                                             ...courseOptions.map(c => ({ label: `${c.courseCode} - ${c.courseName}`, value: c.id }))
                                         ]}
-                                        disabled={isLoadingCourseOptions}
+                                        disabled={isLoadingCourseOptions || isEdit}
                                         error={errors.courseId}
                                     />
                                 </div>
@@ -621,12 +715,12 @@ export default function AddEditClassPage() {
                                 value={formData.status}
                                 onChange={e => handleInputChange("status", e.target.value)}
                                 options={statusOptions}
+                                disabled={isEdit}
                             />
                         </div>
                     </div>
                 </Card>
 
-                {/* CARD 2: SCHEDULE & LOCATION */}
                 <Card className="p-6 border-t-4 border-t-indigo-500">
                      <div className="flex items-center gap-2 mb-4 pb-2 border-b">
                         <CalendarClock className="w-5 h-5 text-indigo-600" />
@@ -640,8 +734,14 @@ export default function AddEditClassPage() {
                             onRemove={removeSchedule}
                             onChange={updateSchedule}
                             checkDuplicate={checkDuplicate}
+                            readOnly={isEdit}
                         />
                         {errors.schedules && <p className="text-sm text-red-500 mt-1">{errors.schedules}</p>}
+                        {isEdit && (
+                            <p className="text-xs text-gray-500 mt-2 italic flex items-center gap-1 bg-gray-50 p-2 rounded">
+                                <Info className="w-3 h-3" /> Schedule is read-only in Edit mode.
+                            </p>
+                        )}
                      </div>
                      <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
@@ -650,21 +750,19 @@ export default function AddEditClassPage() {
                                 type="date" 
                                 value={formData.startDate} 
                                 onChange={e => handleInputChange("startDate", e.target.value)} 
-                                error={errors.startDate} 
+                                error={errors.startDate}
+                                disabled={isEdit}
                             />
                         </div>
                         <div>
-                            <Label>End Date (Auto)</Label>
+                            <Label>End Date</Label>
                             <Input 
                                 type="date" 
                                 value={formData.endDate} 
                                 readOnly={true}
                                 className="bg-gray-100 cursor-not-allowed"
-                                title="Calculated automatically based on syllabus & schedule"
+                                disabled={isEdit}
                             />
-                            <p className="text-[10px] text-gray-500 mt-1">
-                                Based on {syllabusItems.length > 0 ? syllabusItems.length : "0"} syllabus sessions.
-                            </p>
                         </div>
                      </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -680,7 +778,7 @@ export default function AddEditClassPage() {
                                     { label: isLoadingRooms ? "Loading rooms..." : "Select a room...", value: "" },
                                     ...roomOptions.filter(r => r.isActive).map(r => ({ label: `${r.roomCode} (Cap: ${r.capacity})`, value: r.id }))
                                 ]}
-                                disabled={isLoadingRooms}
+                                disabled={isLoadingRooms || isEdit}
                                 error={errors.room}
                             />
                         </div>
@@ -692,7 +790,7 @@ export default function AddEditClassPage() {
                                     size="sm" 
                                     className="h-6 px-2 text-xs"
                                     onClick={reloadAvailableTeachers} 
-                                    disabled={isLoadingTeachers || !canPickTeacher}
+                                    disabled={isLoadingTeachers || !canPickTeacher || isEdit}
                                 >
                                     {isLoadingTeachers ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1" />}
                                     Find Available
@@ -705,22 +803,19 @@ export default function AddEditClassPage() {
                                 ]}
                                 value={formData.teacherId || ""}
                                 onChange={e => handleTeacherSelectChange(e.target.value)}
-                                disabled={availableTeachers.length === 0}
+                                disabled={availableTeachers.length === 0 || isEdit}
                                 error={errors.teacher}
                             />
-                            {!canPickTeacher && <p className="text-[10px] text-amber-600 mt-1">Setup schedules & dates first to find teachers.</p>}
                         </div>
                      </div>
                 </Card>
 
-                {/* CARD 3: STUDENTS (UPDATED UI) */}
                 <Card className="p-6 border-t-4 border-t-purple-500">
                     <div className="flex items-center justify-between mb-6 pb-2 border-b">
                         <div className="flex items-center gap-2">
                             <Users className="w-5 h-5 text-purple-600" />
                             <h2 className="font-semibold text-lg text-gray-800">Students & Capacity</h2>
                         </div>
-                        
                         <Button 
                             onClick={() => {
                                 setTempSelectedIds([]);
@@ -742,10 +837,10 @@ export default function AddEditClassPage() {
                            value={formData.maxStudents} 
                            onChange={e => handleInputChange("maxStudents", parseInt(e.target.value))} 
                            min={1}
+                           disabled={isEdit}
                          />
                     </div>
 
-                    {/* LIST ENROLLED STUDENTS */}
                     <div className="border rounded-md overflow-hidden bg-white">
                        <div className="bg-gray-50 px-4 py-2 border-b font-medium text-sm text-gray-500 flex justify-between">
                            <span>Enrolled Students List</span>
@@ -793,7 +888,6 @@ export default function AddEditClassPage() {
                 </Card>
          </div>
 
-         {/* STICKY ACTIONS BAR */}
          <div className="sticky bottom-0 z-10 bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-2xl border-t border-gray-200 flex justify-end gap-3">
             <Button variant="secondary" onClick={() => navigate(-1)} className="min-w-[100px]">Cancel</Button>
             <Button onClick={handleSave} disabled={isLoading} className="min-w-[140px] bg-blue-600 hover:bg-blue-700 text-white">
@@ -802,142 +896,74 @@ export default function AddEditClassPage() {
             </Button>
          </div>
 
-         {/* --- DIALOG: WAITING LIST (Student Manager) --- */}
          <Dialog open={isWaitingListOpen} onOpenChange={setIsWaitingListOpen}>
              <DialogContent size="lg">
-                 <DialogHeader>
-                     <DialogTitle>Select Students from Waiting List</DialogTitle>
-                 </DialogHeader>
+                 <DialogHeader><DialogTitle>Select Students from Waiting List</DialogTitle></DialogHeader>
                  <DialogBody>
                      <div className="mb-4 flex gap-2">
                          <div className="relative flex-1">
                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                             <Input 
-                                className="pl-9"
-                                placeholder="Search by name or code..." 
-                                value={studentSearch}
-                                onChange={e => setStudentSearch(e.target.value)}
-                             />
+                             <Input className="pl-9" placeholder="Search..." value={studentSearch} onChange={e => setStudentSearch(e.target.value)} />
                              {isLoadingStudents && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-blue-500" />}
                          </div>
-                         <Button 
-                            variant="secondary"
-                            onClick={handleAutoSelect}
-                            disabled={isAutoPicking}
-                            className="whitespace-nowrap flex items-center gap-2"
-                            title="Auto select students based on registration time"
-                         >
-                             {isAutoPicking ? <Loader2 className="w-4 h-4 animate-spin"/> : <Wand2 className="w-4 h-4 text-purple-600"/>}
-                             Auto Select
+                         <Button variant="secondary" onClick={handleAutoSelect} disabled={isAutoPicking} className="flex items-center gap-2">
+                             {isAutoPicking ? <Loader2 className="w-4 h-4 animate-spin"/> : <Wand2 className="w-4 h-4 text-purple-600"/>} Auto Select
                          </Button>
                      </div>
                      <div className="border rounded-md h-[300px] overflow-y-auto">
-                         {waitingStudents.length === 0 ? (
-                             <div className="p-8 text-center text-gray-500">No waiting students found.</div>
-                         ) : (
+                         {waitingStudents.length === 0 ? <div className="p-8 text-center text-gray-500">No students found.</div> : 
                              waitingStudents.map(s => {
                                  const isAlreadyAdded = selectedStudentIds.includes(s.studentId);
-                                 const isSelectedInDialog = tempSelectedIds.includes(s.studentId);
-                                 
+                                 const isSelected = tempSelectedIds.includes(s.studentId);
                                  return (
-                                     <div 
-                                        key={s.studentId} 
-                                        className={`px-4 py-3 border-b last:border-0 flex items-center gap-3 cursor-pointer transition-colors
-                                            ${isAlreadyAdded ? 'bg-gray-50 opacity-60 cursor-not-allowed' : 'hover:bg-blue-50'}
-                                            ${isSelectedInDialog ? 'bg-blue-50' : ''}
-                                        `}
-                                        onClick={() => {
-                                            if (isAlreadyAdded) return;
-                                            if (isSelectedInDialog) {
-                                                setTempSelectedIds(prev => prev.filter(id => id !== s.studentId));
-                                            } else {
-                                                setTempSelectedIds(prev => [...prev, s.studentId]);
-                                            }
-                                        }}
-                                     >
-                                         <div className={`w-5 h-5 rounded border flex items-center justify-center
-                                             ${isAlreadyAdded ? 'bg-gray-200 border-gray-300' : 
-                                               isSelectedInDialog ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300 bg-white'}
-                                         `}>
-                                             {isSelectedInDialog && <Check className="w-3 h-3" />}
+                                     <div key={s.studentId} className={`px-4 py-3 border-b flex items-center gap-3 cursor-pointer hover:bg-gray-50 ${isAlreadyAdded ? 'opacity-60' : ''} ${isSelected ? 'bg-blue-50' : ''}`}
+                                          onClick={() => !isAlreadyAdded && setTempSelectedIds(prev => prev.includes(s.studentId) ? prev.filter(id => id !== s.studentId) : [...prev, s.studentId])}>
+                                         <div className={`w-5 h-5 rounded border flex items-center justify-center ${isSelected ? 'bg-blue-500 border-blue-500 text-white' : 'bg-white'}`}>
+                                             {isSelected && <Check className="w-3 h-3" />}
                                          </div>
                                          <div className="flex-1">
-                                             <div className="font-medium text-sm text-gray-900">
-                                                 {s.fullName} {isAlreadyAdded && <span className="text-xs text-green-600 font-normal ml-2">(Already Enrolled)</span>}
-                                             </div>
+                                             <div className="font-medium text-sm">{s.fullName} {isAlreadyAdded && <span className="text-xs text-green-600">(Added)</span>}</div>
                                              <div className="text-xs text-gray-500">{s.studentCode}</div>
                                          </div>
                                      </div>
-                                 );
+                                 )
                              })
-                         )}
+                         }
                      </div>
                  </DialogBody>
-                 
-                 {/* --- DIALOG FOOTER (Updated) --- */}
                  <DialogFooter className="flex flex-col sm:flex-row sm:justify-between items-center gap-4 sm:gap-0 pt-4 border-t">
-                     <Button 
-                        variant="secondary" 
-                        onClick={handleRequestNotify} 
-                        className="flex items-center gap-2 min-w-[140px] justify-center"
-                        disabled={tempSelectedIds.length === 0}
-                     >
-                         <MailWarning className="w-4 h-4"/> 
-                         Notify Selected
+                     <Button variant="secondary" onClick={handleRequestNotify} className="flex items-center gap-2 min-w-[140px] justify-center" disabled={tempSelectedIds.length === 0}>
+                         <MailWarning className="w-4 h-4"/> Notify Selected
                      </Button>
-                     
                      <div className="flex gap-3 w-full sm:w-auto justify-end">
                          <Button variant="ghost" onClick={() => setIsWaitingListOpen(false)}>Cancel</Button>
-                         <Button 
-                            onClick={handleAddStudentsFromDialog} 
-                            disabled={tempSelectedIds.length === 0} 
-                            className="bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2"
-                         >
-                             <Check className="w-4 h-4" />
-                             Add Selected ({tempSelectedIds.length})
+                         <Button onClick={handleAddStudentsFromDialog} disabled={tempSelectedIds.length === 0} className="bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2">
+                             <Check className="w-4 h-4" /> Add Selected ({tempSelectedIds.length})
                          </Button>
                      </div>
                  </DialogFooter>
              </DialogContent>
          </Dialog>
 
-         {/* --- DIALOG: CONFIRM NOTIFY POSTPONE --- */}
          <Dialog open={isPostponeOpen} onOpenChange={setIsPostponeOpen}>
              <DialogContent>
-                 <DialogHeader>
-                     <DialogTitle className="text-amber-600 flex items-center gap-2">
-                         <MailWarning className="w-5 h-5" /> Notify Class Postponement
-                     </DialogTitle>
-                 </DialogHeader>
+                 <DialogHeader><DialogTitle className="text-amber-600 flex items-center gap-2"><MailWarning className="w-5 h-5" /> Notify Postponement</DialogTitle></DialogHeader>
                  <DialogBody>
-                     <p className="text-sm text-gray-600 mb-4">
-                         You are about to send an email to <strong>{idsToNotify.length} selected students</strong>, informing them that the class <strong>{formData.courseName}</strong> has been postponed.
-                     </p>
-                     <div className="bg-amber-50 p-3 rounded border border-amber-200 text-xs text-amber-800 mb-4">
-                         <strong>Note:</strong> The email will include options for students to either <strong>Wait</strong> for the next class or request a <strong>Refund</strong>.
-                     </div>
+                     <p className="text-sm text-gray-600 mb-4">Send email to <strong>{idsToNotify.length} students</strong>?</p>
                      <div className="space-y-2 bg-gray-50 p-3 rounded text-sm">
-                         <div className="flex justify-between">
-                             <span className="text-gray-500">Course:</span>
-                             <span className="font-medium">{formData.courseName || "N/A"}</span>
-                         </div>
-                         <div className="flex justify-between">
-                             <span className="text-gray-500">Planned Start Date:</span>
-                             <span className="font-medium">{formData.startDate || "Not set"}</span>
-                         </div>
+                         <div className="flex justify-between"><span className="text-gray-500">Course:</span><span className="font-medium">{formData.courseName}</span></div>
+                         <div className="flex justify-between"><span className="text-gray-500">New Start Date:</span><span className="font-medium">{formData.startDate}</span></div>
                      </div>
                  </DialogBody>
                  <DialogFooter>
                      <Button variant="secondary" onClick={() => setIsPostponeOpen(false)}>Cancel</Button>
                      <Button onClick={handleNotifyPostpone} disabled={isLoading} className="bg-amber-600 hover:bg-amber-700 text-white flex items-center">
-                         {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <MailWarning className="w-4 h-4 mr-2" />}
-                         Send Notifications
+                         {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <MailWarning className="w-4 h-4 mr-2" />} Send Notifications
                      </Button>
                  </DialogFooter>
              </DialogContent>
          </Dialog>
 
-         {/* --- STATUS DIALOG (Popup thông báo kết quả) --- */}
          <StatusDialog 
             open={statusDialog.open}
             onOpenChange={(open) => setStatusDialog(prev => ({ ...prev, open }))}
@@ -945,7 +971,6 @@ export default function AddEditClassPage() {
             title={statusDialog.title}
             message={statusDialog.message}
          />
-
       </div>
     </div>
   );
