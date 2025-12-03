@@ -215,3 +215,12 @@ export interface UpdateClassCompositeRequestDTO {
   
 
 }
+
+// classPlacement.types.ts
+
+export interface RoomAvailabilityArgs {
+  courseId: string;
+  schedules: ClassScheduleInput[];
+  startDate: string; // "yyyy-MM-dd"
+  endDate: string;   // "yyyy-MM-dd"
+}
