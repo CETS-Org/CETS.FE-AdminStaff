@@ -5,7 +5,7 @@ import Button from "@/components/ui/Button";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import Table, { type TableColumn } from "@/components/ui/Table";
 import Loader from "@/components/ui/Loader";
-import { Edit, UserX, User, Settings, Calendar, BookOpen, Award,MessageSquare,Plus,GraduationCap,Users,Clock,Mail,Phone,MapPin,IdCard,TrendingUp,Activity,Shield,CheckCircle,ExternalLink,Copy} from "lucide-react";
+import { UserX, User, Settings, Calendar, BookOpen, Award,MessageSquare,GraduationCap,Users,Clock,Mail,Phone,MapPin,IdCard,TrendingUp,Activity,Shield,CheckCircle,ExternalLink,Copy, X} from "lucide-react";
 // import { getTeacherById, type Teacher } from "@/pages/api/teacher.api";
 import { formatDate, getStatusColor, getStatusDisplay } from "@/helper/helper.service";
 import { getListCourseTeaching, getTeacherById, getListCredentialType, getListCredentialByTeacherId} from "@/api/teacher.api";
@@ -18,20 +18,11 @@ import type { CourseTeaching, Teacher, TeacherCredentialResponse, CredentialType
 // Remove TeachingCourse interface as we'll use CourseTeaching from types
 
 
-interface Note {
-  id: string;
-  adminName: string;
-  adminAvatar: string;
-  date: string;
-  content: string;
-}
-
 export default function TeacherDetailPage() {
   const { id } = useParams();
   const location = useLocation();
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [shouldRefetchCreds, setShouldRefetchCreds] = useState(false);
-  const [newNote, setNewNote] = useState("");
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +34,23 @@ export default function TeacherDetailPage() {
   const [credentialsLoading, setCredentialsLoading] = useState(false);
   const navigate = useNavigate();
   const [banDialogOpen, setBanDialogOpen] = useState(false);
+  const [viewingImage, setViewingImage] = useState<{ url: string; name: string } | null>(null);
+  
+  // Cloud storage base URL
+  const CLOUD_STORAGE_BASE_URL = 'https://pub-59cfd11e5f0d4b00af54839edc83842d.r2.dev';
+  
+  // Helper function to get full image URL
+  const getFullImageUrl = (url: string | null): string => {
+    if (!url) return '';
+    // If URL already starts with http/https, return as is
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    // If URL starts with /, remove it before prepending
+    const cleanPath = url.startsWith('/') ? url.substring(1) : url;
+    // Prepend cloud storage base URL
+    return `${CLOUD_STORAGE_BASE_URL}/${cleanPath}`;
+  };
 
   // Helpers to load types and credentials together (prevents race)
   const loadCredentialTypesIfNeeded = async (): Promise<CredentialTypeResponse[]> => {
@@ -175,32 +183,6 @@ export default function TeacherDetailPage() {
   }, [shouldRefetchCreds, id]);
    // Remove hardcoded teachingCourses data - now using API data
 
-
-
-  const notes: Note[] = [
-    {
-      id: "1",
-      adminName: "Admin Manager",
-      adminAvatar: "https://via.placeholder.com/40x40?text=AM",
-      date: "January 15, 2025",
-      content: "Dr. Smith consistently receives excellent student feedback. His teaching methods are highly effective and students show significant improvement."
-    },
-    {
-      id: "2",
-      adminName: "Academic Director",
-      adminAvatar: "https://via.placeholder.com/40x40?text=AD",
-      date: "January 10, 2025",
-      content: "Outstanding performance in curriculum development. Recommended for lead teacher position in advanced courses."
-    }
-  ];
-
-  const handleEdit = () => {
-    // Navigate to edit page
-    if (teacher?.accountId) {
-      navigate(`/admin/teachers/edit/${teacher.accountId}`);
-    }
-  };
-
   const handleDelete = () => {
     setBanDialogOpen(true);
   };
@@ -220,14 +202,6 @@ export default function TeacherDetailPage() {
       console.error("Error updating teacher status:", err);
     } finally {
       setBanDialogOpen(false);
-    }
-  };
-
-  const handleAddNote = () => {
-    if (newNote.trim()) {
-      // Add new note logic
-      console.log("Adding note:", newNote);
-      setNewNote("");
     }
   };
 
@@ -420,15 +394,6 @@ export default function TeacherDetailPage() {
         <div className="flex items-center justify-between mb-6 mt-4">
           <div></div>
           <div className="flex gap-3">
-            <Button
-              onClick={handleEdit}
-              variant="secondary"
-            >
-              <div className="flex items-center">
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Profile
-              </div>
-            </Button>
             {(() => {
               const isBanned = (teacher as any)?.isDeleted || teacher.statusName === 'Blocked' || teacher.statusName === 'Locked';
               return isBanned ? (
@@ -639,9 +604,15 @@ export default function TeacherDetailPage() {
                             </div>
                           </div>
                           {credential.pictureUrl && (
-                            <div className="w-12 h-12 rounded-lg overflow-hidden border border-blue-200 flex-shrink-0 ml-2">
+                            <div 
+                              className="w-12 h-12 rounded-lg overflow-hidden border border-blue-200 flex-shrink-0 ml-2 cursor-pointer hover:border-blue-400 transition-all"
+                              onClick={() => setViewingImage({ 
+                                url: getFullImageUrl(credential.pictureUrl), 
+                                name: credential.name || 'Certificate' 
+                              })}
+                            >
                               <img 
-                                src={credential.pictureUrl} 
+                                src={getFullImageUrl(credential.pictureUrl)} 
                                 alt={credential.name || 'Certificate'} 
                                 className="w-full h-full object-cover"
                               />
@@ -693,9 +664,15 @@ export default function TeacherDetailPage() {
                             </div>
                           </div>
                           {credential.pictureUrl && (
-                            <div className="w-12 h-12 rounded-lg overflow-hidden border border-green-200 flex-shrink-0 ml-2">
+                            <div 
+                              className="w-12 h-12 rounded-lg overflow-hidden border border-green-200 flex-shrink-0 ml-2 cursor-pointer hover:border-green-400 transition-all"
+                              onClick={() => setViewingImage({ 
+                                url: getFullImageUrl(credential.pictureUrl), 
+                                name: credential.name || 'Qualification' 
+                              })}
+                            >
                               <img 
-                                src={credential.pictureUrl} 
+                                src={getFullImageUrl(credential.pictureUrl)} 
                                 alt={credential.name || 'Qualification'} 
                                 className="w-full h-full object-cover"
                               />
@@ -741,22 +718,8 @@ export default function TeacherDetailPage() {
         </Card>
       </div>
 
-      {/* Third Row - Teaching Performance and Summary */}
+      {/* Third Row - Teaching Summary */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-        {/* Teaching Performance */}
-        <Card title="Teaching Performance" className="h-fit">
-          <div className="text-center py-8">
-            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-green-100 flex items-center justify-center shadow-sm">
-              <Award className="w-10 h-10 text-green-600" />
-            </div>
-            <h3 className="text-3xl font-bold text-gray-900 mb-3">4.8/5.0</h3>
-            <p className="text-gray-600 text-lg mb-6">Student Rating</p>
-            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
-              <p className="text-sm text-gray-500">Rating Chart Placeholder</p>
-            </div>
-          </div>
-        </Card>
-
         {/* Teaching Summary */}
         <Card title="Teaching Summary" className="h-fit">
           <div className="space-y-6">
@@ -839,54 +802,6 @@ export default function TeacherDetailPage() {
         </Card>
       </div>
 
-      {/* Fourth Row - Notes & Comments (Full Width) */}
-      <Card title="Notes & Comments">
-        <div className="space-y-6">
-          {/* Existing Notes */}
-          <div className="space-y-4">
-            {notes.map((note) => (
-              <div key={note.id} className="flex gap-4 p-4 bg-gray-50 rounded-lg">
-                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                  <User className="w-5 h-5 text-gray-600" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-medium text-gray-900">{note.adminName}</span>
-                    <span className="text-sm text-gray-500">•</span>
-                    <span className="text-sm text-gray-500">{note.date}</span>
-                  </div>
-                  <p className="text-gray-700">{note.content}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Add New Note */}
-          <div className="border-t pt-6">
-            <h4 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
-              <MessageSquare className="w-5 h-5" />
-              Add New Note
-            </h4>
-            <div className="flex gap-3">
-              <textarea
-                value={newNote}
-                onChange={(e) => setNewNote(e.target.value)}
-                placeholder="Add a new note or comment..."
-                className="flex-1 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                rows={3}
-              />
-              <Button
-                onClick={handleAddNote}
-                disabled={!newNote.trim()}
-                className="flex items-center gap-2 self-end"
-              >
-                <Plus className="w-4 h-4" />
-                Add
-              </Button>
-            </div>
-          </div>
-        </div>
-      </Card>
       <DeleteConfirmDialog
         open={banDialogOpen}
         onOpenChange={setBanDialogOpen}
@@ -896,6 +811,41 @@ export default function TeacherDetailPage() {
           ? `Are you sure you want to unban "${teacher.fullName}"? This will reactivate their account.`
           : `Are you sure you want to ban "${teacher.fullName}"? This will deactivate their account.`}
       />
+
+      {/* Image View Modal */}
+      {viewingImage && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          onClick={() => setViewingImage(null)}
+        >
+          <div 
+            className="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-auto relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+              <h3 className="text-lg font-semibold text-gray-900">{viewingImage.name}</h3>
+              <button
+                onClick={() => setViewingImage(null)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 bg-gray-50">
+              <img 
+                src={viewingImage.url} 
+                alt={viewingImage.name}
+                className="w-full h-auto rounded-lg shadow-lg bg-white object-contain max-h-[70vh] mx-auto"
+                onError={(e) => {
+                  console.error('Modal image load error:', viewingImage.url);
+                  e.currentTarget.src = '';
+                  e.currentTarget.alt = 'Failed to load image';
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -5,7 +5,6 @@ import Button from "@/components/ui/Button";
 import Loader from "@/components/ui/Loader";
 import { 
   ChevronRight, 
-  Edit, 
   User, 
   UserX,
   Calendar, 
@@ -20,7 +19,6 @@ import { formatDate, getStatusColor, getStatusDisplay } from "@/helper/helper.se
 import { getStaffById } from "@/api/staff.api";
 import { setIsDelete, setIsActive } from "@/api/account.api";
 import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
-import AddEditStaffDialog from "./components/AddEditStaffDialog";
 import type { Account } from "@/types/account.type";
 
 interface Note {
@@ -42,7 +40,6 @@ export default function StaffDetailPage() {
   const navigate = useNavigate();
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [banDialogOpen, setBanDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   // Fetch staff data
   useEffect(() => {
@@ -112,10 +109,6 @@ export default function StaffDetailPage() {
       content: "Recommended for additional responsibilities. Shows strong leadership potential and team collaboration skills."
     }
   ];
-
-  const handleEdit = () => {
-    setEditDialogOpen(true);
-  };
 
   const handleEditSuccess = async () => {
     // Refresh staff data after successful edit
@@ -228,15 +221,6 @@ export default function StaffDetailPage() {
             <span className="text-gray-900 font-medium">Staff Detail</span>
           </div>
           <div className="flex gap-3">
-            <Button
-              onClick={handleEdit}
-              variant="secondary"
-            >
-              <div className="flex items-center">
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Profile
-              </div>
-            </Button>
             {(() => {
               const isBanned = (staff as any)?.isDeleted || staff?.statusName === 'Blocked' || staff?.statusName === 'Locked';
               return isBanned ? (
@@ -265,9 +249,9 @@ export default function StaffDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column - Staff Information */}
-        <div className="lg:col-span-1">
+      <div className="flex justify-center">
+        {/* Staff Information - Centered */}
+        <div className="w-full max-w-2xl">
           <Card title="Staff Information">
             <div className="text-center mb-6">
               <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
@@ -340,67 +324,8 @@ export default function StaffDetailPage() {
               </div>
             </div>
           </Card>
-        
-        </div>
-
-        {/* Right Column - Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Performance Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-           
-
-            {/* Work Summary */}
-            <Card title="Work Summary">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-700">Years of Service:</span>
-                  <span className="font-bold text-blue-600">
-                    {staff.createdAt ? Math.max(0, new Date().getFullYear() - new Date(staff.createdAt).getFullYear()) : 0} years
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-700">Status:</span>
-                  <span className="font-bold text-green-600">{staff.statusName || "Active"}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-700">Roles:</span>
-                  <div className="flex flex-col items-end">
-                    {staff.roleNames && staff.roleNames.length > 0 ? (
-                      staff.roleNames.map((role, index) => (
-                        <span key={index} className="font-bold text-purple-600 text-sm">
-                          {role}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="font-bold text-purple-600">N/A</span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-700">Verified:</span>
-                  <span className="font-bold text-green-600">{staff.isVerified ? "Yes" : "No"}</span>
-                </div>
-                <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm text-blue-800">Consistently reliable and professional</span>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-         
         </div>
       </div>
-
-      <AddEditStaffDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        onUpdateSuccess={handleEditSuccess}
-        staff={staff}
-        mode="edit"
-      />
 
       <DeleteConfirmDialog
         open={banDialogOpen}

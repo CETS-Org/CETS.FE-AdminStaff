@@ -7,4 +7,6 @@ export interface FilterUserParam {
     sortBy: string | null;
     statusName: string | null;
     currentRole: string | null;
+    createdAtFrom: string | null;
+    createdAtTo: string | null;
 }

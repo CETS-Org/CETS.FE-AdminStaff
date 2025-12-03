@@ -7,13 +7,15 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import PageHeader from "@/components/ui/PageHeader";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
-import { Eye, Edit, Trash2, Plus, Loader2, User, Users, UserCheck, UserX, Shield, TrendingUp, Download, X, Search, Filter, CheckSquare, Square, RefreshCw } from "lucide-react";
+import { Eye, Trash2, Plus, Loader2, User, Users, UserX, Download, X, Search, Filter, CheckSquare, Square, RefreshCw } from "lucide-react";
+import * as XLSX from 'xlsx';
+import AddEditStaffDialog from "./AddEditStaffDialog";
 import { getStaffs, filterStaff } from "@/api/staff.api";
 import type { Account } from "@/types/account.type";
 import type { FilterUserParam } from "@/types/filter.type";
 import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
-import AddEditStaffDialog from "./AddEditStaffDialog";
 import { setIsDelete, setIsActive } from "@/api/account.api";
+import Pagination from "@/shared/pagination";
 
 export default function StaffList() {
   const navigate = useNavigate();
@@ -26,7 +28,8 @@ export default function StaffList() {
   const [emailFilter, setEmailFilter] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [createdDateFrom, setCreatedDateFrom] = useState<string>("");
+  const [createdDateTo, setCreatedDateTo] = useState<string>("");
   const [sortOrderDisplay, setSortOrderDisplay] = useState<string>("");
   const [sortBy, setSortBy] = useState<string>("");
   const [sortOrder, setSortOrder] = useState<string>("");
@@ -37,6 +40,10 @@ export default function StaffList() {
   const [staffs, setStaffs] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
 
   // Parse sort order from display value
@@ -63,7 +70,9 @@ export default function StaffList() {
         email: emailFilter || null,
         phoneNumber: phoneNumber || null,
         statusName: statusFilter === "all" ? null : statusFilter,
-        roleName: roleFilter === "all" ? null : roleFilter,
+        roleName: null,
+        createdAtFrom: createdDateFrom || null,
+        createdAtTo: createdDateTo || null,
         sortBy: sortBy || null,
         sortOrder: sortOrder || null,
         currentRole: "Staff"
@@ -98,18 +107,32 @@ export default function StaffList() {
     fetchStaffs();
   }, []);
 
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1); // Reset to first page when filters change
+  }, [searchTerm, emailFilter, phoneNumber, statusFilter, createdDateFrom, createdDateTo, sortOrderDisplay]);
+  
+  // Calculate pagination
+  const totalPages = Math.ceil(staffs.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedStaffs = useMemo(() => {
+    return staffs.slice(startIndex, endIndex);
+  }, [staffs, startIndex, endIndex]);
+
 
   // Reset page when filters change
   useEffect(() => {
     // Reset any pagination if needed
-  }, [searchTerm, emailFilter, phoneNumber, statusFilter, roleFilter, sortOrder]);
+  }, [searchTerm, emailFilter, phoneNumber, statusFilter, createdDateFrom, createdDateTo, sortOrder]);
 
   const clearFilters = async () => {
     setSearchTerm("");
     setEmailFilter("");
     setPhoneNumber("");
     setStatusFilter("all");
-    setRoleFilter("all");
+    setCreatedDateFrom("");
+    setCreatedDateTo("");
     setSortOrderDisplay("");
     setSortBy("");
     setSortOrder("");
@@ -142,7 +165,26 @@ export default function StaffList() {
     setSelectedStaffs([]);
   };
 
-  const activeFiltersCount = [searchTerm, emailFilter, phoneNumber, statusFilter, roleFilter, sortOrderDisplay].filter(item => item !== "" && item !== "all").length;
+  const handleExportData = () => {
+    const dataToExport = staffs.map(staff => ({
+      'Full Name': staff.fullName || 'N/A',
+      'Email': staff.email || 'N/A',
+      'Phone': staff.phoneNumber || 'N/A',
+      'Roles': staff.roleNames?.join(', ') || 'N/A',
+      'Status': staff.statusName || (staff.isDeleted ? 'Inactive' : 'Active'),
+      'Date of Birth': staff.dateOfBirth ? new Date(staff.dateOfBirth).toLocaleDateString() : 'N/A',
+      'Address': staff.address || 'N/A',
+      'CID': staff.cid || 'N/A',
+      'Created Date': new Date(staff.createdAt).toLocaleDateString()
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Staff List');
+    XLSX.writeFile(workbook, 'staff-list.xlsx');
+  };
+
+  const activeFiltersCount = [searchTerm, emailFilter, phoneNumber, statusFilter, createdDateFrom, createdDateTo, sortOrderDisplay].filter(item => item !== "" && item !== "all").length;
 
   // Get unique statuses for filter options
   const statuses = useMemo(() => {
@@ -150,12 +192,6 @@ export default function StaffList() {
     return uniqueStatuses.sort();
   }, [staffs]);
 
-  // Get unique roles for filter options
-  const roles = useMemo(() => {
-    const allRoles = staffs.flatMap(s => s.roleNames);
-    const uniqueRoles = [...new Set(allRoles)];
-    return uniqueRoles.sort();
-  }, [staffs]);
 
   // Sort order options
   const sortOptions = [
@@ -257,13 +293,6 @@ export default function StaffList() {
           >
             <Eye className="w-4 h-4" />
           </Button>
-          <Button
-            size="sm"
-            onClick={() => handleEdit(row)}
-            className="!p-2 !bg-green-50 !text-green-600 !border !border-green-200 hover:!bg-green-100 hover:!text-green-700 hover:!border-green-300 !transition-colors !rounded-md"
-          >
-            <Edit className="w-4 h-4" />
-          </Button>
           {row.statusName === 'Blocked' || row.statusName === 'Locked' || row.isDeleted ? (
             <Button
               size="sm"
@@ -287,15 +316,12 @@ export default function StaffList() {
   ];
 
   const handleAdd = () => {
+    console.log("handleAdd called - opening Add Staff dialog");
     setAddEditDialog({ open: true, staff: null, mode: "add" });
   };
 
   const handleView = (staff: Account) => {
     navigate(`/admin/staffs/${staff.accountId}`);
-  };
-
-  const handleEdit = (staff: Account) => {
-    setAddEditDialog({ open: true, staff, mode: "edit" });
   };
 
   const handleBan = (staff: Account) => {
@@ -338,15 +364,6 @@ export default function StaffList() {
     { label: "Staff Management", href: "/admin/staffs" }
   ];
 
-  // Statistics calculations
-  const stats = {
-    total: staffs.length,
-    active: staffs.filter(s => s.statusName?.toLowerCase() === 'active').length,
-    inactive: staffs.filter(s => s.statusName?.toLowerCase() === 'inactive').length,
-    suspended: staffs.filter(s => s.statusName?.toLowerCase() === 'suspended').length,
-    academic: staffs.filter(s => s.roleNames.some(role => role.toLowerCase().includes('academic'))).length,
-    accountant: staffs.filter(s => s.roleNames.some(role => role.toLowerCase().includes('accountant'))).length
-  };
 
   // const handleExport = () => {
   //   const dataToExport = staffs.map(staff => ({
@@ -410,104 +427,16 @@ export default function StaffList() {
         title="Staff Management"
         description="Manage and oversee all staff members with comprehensive tools"
         icon={<Users className="w-5 h-5 text-white" />}
-        // controls={[
-        //   {
-        //     type: 'button',
-        //     label: 'Export',
-        //     variant: 'secondary',
-        //     icon: <Download className="w-4 h-4" />,
-        //     onClick: handleExport
-        //   }
-        // ]}
+        controls={[
+          {
+            type: 'button',
+            label: 'Export Data',
+            variant: 'secondary',
+            icon: <Download className="w-4 h-4" />,
+            onClick: handleExportData
+          }
+        ]}
       />
-
-      {/* Enhanced Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-        <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-              <UserCheck className="w-7 h-7 text-white" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-green-700">Active</p>
-              <p className="text-3xl font-bold text-green-900 group-hover:text-green-600 transition-colors">
-                {stats.active}
-              </p>
-              <p className="text-xs text-green-600 mt-1">
-                {stats.total > 0 ? `${Math.round((stats.active / stats.total) * 100)}% of total` : '0% of total'}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-              <User className="w-7 h-7 text-white" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-700">Inactive</p>
-              <p className="text-3xl font-bold text-gray-900 group-hover:text-gray-600 transition-colors">
-                {stats.inactive}
-              </p>
-              <p className="text-xs text-gray-600 mt-1">
-                Not active
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-              <UserX className="w-7 h-7 text-white" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-red-700">Suspended</p>
-              <p className="text-3xl font-bold text-red-900 group-hover:text-red-600 transition-colors">
-                {stats.suspended}
-              </p>
-              <p className="text-xs text-red-600 mt-1">
-                Restricted access
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-              <Shield className="w-7 h-7 text-white" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-purple-700">Academic</p>
-              <p className="text-3xl font-bold text-purple-900 group-hover:text-purple-600 transition-colors">
-                {stats.academic}
-              </p>
-              <p className="text-xs text-purple-600 mt-1">
-                Teaching staff
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-              <TrendingUp className="w-7 h-7 text-white" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-yellow-700">Accountant</p>
-              <p className="text-3xl font-bold text-yellow-900 group-hover:text-yellow-600 transition-colors">
-                {stats.accountant}
-              </p>
-              <p className="text-xs text-yellow-600 mt-1">
-                Finance team
-              </p>
-            </div>
-          </div>
-        </Card>
-      </div>
 
       {/* Enhanced Staff List Section */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
@@ -621,7 +550,16 @@ export default function StaffList() {
 
             {showFilters && (
               <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Select
+                    label="Sort Order"
+                    value={sortOrderDisplay}
+                    onChange={(e) => {
+                      setSortOrderDisplay(e.target.value);
+                      parseSortOrder(e.target.value);
+                    }}
+                    options={sortOptions}
+                  />
                   <Input
                     label="Email"
                     placeholder="Enter email..."
@@ -643,23 +581,20 @@ export default function StaffList() {
                       ...statuses.map(status => ({ label: status || "Unknown", value: status || "unknown" }))
                     ]}
                   />
-                  <Select
-                    label="Role"
-                    value={roleFilter}
-                    onChange={(e) => setRoleFilter(e.target.value)}
-                    options={[
-                      { label: "All Roles", value: "all" },
-                      ...roles.map(role => ({ label: role, value: role }))
-                    ]}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <Input
+                    label="Created Date From"
+                    type="date"
+                    value={createdDateFrom}
+                    onChange={(e) => setCreatedDateFrom(e.target.value)}
                   />
-                  <Select
-                    label="Sort Order"
-                    value={sortOrderDisplay}
-                    onChange={(e) => {
-                      setSortOrderDisplay(e.target.value);
-                      parseSortOrder(e.target.value);
-                    }}
-                    options={sortOptions}
+                  <Input
+                    label="Created Date To"
+                    type="date"
+                    value={createdDateTo}
+                    onChange={(e) => setCreatedDateTo(e.target.value)}
+                    min={createdDateFrom || undefined}
                   />
                 </div>
               </div>
@@ -686,7 +621,18 @@ export default function StaffList() {
           ) : (
             <div className="space-y-6">
               <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <Table columns={columns} data={staffs} />
+                <Table columns={columns} data={paginatedStaffs} />
+                {totalPages > 1 && (
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                    itemsPerPage={itemsPerPage}
+                    totalItems={staffs.length}
+                    startIndex={startIndex + 1}
+                    endIndex={Math.min(endIndex, staffs.length)}
+                  />
+                )}
               </div>
             </div>
           )}
@@ -703,7 +649,6 @@ export default function StaffList() {
           : `Are you sure you want to unban "${deleteDialog.staff?.fullName}"? This will reactivate their account.`
         }
       />
-
 
       <AddEditStaffDialog
         open={addEditDialog.open}

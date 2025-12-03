@@ -31,7 +31,7 @@ export const academicStaffSidebarConfig: SidebarConfig = {
         { id: "placement-questions", label: "Questions", icon: HelpCircle, path: "/staff/placement-test/questions" },
       ],
     },
-    { id: "complaints", label: "Complaints", icon: MessageSquare, path: "/staff/complaints" },
+    { id: "complaints", label: "System report", icon: MessageSquare, path: "/staff/complaints" },
     { id: "requests", label: "Requests", icon: Mail, path: "/staff/requests" },
   ],
 };

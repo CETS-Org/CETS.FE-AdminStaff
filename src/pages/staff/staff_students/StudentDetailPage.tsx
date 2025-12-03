@@ -4,7 +4,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import Table, { type TableColumn } from "@/components/ui/Table";
-import { Edit, UserX, User, Eye, Settings, Calendar, BookOpen, Award,Mail,Phone,MapPin,IdCard,Clock,MessageSquare,Plus,GraduationCap,Activity,ExternalLink,Copy} from "lucide-react";
+import { UserX, User, Eye, Settings, Calendar, BookOpen, Award,Mail,Phone,MapPin,IdCard,Clock,MessageSquare,Plus,GraduationCap,Activity,ExternalLink,Copy} from "lucide-react";
 import { formatDate, getStatusColor, getStatusDisplay } from "@/helper/helper.service";
 import Loader from "@/components/ui/Loader";
 import { getStudentById, getListCourseEnrollment, getTotalAssignmentByStudentId, getTotalAttendceByStudentId } from "@/api/student.api";
@@ -30,7 +30,6 @@ export default function StudentDetailPage() {
   // const [openEditDialog, setOpenEditDialog] = useState(false); // Replaced with page navigation
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   // const [editingStudent, setEditingStudent] = useState<UpdateStudent | null>(null); // Replaced with page navigation
-  const [newNote, setNewNote] = useState("");
   // Load student data, supporting preloaded state to avoid F5
   useEffect(() => {
     const preloaded = (location.state as any)?.preloadedStudent;
@@ -120,11 +119,6 @@ export default function StudentDetailPage() {
 
 
 
-  const handleEdit = () => {
-    if (!id) return;
-    navigate(`/admin/students/edit/${id}`);
-  };
-
   const handleDelete = () => {
     setOpenDeleteDialog(true);
   };
@@ -147,15 +141,6 @@ export default function StudentDetailPage() {
     }
   };
 
-  const handleAddNote = () => {
-    if (newNote.trim()) {
-      // Add new note logic
-      console.log("Adding note:", newNote);
-      setNewNote("");
-    }
-  };
-
- 
   const handleViewCourse = async (course: CourseEnrollment) => {
     setSelectedCourse(course);
     setPerformanceLoading(true);
@@ -347,15 +332,6 @@ export default function StudentDetailPage() {
         <div className="flex items-center justify-between mb-6 mt-4">
           <div></div>
           <div className="flex items-center gap-3">
-            <Button
-              onClick={handleEdit}
-              variant="secondary"
-            >
-              <div className="flex items-center">
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Profile
-              </div>
-            </Button>
             {(() => {
               const isBanned = (student as any)?.isDeleted || student?.statusName === 'Blocked' || student?.statusName === 'Locked';
               return isBanned ? (
@@ -824,54 +800,6 @@ export default function StudentDetailPage() {
         </div>
       )}
 
-      {/* Fourth Row - Notes & Comments (Full Width) */}
-      <Card title="Notes & Comments">
-        <div className="space-y-6">
-          {/* Existing Notes */}
-          <div className="space-y-4">
-            <div className="flex gap-4 p-4 bg-gray-50 rounded-lg">
-              <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                <User className="w-5 h-5 text-gray-600" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="font-medium text-gray-900">Academic Advisor</span>
-                  <span className="text-sm text-gray-500">•</span>
-                  <span className="text-sm text-gray-500">{formatDate(new Date().toISOString())}</span>
-                </div>
-                <p className="text-gray-700">Student shows consistent progress in course assignments and maintains good attendance record. Recommended for advanced level courses.</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Add New Note */}
-          <div className="border-t pt-6">
-            <h4 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
-              <MessageSquare className="w-5 h-5" />
-              Add New Note
-            </h4>
-            <div className="flex gap-3">
-              <textarea
-                value={newNote}
-                onChange={(e) => setNewNote(e.target.value)}
-                placeholder="Add a new note or comment..."
-                className="flex-1 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                rows={3}
-              />
-              <Button
-                onClick={handleAddNote}
-                disabled={!newNote.trim()}
-                className="flex items-center gap-2 self-end"
-              >
-                <Plus className="w-4 h-4" />
-                Add
-              </Button>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      {/* AddEditStudentDialog replaced with dedicated edit page */}
       <DeleteConfirmDialog
         open={openDeleteDialog}
         onOpenChange={setOpenDeleteDialog}

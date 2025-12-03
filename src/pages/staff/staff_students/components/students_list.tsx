@@ -6,7 +6,7 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Pagination from "@/shared/pagination";
 import { 
-  Eye, Edit, UserX, Search, Filter, X, Loader2, User, 
+  Eye, UserX, Search, Filter, X, Loader2, User, 
   Download, RefreshCw, AlertCircle, CheckSquare, Square, Users
 } from "lucide-react";
 import { getStudents, filterStudent } from "@/api/student.api";
@@ -27,6 +27,8 @@ export default function StudentsList() {
   const [emailFilter, setEmailFilter] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [createdDateFrom, setCreatedDateFrom] = useState<string>("");
+  const [createdDateTo, setCreatedDateTo] = useState<string>("");
   const [sortOrderDisplay, setSortOrderDisplay] = useState<string>("");
   const [sortBy, setSortBy] = useState<string>("");
   const [sortOrder, setSortOrder] = useState<string>("");
@@ -60,9 +62,11 @@ export default function StudentsList() {
         email: emailFilter || null,
         phoneNumber: phoneNumber || null,
         statusName: statusFilter === "all" ? null : statusFilter,
+        roleName: "Student",
+        createdAtFrom: createdDateFrom || null,
+        createdAtTo: createdDateTo || null,
         sortBy: sortBy || null,
         sortOrder: sortOrder || null,
-        roleName: "Student",
         currentRole: "Student"
       };
       
@@ -200,13 +204,6 @@ export default function StudentsList() {
           >
             <Eye className="w-4 h-4" />
           </Button>
-          <Button
-            size="sm"
-            onClick={() => handleEdit(row)}
-            className="!p-2 !bg-green-50 !text-green-600 !border !border-green-200 hover:!bg-green-100 hover:!text-green-700 hover:!border-green-300 !transition-colors !rounded-md"
-          >
-            <Edit className="w-4 h-4" />
-          </Button>
           {row.statusName === 'Locked' ? (
             <Button
               size="sm"
@@ -236,10 +233,6 @@ export default function StudentsList() {
   const handleView = (student: Student) => {
     // Use accountId for navigation to student detail page
     navigate(`/admin/students/${student.accountId}`);
-  };
-
-  const handleEdit = (student: Student) => {
-    navigate(`/admin/students/edit/${student.accountId}`);
   };
 
   const handleBan = (student: Student) => {
@@ -286,6 +279,8 @@ export default function StudentsList() {
     setEmailFilter("");
     setPhoneNumber("");
     setStatusFilter("all");
+    setCreatedDateFrom("");
+    setCreatedDateTo("");
     setSortOrderDisplay("");
     setSortBy("");
     setSortOrder("");
@@ -319,7 +314,7 @@ export default function StudentsList() {
   };
 
   // const hasActiveFilters = searchTerm !== "" || emailFilter !== "" || phoneNumber !== "" || statusFilter !== "all" || sortOrderDisplay !== ""; // Not used
-  const activeFiltersCount = [searchTerm, emailFilter, phoneNumber, statusFilter, sortOrderDisplay].filter(item => item !== "" && item !== "all").length;
+  const activeFiltersCount = [searchTerm, emailFilter, phoneNumber, statusFilter, createdDateFrom, createdDateTo, sortOrderDisplay].filter(item => item !== "" && item !== "all").length;
 
   // Get unique statuses for filter options
   const statuses = useMemo(() => {
@@ -485,6 +480,15 @@ export default function StudentsList() {
             {showFilters && (
               <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Select
+                    label="Sort Order"
+                    value={sortOrderDisplay}
+                    onChange={(e) => {
+                      setSortOrderDisplay(e.target.value);
+                      parseSortOrder(e.target.value);
+                    }}
+                    options={sortOptions}
+                  />
                   <Input
                     label="Email"
                     placeholder="Enter email..."
@@ -506,15 +510,20 @@ export default function StudentsList() {
                       ...statuses.map(status => ({ label: status, value: status }))
                     ]}
                   />
-                   
-                  <Select
-                    label="Sort Order"
-                    value={sortOrderDisplay}
-                    onChange={(e) => {
-                      setSortOrderDisplay(e.target.value);
-                      parseSortOrder(e.target.value);
-                    }}
-                    options={sortOptions}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <Input
+                    label="Created Date From"
+                    type="date"
+                    value={createdDateFrom}
+                    onChange={(e) => setCreatedDateFrom(e.target.value)}
+                  />
+                  <Input
+                    label="Created Date To"
+                    type="date"
+                    value={createdDateTo}
+                    onChange={(e) => setCreatedDateTo(e.target.value)}
+                    min={createdDateFrom || undefined}
                   />
                 </div>
               </div>

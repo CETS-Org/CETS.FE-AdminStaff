@@ -5,7 +5,7 @@ import Table, { type TableColumn } from "@/components/ui/Table";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import { 
-  Eye, Edit, UserX, Plus, User, Download,
+  Eye, UserX, Plus, User, Download,
   GraduationCap, Search, Filter, X, 
   Loader2, RefreshCw, CheckSquare, Square
 } from "lucide-react";
@@ -14,6 +14,7 @@ import type { Teacher } from "@/types/teacher.type";
 import type { FilterUserParam } from "@/types/filter.type";
 import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
 import { setIsDelete, setIsActive } from "@/api/account.api";
+import Pagination from "@/shared/pagination";
 
 
 export default function TeacherList() {
@@ -26,6 +27,8 @@ export default function TeacherList() {
   const [emailFilter, setEmailFilter] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [createdDateFrom, setCreatedDateFrom] = useState<string>("");
+  const [createdDateTo, setCreatedDateTo] = useState<string>("");
   const [sortOrderDisplay, setSortOrderDisplay] = useState<string>("");
   const [sortBy, setSortBy] = useState<string>("");
   const [sortOrder, setSortOrder] = useState<string>("");
@@ -36,6 +39,10 @@ export default function TeacherList() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   // Parse sort order from display value
   const parseSortOrder = (displayValue: string) => {
@@ -61,9 +68,11 @@ export default function TeacherList() {
         email: emailFilter || null,
         phoneNumber: phoneNumber || null,
         statusName: statusFilter === "all" ? null : statusFilter,
+        roleName: "Teacher",
+        createdAtFrom: createdDateFrom || null,
+        createdAtTo: createdDateTo || null,
         sortBy: sortBy || null,
         sortOrder: sortOrder || null,
-        roleName: "Teacher",
         currentRole: "Teacher"
       };
       
@@ -98,14 +107,24 @@ export default function TeacherList() {
 
   // Reset page when filters change
   useEffect(() => {
-    // Reset any pagination if needed
-  }, [searchTerm, emailFilter, phoneNumber, statusFilter, sortOrder]);
+    setCurrentPage(1); // Reset to first page when filters change
+  }, [searchTerm, emailFilter, phoneNumber, statusFilter, createdDateFrom, createdDateTo, sortOrderDisplay]);
+  
+  // Calculate pagination
+  const totalPages = Math.ceil(teachers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedTeachers = useMemo(() => {
+    return teachers.slice(startIndex, endIndex);
+  }, [teachers, startIndex, endIndex]);
 
   const clearFilters = async () => {
     setSearchTerm("");
     setEmailFilter("");
     setPhoneNumber("");
     setStatusFilter("all");
+    setCreatedDateFrom("");
+    setCreatedDateTo("");
     setSortOrderDisplay("");
     setSortBy("");
     setSortOrder("");
@@ -138,7 +157,7 @@ export default function TeacherList() {
     setSelectedTeachers([]);
   };
 
-  const activeFiltersCount = [searchTerm, emailFilter, phoneNumber, statusFilter, sortOrderDisplay].filter(item => item !== "" && item !== "all").length;
+  const activeFiltersCount = [searchTerm, emailFilter, phoneNumber, statusFilter, createdDateFrom, createdDateTo, sortOrderDisplay].filter(item => item !== "" && item !== "all").length;
 
   // Get unique statuses for filter options
   const statuses = useMemo(() => {
@@ -260,14 +279,6 @@ export default function TeacherList() {
           >
             <Eye className="w-4 h-4" />
           </Button>
-          <Button
-            size="sm"
-            onClick={() => handleEdit(row)}
-            className="!p-2 !bg-green-50 !text-green-600 !border !border-green-200 hover:!bg-green-100 hover:!text-green-700 hover:!border-green-300 !transition-colors !rounded-md"
-          >
-            <Edit className="w-4 h-4" />
-          </Button>
-        
           {row.statusName === 'Blocked' || row.statusName === 'Locked' ? (
             <Button
               size="sm"
@@ -293,10 +304,6 @@ export default function TeacherList() {
 
   const handleAdd = () => {
     navigate("/admin/teachers/add");
-  };
-
-  const handleEdit = (teacher: Teacher) => {
-    navigate(`/admin/teachers/edit/${teacher.accountId}`);
   };
 
   const handleView = (teacher: Teacher) => {
@@ -480,6 +487,15 @@ export default function TeacherList() {
             {showFilters && (
               <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Select
+                    label="Sort Order"
+                    value={sortOrderDisplay}
+                    onChange={(e) => {
+                      setSortOrderDisplay(e.target.value);
+                      parseSortOrder(e.target.value);
+                    }}
+                    options={sortOptions}
+                  />
                   <Input
                     label="Email"
                     placeholder="Enter email..."
@@ -501,15 +517,20 @@ export default function TeacherList() {
                       ...statuses.map(status => ({ label: status || "Unknown", value: status || "unknown" }))
                     ]}
                   />
-                   
-                  <Select
-                    label="Sort Order"
-                    value={sortOrderDisplay}
-                    onChange={(e) => {
-                      setSortOrderDisplay(e.target.value);
-                      parseSortOrder(e.target.value);
-                    }}
-                    options={sortOptions}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <Input
+                    label="Created Date From"
+                    type="date"
+                    value={createdDateFrom}
+                    onChange={(e) => setCreatedDateFrom(e.target.value)}
+                  />
+                  <Input
+                    label="Created Date To"
+                    type="date"
+                    value={createdDateTo}
+                    onChange={(e) => setCreatedDateTo(e.target.value)}
+                    min={createdDateFrom || undefined}
                   />
                 </div>
               </div>
@@ -536,7 +557,18 @@ export default function TeacherList() {
           ) : (
             <div className="space-y-6">
               <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <Table columns={columns} data={teachers} />
+                <Table columns={columns} data={paginatedTeachers} />
+                {totalPages > 1 && (
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                    itemsPerPage={itemsPerPage}
+                    totalItems={teachers.length}
+                    startIndex={startIndex + 1}
+                    endIndex={Math.min(endIndex, teachers.length)}
+                  />
+                )}
               </div>
             </div>
           )}
