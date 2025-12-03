@@ -16,6 +16,7 @@ import OtpVerification from './pages/common/OtpVerification'
 import ResetPassword from './pages/common/ResetPassword'
 import ChangePassword from './pages/common/ChangePassword'
 
+
 export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-neutral-50">
@@ -31,6 +32,7 @@ export default function App() {
         
         {/* Staff Routes */}
         <Route path="/staff/*" element={<StaffHome />} />
+        
         
         {/* Admin Routes */}
         <Route path="/admin/*" element={<AdminHome />} />
