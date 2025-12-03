@@ -75,7 +75,7 @@ export default function AdminHome() {
       >
             <div className="px-6 lg:px-8">
                 <Routes>
-                    <Route path="/" element={<AdminStaffPage />} />
+                    <Route path="/" element={<AdminAnalytics />} />
                     <Route path="analytics" element={<AdminAnalytics />} />
                     <Route path="staffs" element={<AdminStaffPage />} />
                     <Route path="staffs/:id" element={<StaffDetailPage />} />

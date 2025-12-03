@@ -209,7 +209,7 @@ export default function Login() {
       } else if (userRole === "AccountantStaff") {
         navigate("/staff/analytics");
       } else if (userRole === "Admin") {
-        navigate("/admin/dashboard");
+        navigate("/admin/analytics");
       } else {
         // Default fallback for unknown roles
         console.warn("Unknown role:", userRole, "redirecting to staff home");

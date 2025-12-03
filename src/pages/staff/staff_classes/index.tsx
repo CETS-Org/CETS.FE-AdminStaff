@@ -44,11 +44,16 @@ export default function StaffClassesPage() {
       const classesData = await getStaffClasses();
       console.log("Classes data received:", classesData);
       
-      // Update rows with API data
-      setRows(classesData);
+      // Sort classes by className (name field) in ascending order
+      const sortedClasses = classesData.sort((b, a) => 
+        a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+      );
+      
+      // Update rows with sorted API data
+      setRows(sortedClasses);
       
       // Calculate and update statistics
-      const calculatedStats = calculateClassStatistics(classesData);
+      const calculatedStats = calculateClassStatistics(sortedClasses);
       setStats(calculatedStats);
       
       console.log("Statistics calculated:", calculatedStats);
