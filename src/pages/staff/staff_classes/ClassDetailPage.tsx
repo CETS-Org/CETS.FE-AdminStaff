@@ -42,6 +42,7 @@ interface Student {
   attendance: number;
   progress: number;
   finalGrade?: number | null;
+  isPass: boolean;
 }
 
 export default function ClassDetailPage() {
@@ -104,6 +105,7 @@ export default function ClassDetailPage() {
           attendance: student.attendanceRate,
           progress: student.progressPercentage,
           finalGrade: student.finalGrade,
+          isPass: student.isPass,
         }));
 
         setClassData(mappedClass);
@@ -188,6 +190,7 @@ export default function ClassDetailPage() {
             attendance: student.attendanceRate,
             progress: student.progressPercentage,
             finalGrade: student.finalGrade,
+            isPass: student.isPass,
           }));
           setStudents(updatedStudents);
         }
@@ -447,6 +450,7 @@ export default function ClassDetailPage() {
                   <th className="text-left py-3 px-4 font-medium text-gray-900">Attendance</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-900">Progress</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-900">Final Grade</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-900">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -495,6 +499,21 @@ export default function ClassDetailPage() {
                         }`}>
                           {student.finalGrade}
                         </span>
+                      ) : (
+                        <span className="text-gray-400 text-sm">Not graded</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4">
+                      {student.finalGrade !== null && student.finalGrade !== undefined ? (
+                        student.isPass ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Pass
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            Fail
+                          </span>
+                        )
                       ) : (
                         <span className="text-gray-400 text-sm">Not graded</span>
                       )}

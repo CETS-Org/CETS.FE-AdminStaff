@@ -43,6 +43,7 @@ export interface StudentInClass {
   attendanceRate: number;
   progressPercentage: number;
   finalGrade?: number | null;
+  isPass: boolean;
 }
 
 // Class detail response
