@@ -9,6 +9,7 @@ export interface SystemComplaint {
   submittedBy: string;
   submitterName?: string;
   submitterEmail?: string;
+  submitterRole?: string;
   title: string;
   description: string;
   attachmentUrl?: string;

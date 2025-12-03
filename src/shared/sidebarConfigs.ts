@@ -71,6 +71,6 @@ export const adminSidebarConfig: SidebarConfig = {
      
     },
     { id: "rooms", label: "Rooms Management", icon: DoorOpen, path: "/admin/rooms" },
-    { id: "reports", label: "Complaint Management", icon: FileText, path: "/admin/reports" },
+    { id: "reports", label: "System Report", icon: FileText, path: "/admin/reports" },
   ]
 };
