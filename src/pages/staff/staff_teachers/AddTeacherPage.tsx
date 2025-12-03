@@ -7,9 +7,10 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import { 
   Plus, Trash2, GraduationCap, ArrowLeft, Upload, User, Camera, Save, 
-  UserPlus, CheckCircle, AlertCircle, Loader2 
+  UserPlus, CheckCircle, AlertCircle, Loader2, Eye, X
 } from "lucide-react";
 import { createTeacher, getTeacherById, getListCredentialType } from "@/api/teacher.api";
+import { api } from "@/api/api";
 import type { AddTeacherProfile, CredentialTypeResponse } from "@/types/teacher.type";
 
 interface CredentialFormData {
@@ -18,6 +19,7 @@ interface CredentialFormData {
   pictureUrl: string | null;
   name: string | null;
   level: string | null;
+  imageFile?: File; // Store file object for later upload
 }
 
 
@@ -58,6 +60,8 @@ export default function AddEditTeacherPage() {
   const [avatarPreview, setAvatarPreview] = useState<string>("");
   const [credentialTypes, setCredentialTypes] = useState<CredentialTypeResponse[]>([]);
   const [completedSteps] = useState<number[]>([]);
+  const [viewingImage, setViewingImage] = useState<{ url: string; name: string } | null>(null);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const steps = [
@@ -225,12 +229,7 @@ export default function AddEditTeacherPage() {
       } else if (cred.level.trim().length < 2) {
         newErrors[`credential_${index}_level`] = "Credential level must be at least 2 characters";
       }
-      if (cred.pictureUrl && cred.pictureUrl.trim()) {
-        const urlRegex = /^https?:\/\//i;
-        if (!urlRegex.test(cred.pictureUrl.trim())) {
-          newErrors[`credential_${index}_pictureUrl`] = "Picture URL must start with http or https";
-        }
-      }
+      // Removed URL validation - allow any pictureUrl format
     });
 
     setErrors(newErrors);
@@ -258,11 +257,43 @@ export default function AddEditTeacherPage() {
       setErrors(prev => ({ ...prev, [field]: "" }));
     }
     
-    // Real-time validation for date of birth
+    // Real-time validation
+    const newErrors: Record<string, string> = {};
+    
+    if (field === 'fullName' && typeof value === 'string') {
+      if (!value.trim()) {
+        newErrors.fullName = "Full name is required";
+      } else if (value.trim().length < 2) {
+        newErrors.fullName = "Full name must be at least 2 characters";
+      }
+    }
+    
+    if (field === 'email' && typeof value === 'string') {
+      if (!value.trim()) {
+        newErrors.email = "Email is required";
+      } else {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(value.trim())) {
+          newErrors.email = "Please enter a valid email";
+        }
+      }
+    }
+    
+    if (field === 'phoneNumber' && typeof value === 'string') {
+      if (!value.trim()) {
+        newErrors.phoneNumber = "Phone number is required";
+      } else {
+        const phoneRegex = /^0\d{9}$/;
+        if (!phoneRegex.test(value.replace(/\s/g, ''))) {
+          newErrors.phoneNumber = "Phone number must start with 0 and have 10 digits";
+        }
+      }
+    }
+    
     if (field === 'dateOfBirth' && typeof value === 'string') {
-      const newErrors: Record<string, string> = {};
-      
-      if (value) {
+      if (!value) {
+        newErrors.dateOfBirth = "Date of birth is required";
+      } else {
         const birthDate = new Date(value);
         const today = new Date();
         
@@ -277,11 +308,36 @@ export default function AddEditTeacherPage() {
           }
         }
       }
-      
-      // Update errors for date of birth
-      if (Object.keys(newErrors).length > 0) {
-        setErrors(prev => ({ ...prev, ...newErrors }));
+    }
+    
+    if (field === 'cid' && typeof value === 'string') {
+      if (!value.trim()) {
+        newErrors.cid = "CID is required";
+      } else {
+        const cidRegex = /^[0-9]{9,12}$/;
+        if (!cidRegex.test(value.trim())) {
+          newErrors.cid = "CID must be 9-12 digits";
+        }
       }
+    }
+    
+    if (field === 'address' && typeof value === 'string') {
+      if (value && value.trim().length < 5) {
+        newErrors.address = "Address must be at least 5 characters";
+      }
+    }
+    
+    if (field === 'yearsExperience' && typeof value === 'number') {
+      if (value < 0) {
+        newErrors.yearsExperience = "Years of experience must be a positive number";
+      } else if (value > 50) {
+        newErrors.yearsExperience = "Years of experience seems unrealistic (max 50)";
+      }
+    }
+    
+    // Update errors
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(prev => ({ ...prev, ...newErrors }));
     }
   };
 
@@ -304,10 +360,16 @@ export default function AddEditTeacherPage() {
   };
 
   const updateCredential = (id: string, field: keyof CredentialFormData, value: string) => {
+    console.log(`Updating credential ${id}, field: ${field}, value length: ${value?.length}, value preview: ${value?.substring(0, 50)}`);
     setFormData(prev => {
-      const updatedCredentials = prev.credentials.map(cred =>
-        cred.id === id ? { ...cred, [field]: value } : cred
-      );
+      const updatedCredentials = prev.credentials.map(cred => {
+        if (cred.id === id) {
+          const updated = { ...cred, [field]: value };
+          console.log('Updated credential:', { id, field, newValue: updated[field] });
+          return updated;
+        }
+        return cred;
+      });
       
       // Clear error for this credential field when user starts typing
       const credentialIndex = prev.credentials.findIndex(cred => cred.id === id);
@@ -316,13 +378,85 @@ export default function AddEditTeacherPage() {
         if (errors[errorKey]) {
           setErrors(prevErrors => ({ ...prevErrors, [errorKey]: "" }));
         }
+        
+        // Real-time validation for credential fields
+        const newErrors: Record<string, string> = {};
+        const updatedCred = updatedCredentials[credentialIndex];
+        
+        if (field === 'credentialTypeId') {
+          if (!value) {
+            newErrors[`credential_${credentialIndex}_type`] = "Credential type is required";
+          }
+        }
+        
+        if (field === 'name') {
+          if (!value.trim()) {
+            newErrors[`credential_${credentialIndex}_name`] = "Credential name is required";
+          } else if (value.trim().length < 2) {
+            newErrors[`credential_${credentialIndex}_name`] = "Credential name must be at least 2 characters";
+          }
+        }
+        
+        if (field === 'level') {
+          if (!value.trim()) {
+            newErrors[`credential_${credentialIndex}_level`] = "Credential level is required";
+          }
+        }
+        
+        // Update errors
+        if (Object.keys(newErrors).length > 0) {
+          setErrors(prevErrors => ({ ...prevErrors, ...newErrors }));
+        }
       }
       
-      return {
+      const newFormData = {
         ...prev,
         credentials: updatedCredentials
       };
+      console.log('FormData updated, credentials count:', newFormData.credentials.length);
+      console.log('Credential with updated field:', newFormData.credentials.find(c => c.id === id));
+      
+      return newFormData;
     });
+  };
+  
+  const handleCredentialImageUpload = async (credentialId: string, file: File): Promise<string> => {
+    try {
+      // Get presigned URL for upload
+      const fileName = `credential-${Date.now()}-${file.name}`;
+      const response = await api.post<{ uploadUrl: string; filePath: string }>(
+        '/api/RPT_Report/image-upload-url',
+        {
+          fileName,
+          contentType: file.type
+        }
+      );
+      
+      console.log('📤 Upload response received:', response.data);
+      
+      // Upload file to presigned URL
+      const uploadResponse = await fetch(response.data.uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type,
+        },
+      });
+      
+      if (!uploadResponse.ok) {
+        throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+      }
+      
+      // Use filePath as the public URL
+      const publicUrl = response.data.filePath;
+      
+      console.log('✅ Upload completed. Received cloud URL:', publicUrl);
+      
+      return publicUrl;
+    } catch (error) {
+      console.error('❌ Error uploading credential image:', error);
+      throw error;
+    }
   };
 
   const removeCredential = (id: string) => {
@@ -352,6 +486,58 @@ export default function AddEditTeacherPage() {
     });
   };
 
+  const uploadCredentialImages = async (): Promise<CredentialFormData[]> => {
+    const credentialsWithFiles = formData.credentials.filter(cred => cred.imageFile);
+    
+    if (credentialsWithFiles.length === 0) {
+      // No images to upload, return credentials as is
+      return formData.credentials;
+    }
+
+    setUploadingImages(true);
+    
+    try {
+      // Upload all credential images and collect updated credentials
+      const updatedCredentials = await Promise.all(
+        formData.credentials.map(async (cred) => {
+          if (cred.imageFile) {
+            console.log(`📤 Uploading image for credential ${cred.id}...`);
+            const publicUrl = await handleCredentialImageUpload(cred.id, cred.imageFile);
+            console.log(`✅ Image uploaded for credential ${cred.id}, received URL:`, publicUrl);
+            
+            // Return credential with cloud URL
+            return {
+              ...cred,
+              pictureUrl: publicUrl,
+              imageFile: undefined
+            };
+          }
+          // Return credential as is if no file to upload
+          return cred;
+        })
+      );
+      
+      // Update formData with credentials that have cloud URLs
+      setFormData(prev => ({
+        ...prev,
+        credentials: updatedCredentials
+      }));
+      
+      console.log('📋 Updated credentials with cloud URLs:', updatedCredentials);
+      
+      // Wait a bit for state to update
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      return updatedCredentials;
+      
+    } catch (error) {
+      console.error('❌ Error uploading credential images:', error);
+      throw error;
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!validateForm()) {
       return;
@@ -359,35 +545,59 @@ export default function AddEditTeacherPage() {
 
     setIsLoading(true);
     try {
+      // Step 1: Upload all credential images to cloud and get URLs
+      console.log('📤 Step 1: Uploading credential images to cloud...');
+      const credentialsWithCloudUrls = await uploadCredentialImages();
+      
+      console.log('✅ Step 1 completed. Credentials with cloud URLs:', credentialsWithCloudUrls);
+      
+      // Step 2: Create teacher with credentials that have cloud URLs attached to pictureUrl
+      console.log('👤 Step 2: Creating teacher with cloud URLs...');
       const teacherData: AddTeacherProfile = {
         email: formData.email,
         phoneNumber: formData.phoneNumber,
         fullName: formData.fullName,
         dateOfBirth: formData.dateOfBirth,
-        cid: formData.cid,
+        cid: formData.cid, // CID will be hashed in backend
         address: formData.address,
         avatarUrl: formData.avatarUrl,
         yearsExperience: formData.yearsExperience,
         bio: formData.bio,
-        credentials: formData.credentials.filter(cred => cred.credentialTypeId).map(cred => ({
-          credentialTypeId: cred.credentialTypeId,
-          pictureUrl: cred.pictureUrl,
-          name: cred.name,
-          level: cred.level
-        }))
+        credentials: credentialsWithCloudUrls
+          .filter(cred => cred.credentialTypeId)
+          .map(cred => ({
+            credentialTypeId: cred.credentialTypeId,
+            pictureUrl: cred.pictureUrl, // Cloud URL đã được gắn vào field pictureUrl
+            name: cred.name,
+            level: cred.level
+          }))
       };
+      
+      console.log('📋 Creating teacher with data:', teacherData);
+      console.log('📸 Credentials pictureUrls:', teacherData.credentials.map(c => c.pictureUrl));
       
       const createdTeacher = await createTeacher(teacherData);
       
+      console.log('✅ Teacher created successfully:', createdTeacher);
+      
+      // Show success message with email notification info
+      alert(`Teacher account created successfully!\n\nAn email containing login credentials has been sent to:\n${teacherData.email}\n\nThe teacher can use this email and the password provided in the email to log in to the system.`);
+      
       // Navigate to teacher detail page using accountId from response
       if (createdTeacher.accountId) {
-        navigate(`/admin/teachers/${createdTeacher.accountId}`);
+        navigate(`/admin/teachers/${createdTeacher.accountId}`, {
+          state: {
+            updateStatus: "success",
+            emailSent: true,
+            emailAddress: teacherData.email
+          }
+        });
       } else {
         // Fallback to teachers list if no accountId
         navigate("/admin/teachers");
       }
     } catch (error) {
-      console.error("Error saving teacher:", error);
+      console.error("❌ Error saving teacher:", error);
       // You can add more specific error handling here
       setErrors({ submit: "Failed to save teacher. Please try again." });
     } finally {
@@ -782,20 +992,158 @@ export default function AddEditTeacherPage() {
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Input
+                      <Select
                         label="Level *"
-                        placeholder="e.g., Advanced"
                         value={cred.level || ""}
                         onChange={(e) => updateCredential(cred.id, 'level', e.target.value)}
+                        options={[
+                          { label: 'A1', value: 'A1' },
+                          { label: 'A2', value: 'A2' },
+                          { label: 'B1', value: 'B1' },
+                          { label: 'B2', value: 'B2' },
+                          { label: 'C1', value: 'C1' },
+                          { label: 'C2', value: 'C2' }
+                        ]}
                         error={errors[`credential_${index}_level`]}
                       />
-                      <Input
-                        label="Picture URL"
-                        placeholder="e.g., https://example.com/certificate.jpg"
-                        value={cred.pictureUrl || ""}
-                        onChange={(e) => updateCredential(cred.id, 'pictureUrl', e.target.value)}
-                        error={errors[`credential_${index}_pictureUrl`]}
-                      />
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Credential Image *
+                        </label>
+                        <div className="flex items-center gap-3">
+                          {cred.pictureUrl ? (
+                            <div className="flex items-center gap-3 flex-1">
+                              <div className="relative flex-shrink-0">
+                                <img 
+                                  key={`cred-img-${cred.id}-${cred.pictureUrl?.substring(0, 20)}`}
+                                  src={cred.pictureUrl || ''} 
+                                  alt="Credential preview" 
+                                  className="w-32 h-32 min-w-[128px] min-h-[128px] object-contain rounded-lg border-2 border-gray-200 cursor-pointer hover:border-primary-400 transition-all shadow-md bg-white"
+                                  style={{ 
+                                    display: 'block',
+                                    maxWidth: '128px',
+                                    maxHeight: '128px',
+                                    width: 'auto',
+                                    height: 'auto',
+                                    backgroundColor: 'white'
+                                  }}
+                                  onClick={() => setViewingImage({ url: cred.pictureUrl!, name: cred.name || 'Credential' })}
+                                  onLoad={(e) => {
+                                    console.log('✅ Image loaded successfully for credential:', cred.id);
+                                    // Ensure image is visible
+                                    e.currentTarget.style.opacity = '1';
+                                    e.currentTarget.style.visibility = 'visible';
+                                  }}
+                                  onError={(e) => {
+                                    console.error('❌ Image load error for credential:', cred.id);
+                                    console.error('URL:', cred.pictureUrl);
+                                    // Show placeholder instead of hiding
+                                    e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="128" height="128"%3E%3Crect width="128" height="128" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%239ca3af" font-size="12"%3EFailed to load%3C/text%3E%3C/svg%3E';
+                                  }}
+                                />
+                                <div 
+                                  className="absolute inset-0 rounded-lg flex items-center justify-center pointer-events-none transition-opacity hover:opacity-0"
+                                  style={{ backgroundColor: 'transparent' }}
+                                >
+                                  <Eye className="w-6 h-6 text-white opacity-0 transition-opacity" />
+                                </div>
+                              </div>
+                              <div className="flex flex-col gap-2">
+                                <Button
+                                  onClick={() => setViewingImage({ url: cred.pictureUrl!, name: cred.name || 'Credential' })}
+                                  variant="secondary"
+                                  size="sm"
+                                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                >
+                                  <Eye className="w-4 h-4 mr-1" />
+                                  View
+                                </Button>
+                                <Button
+                                  onClick={() => updateCredential(cred.id, 'pictureUrl', '')}
+                                  variant="secondary"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-4 h-4 mr-1" />
+                                  Remove
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex-1">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    // Validate file type
+                                    if (!file.type.startsWith('image/')) {
+                                      setErrors(prev => ({ ...prev, [`credential_${index}_pictureUrl`]: "Please select an image file" }));
+                                      return;
+                                    }
+                                    
+                                    // Validate file size (max 5MB)
+                                    if (file.size > 5 * 1024 * 1024) {
+                                      setErrors(prev => ({ ...prev, [`credential_${index}_pictureUrl`]: "File size must be less than 5MB" }));
+                                      return;
+                                    }
+                                    
+                                    // Store file object and show preview from local file
+                                    console.log('Storing file for credential:', cred.id);
+                                    
+                                    // Store file object for later upload
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      credentials: prev.credentials.map(c => 
+                                        c.id === cred.id ? { ...c, imageFile: file } : c
+                                      )
+                                    }));
+                                    
+                                    // Show preview immediately from local file
+                                    const reader = new FileReader();
+                                    reader.onload = (event) => {
+                                      const localPreview = event.target?.result as string;
+                                      console.log('Local preview loaded for review');
+                                      if (localPreview && localPreview.startsWith('data:image')) {
+                                        // Store as preview URL (base64) for review
+                                        updateCredential(cred.id, 'pictureUrl', localPreview);
+                                      } else {
+                                        console.error('Invalid preview data');
+                                        setErrors(prev => ({ ...prev, [`credential_${index}_pictureUrl`]: "Failed to read image file" }));
+                                      }
+                                    };
+                                    reader.onerror = (error) => {
+                                      console.error('FileReader error:', error);
+                                      setErrors(prev => ({ ...prev, [`credential_${index}_pictureUrl`]: "Failed to read image file" }));
+                                    };
+                                    reader.readAsDataURL(file);
+                                    
+                                    // Clear any previous errors
+                                    setErrors(prev => {
+                                      const newErrors = { ...prev };
+                                      delete newErrors[`credential_${index}_pictureUrl`];
+                                      return newErrors;
+                                    });
+                                  }
+                                }}
+                                className="hidden"
+                                id={`credential-image-${cred.id}`}
+                              />
+                              <label
+                                htmlFor={`credential-image-${cred.id}`}
+                                className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                              >
+                                <Upload className="w-4 h-4" />
+                                <span className="text-sm">Upload Image</span>
+                              </label>
+                            </div>
+                          )}
+                        </div>
+                        {errors[`credential_${index}_pictureUrl`] && (
+                          <p className="text-sm text-red-600 mt-1">{errors[`credential_${index}_pictureUrl`]}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                   );
@@ -915,13 +1263,13 @@ export default function AddEditTeacherPage() {
             </Button>
             <Button
               onClick={handleSave}
-              disabled={isLoading}
+              disabled={isLoading || uploadingImages}
               className="min-w-[160px] bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800"
             >
-              {isLoading ? (
+              {(isLoading || uploadingImages) ? (
                 <div className="flex items-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  {isEdit ? "Updating..." : "Creating..."}
+                  {uploadingImages ? "Uploading images..." : (isEdit ? "Updating..." : "Creating...")}
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
@@ -933,6 +1281,41 @@ export default function AddEditTeacherPage() {
           </div>
         </div>
       </div>
+
+      {/* Image View Modal */}
+      {viewingImage && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          onClick={() => setViewingImage(null)}
+        >
+          <div 
+            className="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-auto relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+              <h3 className="text-lg font-semibold text-gray-900">{viewingImage.name}</h3>
+              <button
+                onClick={() => setViewingImage(null)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 bg-gray-50">
+              <img 
+                src={viewingImage.url} 
+                alt={viewingImage.name}
+                className="w-full h-auto rounded-lg shadow-lg bg-white object-contain max-h-[70vh] mx-auto"
+                onError={(e) => {
+                  console.error('Modal image load error:', viewingImage.url);
+                  e.currentTarget.src = '';
+                  e.currentTarget.alt = 'Failed to load image';
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

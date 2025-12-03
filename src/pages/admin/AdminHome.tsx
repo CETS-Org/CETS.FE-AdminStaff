@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useNavigate } from "react-router-dom";
 import GenericNavbar from "@/shared/GenericNavbar";
 import { createAdminNavbarConfig } from "@/shared/navbarConfigs";
 import AdminSidebar from "@/shared/AdminSidebar";
@@ -18,21 +18,39 @@ import EditTeacherPage from "../staff/staff_teachers/EditTeacherPage";
 import TeacherDetailPage from "../staff/staff_teachers/TeacherDetailPage";
 import AdminAnalytics from "./admin_analytics";
 import StaffRoomsPage from "../staff/staff_rooms";
+import AdminProfilePage from "./AdminProfilePage";
 
 export default function AdminHome() {
         const [mobileOpen, setMobileOpen] = useState(false);
         const [collapsed, setCollapsed] = useState(true); 
         const [userAccount, setUserAccount] = useState(null);
+        const navigate = useNavigate();
 
         const contentShiftClass = collapsed ? "lg:ml-16" : "lg:ml-64";
 
-        // Load user account data
+        // Load user account data and verify role
         useEffect(() => {
             const userData = localStorage.getItem('userInfo'); 
             if (userData) {
-                setUserAccount(JSON.parse(userData));
+                const account = JSON.parse(userData);
+                setUserAccount(account);
+                
+                // Check if user is actually an admin
+                const userRole = account?.roleNames?.[0];
+                if (userRole !== 'Admin') {
+                    // Redirect to appropriate home based on role
+                    if (userRole === 'AcademicStaff' || userRole === 'AccountantStaff') {
+                        navigate('/staff/analytics', { replace: true });
+                    } else {
+                        // Unknown role, redirect to login
+                        navigate('/login', { replace: true });
+                    }
+                }
+            } else {
+                // No user data, redirect to login
+                navigate('/login', { replace: true });
             }
-        }, []);
+        }, [navigate]);
 
         return (
             <div className="">
@@ -73,6 +91,7 @@ export default function AdminHome() {
                     <Route path="reports" element={<ComplaintManagement />} />
                     <Route path="reports/:id" element={<ComplaintDetailPage />} />
                     <Route path="reports/:id/response" element={<ComplaintResponsePage />} />
+                    <Route path="profile" element={<AdminProfilePage />} />
                 </Routes>
             </div>
             </div>

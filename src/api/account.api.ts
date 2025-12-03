@@ -146,3 +146,108 @@ export const resendVerificationEmail = async (email: string): Promise<ResendVeri
     throw error;
   }
 };
+
+// Checkers for uniqueness validation (email, phone, CID)
+// Returns true if email EXISTS in database, false if email is UNIQUE (does NOT exist)
+// Note: 404 status means email EXISTS (already in database)
+export const checkEmailExist = async (email: string): Promise<boolean> => {
+  try {
+    const res = await api.get(`${endpoint.account}/checkEmailExist/${encodeURIComponent(email)}`);
+    // If API returns success, email is UNIQUE (doesn't exist)
+    const result = res.data;
+    console.log("checkEmailExist API response:", { email, response: result, type: typeof result });
+    
+    // Handle both boolean and string responses
+    let isUnique: boolean;
+    if (typeof result === 'boolean') {
+      isUnique = result === true;
+    } else if (typeof result === 'string') {
+      isUnique = result.toLowerCase() === 'true';
+    } else {
+      isUnique = (result as boolean) === true;
+    }
+    
+    // API returns true if UNIQUE, but we want to return true if EXISTS
+    // So invert: if API says UNIQUE (true), we return EXISTS (false)
+    // If API says EXISTS (false), we return EXISTS (true)
+    const emailExists = !isUnique;
+    console.log("checkEmailExist converted:", { email, isUnique, emailExists });
+    return emailExists;
+  } catch (err: any) {
+    console.error("checkEmailExist error:", err);
+    // 404 means email EXISTS (already in database)
+    if (err?.response?.status === 404) {
+      console.log("checkEmailExist: 404 received, email EXISTS");
+      return true; // Email EXISTS
+    }
+    throw err;
+  }
+};
+
+// Returns true if phone EXISTS in database, false if phone is UNIQUE (does NOT exist)
+// Note: 404 status means phone EXISTS (already in database)
+export const checkPhoneExist = async (phone: string): Promise<boolean> => {
+  try {
+    const res = await api.get(`${endpoint.account}/checkPhoneExist/${encodeURIComponent(phone)}`);
+    // If API returns success, phone is UNIQUE (doesn't exist)
+    const result = res.data;
+    console.log("checkPhoneExist API response:", { phone, response: result, type: typeof result });
+    
+    // Handle both boolean and string responses
+    let isUnique: boolean;
+    if (typeof result === 'boolean') {
+      isUnique = result === true;
+    } else if (typeof result === 'string') {
+      isUnique = result.toLowerCase() === 'true';
+    } else {
+      isUnique = (result as boolean) === true;
+    }
+    
+    // API returns true if UNIQUE, but we want to return true if EXISTS
+    const phoneExists = !isUnique;
+    console.log("checkPhoneExist converted:", { phone, isUnique, phoneExists });
+    return phoneExists;
+  } catch (err: any) {
+    console.error("checkPhoneExist error:", err);
+    // 404 means phone EXISTS (already in database)
+    if (err?.response?.status === 404) {
+      console.log("checkPhoneExist: 404 received, phone EXISTS");
+      return true; // Phone EXISTS
+    }
+    throw err;
+  }
+};
+
+// Returns true if CID EXISTS in database, false if CID is UNIQUE (does NOT exist)
+// Note: 404 status means CID EXISTS (already in database)
+export const checkCIDExist = async (cid: string): Promise<boolean> => {
+  try {
+    const res = await api.get(`${endpoint.account}/checkCIDExist/${encodeURIComponent(cid)}`);
+    // If API returns success, CID is UNIQUE (doesn't exist)
+    const result = res.data;
+    console.log("checkCIDExist API response:", { cid, response: result, type: typeof result });
+    
+    // Handle both boolean and string responses
+    let isUnique: boolean;
+    if (typeof result === 'boolean') {
+      isUnique = result === true;
+    } else if (typeof result === 'string') {
+      isUnique = result.toLowerCase() === 'true';
+    } else {
+      isUnique = (result as boolean) === true;
+    }
+    
+    // API returns true if UNIQUE, but we want to return true if EXISTS
+    const cidExists = !isUnique;
+    console.log("checkCIDExist converted:", { cid, isUnique, cidExists });
+    return cidExists;
+  } catch (err: any) {
+    console.error("checkCIDExist error:", err);
+    // 404 means CID EXISTS (already in database)
+    if (err?.response?.status === 404) {
+      console.log("checkCIDExist: 404 received, CID EXISTS");
+      return true; // CID EXISTS
+    }
+    throw err;
+  }
+};

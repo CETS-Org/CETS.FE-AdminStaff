@@ -39,6 +39,7 @@ import PlacementTestManagementPage from "./staff_placement_test";
 import PlacementQuestionManagementPage from "./staff_placement_test/PlacementQuestionManagementPage";
 import CreatePlacementTestPage from "./staff_placement_test/CreatePlacementTestPage";
 import StaffPlacementTestTaking from "./staff_placement_test/StaffPlacementTestTaking";
+import StaffProfilePage from "./StaffProfilePage";
 
 export default function StaffHome() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -164,6 +165,7 @@ export default function StaffHome() {
             <Route path="placement-test/create" element={<CreatePlacementTestPage />} />
             <Route path="placement-test/edit/:id" element={<CreatePlacementTestPage />} />
             <Route path="placement-test/try/:testId" element={<StaffPlacementTestTaking />} />
+            <Route path="profile" element={<StaffProfilePage />} />
           </Routes>
         </div>
       </div>

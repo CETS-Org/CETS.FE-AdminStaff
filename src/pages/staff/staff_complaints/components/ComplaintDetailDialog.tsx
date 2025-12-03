@@ -12,10 +12,12 @@ import {
   CheckCircle, 
   XCircle,
   AlertCircle,
-  FileText
+  FileText,
+  Image
 } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
 import { getComplaintDownloadUrl } from '@/api/complaint.api';
+import { config } from '@/lib/config';
 
 export interface Complaint {
   id: string;
@@ -31,6 +33,7 @@ export interface Complaint {
   description: string;
   submitterEmail?: string;
   attachmentUrl?: string;
+  reportUrl?: string;
   resolvedByName?: string;
   resolvedAt?: string;
   adminResponse?: string;
@@ -198,6 +201,25 @@ export default function ComplaintDetailDialog({
     setSelectedNextStatus(null); // Reset selected status after change
   };
 
+  // Build full image URL from reportUrl using storage public URL
+  const getImageUrl = (reportUrl: string | undefined): string | null => {
+    if (!reportUrl) return null;
+    
+    // If reportUrl already starts with http/https, return as is
+    if (reportUrl.startsWith('http://') || reportUrl.startsWith('https://')) {
+      return reportUrl;
+    }
+    
+    // Use storage public URL from config
+    const storageBaseURL = config.storagePublicUrl;
+    // Remove trailing slash from storageBaseURL if exists
+    const cleanStorageBaseURL = storageBaseURL.replace(/\/$/, '');
+    // Ensure reportUrl starts with /
+    const cleanReportUrl = reportUrl.startsWith('/') ? reportUrl : `/${reportUrl}`;
+    
+    return `${cleanStorageBaseURL}${cleanReportUrl}`;
+  };
+
   const handleDownloadAttachment = async () => {
     if (!complaint.attachmentUrl) {
       showToast('No attachment available to download', 'error');
@@ -346,6 +368,41 @@ export default function ComplaintDetailDialog({
                 </div>
               )}
 
+              {/* Problem Image */}
+              {complaint.reportUrl && (() => {
+                const imageUrl = getImageUrl(complaint.reportUrl);
+                return imageUrl ? (
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <h3 className="text-sm font-semibold text-purple-900 mb-3 flex items-center gap-2">
+                      <Image className="w-4 h-4" />
+                      Problem Image
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="relative bg-white rounded-lg overflow-hidden border border-purple-100">
+                        <img
+                          src={imageUrl}
+                          alt="Problem image"
+                          className="w-full h-auto max-h-96 object-contain"
+                          onError={(e) => {
+                            console.error('Failed to load problem image:', imageUrl);
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      </div>
+                      <div className="flex justify-end">
+                        <Button
+                          onClick={() => window.open(imageUrl, '_blank')}
+                          className="!bg-purple-600 hover:!bg-purple-700 !text-white"
+                          iconLeft={<Download className="w-4 h-4 mr-2" />}
+                        >
+                          Open in New Tab
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ) : null;
+              })()}
+
               {/* Admin Response */}
               {complaint.adminResponse && (
                 <div>
@@ -381,14 +438,18 @@ export default function ComplaintDetailDialog({
           </DialogBody>
           
           <DialogFooter>
-            <Button
-              variant="secondary"
-              onClick={onClose}
-            >
-              Close
-            </Button>
+            {/* Only show Close button when status is Closed or Resolved */}
+            {(complaint.status === 'Closed' || complaint.status === 'Resolved' || 
+              complaint.status?.toLowerCase() === 'closed' || complaint.status?.toLowerCase() === 'resolved') && (
+              <Button
+                variant="secondary"
+                onClick={onClose}
+              >
+                Close
+              </Button>
+            )}
             {/* Show buttons for Open status - only if no action selected yet */}
-            {complaint.status === 'Open' && !selectedNextStatus && (
+            {(complaint.status === 'Open' || complaint.status?.toLowerCase() === 'open') && !selectedNextStatus && (
               <>
                 <Button
                   onClick={() => {
@@ -398,7 +459,17 @@ export default function ComplaintDetailDialog({
                   iconLeft={<Clock className="w-4 h-4 mr-2" />}
                   className="!bg-blue-600 hover:!bg-blue-700 !text-white"
                 >
-                  Mark In Progress
+                  Mark In Process
+                </Button>
+                <Button
+                  onClick={() => {
+                    setSelectedNextStatus('closed');
+                    setReply('');
+                  }}
+                  iconLeft={<XCircle className="w-4 h-4 mr-2" />}
+                  className="!bg-gray-600 hover:!bg-gray-700 !text-white"
+                >
+                  Change Status to Closed
                 </Button>
               </>
             )}
