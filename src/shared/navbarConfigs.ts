@@ -1,4 +1,4 @@
-import { Home, Info, Phone, Users, BarChart3, BookOpenText, Settings, HelpCircle, UserCheck, GraduationCap, FileText } from "lucide-react";
+import { Home, Info, Phone, Users, BarChart3, BookOpenText, Settings, HelpCircle, UserCheck, GraduationCap, FileText, User } from "lucide-react";
 import type { NavbarConfig } from "@/types/navbar.type";
 import { createNavbarUserInfo } from "@/types/navbar.type";
 
@@ -20,8 +20,13 @@ export const createGuestNavbarConfig = (): NavbarConfig => ({
 });
 
 // Admin navbar configuration
-export const createAdminNavbarConfig = (userAccount: any): NavbarConfig => ({
-  userInfo: createNavbarUserInfo(userAccount, "Admin"),
+export const createAdminNavbarConfig = (userAccount: any): NavbarConfig => {
+  // Determine role from userAccount.roleNames if available
+  const userRole = userAccount?.roleNames?.[0] || "Admin";
+  // Determine profile href based on actual role
+  const profileHref = userRole === "Admin" ? "/admin/profile" : "/staff/profile";
+  return {
+  userInfo: createNavbarUserInfo(userAccount, userRole),
   navigationItems: [
     {
       name: "Analytics",
@@ -56,6 +61,12 @@ export const createAdminNavbarConfig = (userAccount: any): NavbarConfig => ({
   ],
   userMenuItems: [
     {
+      name: "My Profile",
+      href: profileHref,
+      icon: User,
+      description: "View and edit your profile"
+    },
+    {
       name: "Settings",
       href: "/admin/settings",
       icon: Settings,
@@ -74,11 +85,15 @@ export const createAdminNavbarConfig = (userAccount: any): NavbarConfig => ({
     { label: "Students", value: "1,248", color: "purple" }
   ],
   portalName: "CETS Admin Portal"
-});
+  };
+};
 
 // Academic Staff navbar configuration  
-export const createAcademicStaffNavbarConfig = (userAccount: any): NavbarConfig => ({
-  userInfo: createNavbarUserInfo(userAccount, "AcademicStaff"),
+export const createAcademicStaffNavbarConfig = (userAccount: any): NavbarConfig => {
+  // Determine role from userAccount.roleNames if available
+  const userRole = userAccount?.roleNames?.[0] || "AcademicStaff";
+  return {
+  userInfo: createNavbarUserInfo(userAccount, userRole),
   navigationItems: [
     {
       name: "Analytics",
@@ -101,6 +116,12 @@ export const createAcademicStaffNavbarConfig = (userAccount: any): NavbarConfig 
   ],
   userMenuItems: [
     {
+      name: "My Profile",
+      href: "/staff/profile",
+      icon: User,
+      description: "View and edit your profile"
+    },
+    {
       name: "Settings",
       href: "/staff/settings",
       icon: Settings,
@@ -119,11 +140,15 @@ export const createAcademicStaffNavbarConfig = (userAccount: any): NavbarConfig 
     { label: "Students", value: "1,248", color: "purple" }
   ],
   portalName: "CETS Academic Staff Portal"
-});
+  };
+};
 
 // Accountant Staff navbar configuration
-export const createAccountantStaffNavbarConfig = (userAccount: any): NavbarConfig => ({
-  userInfo: createNavbarUserInfo(userAccount, "AccountantStaff"),
+export const createAccountantStaffNavbarConfig = (userAccount: any): NavbarConfig => {
+  // Determine role from userAccount.roleNames if available
+  const userRole = userAccount?.roleNames?.[0] || "AccountantStaff";
+  return {
+  userInfo: createNavbarUserInfo(userAccount, userRole),
   navigationItems: [
     {
       name: "Analytics", 
@@ -139,6 +164,12 @@ export const createAccountantStaffNavbarConfig = (userAccount: any): NavbarConfi
     }
   ],
   userMenuItems: [
+    {
+      name: "My Profile",
+      href: "/staff/profile",
+      icon: User,
+      description: "View and edit your profile"
+    },
     {
       name: "Settings",
       href: "/staff/settings",
@@ -158,4 +189,5 @@ export const createAccountantStaffNavbarConfig = (userAccount: any): NavbarConfi
     { label: "Students", value: "1,248", color: "blue" }
   ],
   portalName: "CETS Accountant Staff Portal"
-});
+  };
+};

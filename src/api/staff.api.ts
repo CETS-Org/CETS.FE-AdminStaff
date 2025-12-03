@@ -157,3 +157,36 @@ export const getRoles = async (): Promise<Role[]> => {
     throw error;
   }
 }
+
+/**
+ * Upload avatar using presigned URL (same as student/teacher)
+ */
+export async function uploadAvatar(file: File): Promise<string> {
+  try {
+    // Get presigned URL for upload (using student endpoint, works for all accounts)
+    const res = await api.get(`${endpoint.student}/avatar/upload-url`, {
+      params: { fileName: file.name, contentType: file.type },
+    });
+
+    const { uploadUrl, publicUrl } = res.data;
+
+    // Upload trực tiếp file lên Cloudflare R2 bằng fetch (không dùng axios instance)
+    const uploadResponse = await fetch(uploadUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type,
+      },
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error(`Failed to upload avatar: ${uploadResponse.status} ${uploadResponse.statusText}`);
+    }
+
+    // publicUrl là link public ảnh trên cloudflare
+    return publicUrl;
+  } catch (error) {
+    console.error('❌ Error uploading avatar:', error);
+    throw error;
+  }
+}
