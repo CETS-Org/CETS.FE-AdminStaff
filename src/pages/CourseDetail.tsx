@@ -4,7 +4,7 @@ import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
-import { Dialog } from "@/components/ui/Dialog";
+import { Dialog, DialogPortal, DialogOverlay, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from "@/components/ui/Dialog";
 
 interface Course {
   id: string;
@@ -309,12 +309,15 @@ export default function CourseDetail({ course, onBack, onEnroll }: CourseDetailP
       </div>
 
       {/* Enrollment Dialog */}
-      <Dialog isOpen={showEnrollmentDialog} onClose={() => setShowEnrollmentDialog(false)}>
-        <Dialog.Header>
-          <Dialog.Title>Complete Your Enrollment</Dialog.Title>
-        </Dialog.Header>
-        
-        <Dialog.Body>
+      <Dialog open={showEnrollmentDialog} onOpenChange={setShowEnrollmentDialog}>
+        <DialogPortal>
+          <DialogOverlay />
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Complete Your Enrollment</DialogTitle>
+            </DialogHeader>
+            
+            <DialogBody>
           <div className="space-y-6">
             {/* Course Summary */}
             <div className="bg-gray-50 p-4 rounded-lg">
@@ -453,9 +456,9 @@ export default function CourseDetail({ course, onBack, onEnroll }: CourseDetailP
               </div>
             </div>
           </div>
-        </Dialog.Body>
-        
-        <Dialog.Footer>
+            </DialogBody>
+            
+            <DialogFooter>
           <div className="flex justify-between items-center w-full">
             <div className="text-lg font-semibold">
               Total: <span className="text-primary-600">${course.price}</span>
@@ -475,7 +478,9 @@ export default function CourseDetail({ course, onBack, onEnroll }: CourseDetailP
               </Button>
             </div>
           </div>
-        </Dialog.Footer>
+            </DialogFooter>
+          </DialogContent>
+        </DialogPortal>
       </Dialog>
     </div>
   );

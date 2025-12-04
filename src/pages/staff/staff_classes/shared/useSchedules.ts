@@ -21,7 +21,7 @@ export function useSchedules(
   }, [original]);
 
   const add = useCallback((_onError?: (m: string) => void) => {
-    setValue((prev) => [...prev, { timeSlotID: "", dayOfWeek: 0 }]);
+    setValue((prev) => [...prev, { timeSlotID: "", dayOfWeek: "Monday" }]);
   }, []);
 
   const remove = useCallback((index: number) => {

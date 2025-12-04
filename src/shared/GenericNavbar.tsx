@@ -18,7 +18,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/Dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import ConfirmationDialog from "@/components/ui/ConfirmationDialog";
 import NotificationDialog, { type Notification } from "@/components/ui/NotificationDialog";
 import type { GenericNavbarProps } from "@/types/navbar.type";

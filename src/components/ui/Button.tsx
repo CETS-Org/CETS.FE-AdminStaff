@@ -1,6 +1,6 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
-type ButtonVariant = "primary" | "secondary" | "danger" | "ghost" | "success";
+type ButtonVariant = "primary" | "secondary" | "danger" | "ghost" | "success" | "outline";
 type ButtonSize = "sm" | "md" | "lg";
 
 export type ButtonProps = ComponentPropsWithoutRef<"button"> & {
@@ -21,6 +21,8 @@ function getVariantClasses(variant: ButtonVariant): string {
       return "bg-transparent text-neutral-700 hover:bg-neutral-100";
     case "success":
       return "bg-green-600 text-white hover:bg-accent2-500 ";
+    case "outline":
+      return "bg-white border border-neutral-300 hover:bg-neutral-50 text-neutral-700";
     case "primary":
     default:
       return "bg-primary-600 text-white hover:bg-accent-500";
