@@ -1,5 +1,5 @@
 import { api, endpoint } from "./api";
-import type { Transaction, TransactionFilter } from "@/types/transaction.type";
+import type { Transaction, TransactionFilter, PaginatedTransactionResponse } from "@/types/transaction.type";
 
 export const transactionApi = {
   // Get all transactions
@@ -20,6 +20,23 @@ export const transactionApi = {
   // Get transaction by ID
   getById: async (id: string): Promise<Transaction> => {
     const response = await api.get<Transaction>(`${endpoint.paymentWebhook}/${id}`);
+    return response.data;
+  },
+
+  // Get paginated transactions for admin
+  getAllPaginated: async (filters?: TransactionFilter): Promise<PaginatedTransactionResponse> => {
+    const params = new URLSearchParams();
+    if (filters?.eventType) params.append('eventType', filters.eventType);
+    if (filters?.accountName) params.append('accountName', filters.accountName);
+    if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters?.dateTo) params.append('dateTo', filters.dateTo);
+    if (filters?.minAmount) params.append('minAmount', filters.minAmount.toString());
+    if (filters?.maxAmount) params.append('maxAmount', filters.maxAmount.toString());
+    if (filters?.page) params.append('page', filters.page.toString());
+    if (filters?.pageSize) params.append('pageSize', filters.pageSize.toString());
+    
+    const url = params.toString() ? `${endpoint.paymentWebhook}/paginated?${params}` : `${endpoint.paymentWebhook}/paginated`;
+    const response = await api.get<PaginatedTransactionResponse>(url);
     return response.data;
   },
 

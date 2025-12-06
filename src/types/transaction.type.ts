@@ -31,5 +31,16 @@ export interface TransactionFilter {
   dateTo?: string;
   minAmount?: number;
   maxAmount?: number;
+  accountName?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PaginatedTransactionResponse {
+  data: Transaction[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }
 
