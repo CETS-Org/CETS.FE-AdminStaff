@@ -142,6 +142,9 @@ export default function GenericNavbar({
 
     useNotificationSocket(handleSocketNotification);
 
+    const isStaff = location.pathname.startsWith('/staff');
+    const homeHref = isStaff ? '/staff/classes' : '/admin/analytics';
+
     return (
         <>
             {/* Main Navbar */}
@@ -153,7 +156,7 @@ export default function GenericNavbar({
                         
                         {/* Logo & Brand - Left Side */}
                         <div className="flex items-center">
-                            <NavLink to="/" className="flex items-center space-x-3 group">
+                            <NavLink to={homeHref} className="flex items-center space-x-3 group">
                                 <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-accent-600 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
                                     <BookOpen className="w-6 h-6 text-white" />
                                 </div>
