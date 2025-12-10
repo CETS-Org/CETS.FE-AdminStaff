@@ -56,7 +56,7 @@ export default function ClassDetailPage() {
   const [finalGradeImportDialog, setFinalGradeImportDialog] = useState(false);
   const { success, error: showError } = useToast();
 
-  // Handle both route patterns: /staff/classes/:id and /staff/courses/:courseId/classes/:classId
+  // Handle both route patterns: /staff/classes/:id and /admin/courses/:courseId/classes/:classId
   const classId = params.id || params.classId;
   const courseId = params.courseId;
   const isStandaloneRoute = !courseId; // True if accessed from /staff/classes
@@ -125,7 +125,7 @@ export default function ClassDetailPage() {
     if (isStandaloneRoute) {
       navigate(`/staff/classes/${classId}/edit`);
     } else {
-      navigate(`/staff/courses/${courseId}/classes/${classId}/edit`);
+      navigate(`/admin/courses/${courseId}/classes/${classId}/edit`);
     }
   };
 
@@ -138,7 +138,7 @@ export default function ClassDetailPage() {
     if (isStandaloneRoute) {
       navigate(`/staff/classes`);
     } else {
-      navigate(`/staff/courses/${courseId}`);
+      navigate(`/admin/courses/${courseId}`);
     }
     setDeleteDialog(false);
   };
@@ -147,7 +147,7 @@ export default function ClassDetailPage() {
     if (isStandaloneRoute) {
       navigate(`/staff/classes`);
     } else {
-      navigate(`/staff/courses`);
+      navigate(`/admin/courses`);
     }
   };
 
@@ -254,7 +254,7 @@ export default function ClassDetailPage() {
             </div>
             <Button
               variant="primary"
-              onClick={() => navigate(isStandaloneRoute ? '/staff/classes' : '/staff/courses')}
+              onClick={() => navigate(isStandaloneRoute ? '/staff/classes' : '/admin/courses')}
               className="!bg-blue-500 hover:!bg-blue-600"
             >
               Go Back
@@ -287,7 +287,7 @@ export default function ClassDetailPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => navigate(`/staff/courses/${classData.courseId}`)}
+                  onClick={() => navigate(`/admin/courses/${classData.courseId}`)}
                   className="!text-blue-600 hover:!text-blue-700 !p-1 !h-auto underline"
                 >
                   View Course

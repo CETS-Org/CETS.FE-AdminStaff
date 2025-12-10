@@ -90,7 +90,7 @@ const PackageDetailPage: React.FC = () => {
   }, [id]);
 
   // Handlers
-  const handleEdit = () => navigate(`/staff/packages/edit/${id}`);
+  const handleEdit = () => navigate(`/admin/packages/edit/${id}`);
   const handleDelete = () => setDeleteDialog(true);
   
   const handleConfirmDelete = async () => {
@@ -105,7 +105,7 @@ const PackageDetailPage: React.FC = () => {
       // Close dialog and navigate back to packages list after a short delay
       setDeleteDialog(false);
       setTimeout(() => {
-        navigate('/staff/packages');
+        navigate('/admin/packages');
       }, 1000);
     } catch (err: any) {
       console.error('Error deleting package:', err);
@@ -116,8 +116,8 @@ const PackageDetailPage: React.FC = () => {
   };
 
   const breadcrumbItems = [
-    { label: 'Packages', to: '/staff/packages' },
-    { label: 'Package Detail', to: `/staff/packages/${id}` },
+    { label: 'Packages', to: '/admin/packages' },
+    { label: 'Package Detail', to: `/admin/packages/${id}` },
   ];
 
   // Loading state
@@ -160,7 +160,7 @@ const PackageDetailPage: React.FC = () => {
           </div>
           <h3 className="text-2xl font-semibold text-gray-900 mb-4">Package Not Found</h3>
           <p className="text-gray-600 mb-6">The package you're looking for doesn't exist.</p>
-          <Button onClick={() => navigate('/staff/packages')} variant="secondary">
+          <Button onClick={() => navigate('/admin/packages')} variant="secondary">
             Back to Packages
           </Button>
         </div>
@@ -179,7 +179,7 @@ const PackageDetailPage: React.FC = () => {
             <div className="flex items-center gap-4">
               <Button
                 variant="primary"
-                onClick={() => navigate('/staff/packages')}
+                onClick={() => navigate('/admin/packages')}
                 iconLeft={<ArrowLeft className="w-4 h-4" />}
                 className="!bg-blue-500 hover:!bg-blue-600"
               >
@@ -387,7 +387,7 @@ const PackageDetailPage: React.FC = () => {
                 {packageCourses.map((course, index) => (
                   <div
                     key={course.courseId || course.id}
-                    onClick={() => navigate(`/staff/courses/${course.courseId}`)}
+                    onClick={() => navigate(`/admin/courses/${course.courseId}`)}
                     className="p-6 border border-gray-200 rounded-xl hover:border-blue-500 hover:shadow-lg transition-all bg-white cursor-pointer"
                   >
                     {/* Course Header */}

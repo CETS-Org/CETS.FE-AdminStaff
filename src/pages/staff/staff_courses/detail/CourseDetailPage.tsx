@@ -83,7 +83,7 @@ const CourseDetailPage: React.FC = () => {
   }, [classes, classSearch]);
 
   // Handlers
-  const handleEdit = () => navigate(`/staff/courses/edit/${id}`);
+  const handleEdit = () => navigate(`/admin/courses/edit/${id}`);
   const handleDelete = () => setDeleteCourseDialog(true);
   
   const handleConfirmDeleteCourse = async () => {
@@ -97,7 +97,7 @@ const CourseDetailPage: React.FC = () => {
       
       // Close dialog and navigate back to courses list
       setDeleteCourseDialog(false);
-      navigate('/staff/courses');
+      navigate('/admin/courses');
     } catch (err: any) {
       console.error('Error deleting course:', err);
       alert(err.response?.data?.message || 'Failed to delete course. Please try again.');
@@ -134,7 +134,7 @@ const CourseDetailPage: React.FC = () => {
   };
 
   const breadcrumbItems = [
-    { label: 'Courses', to: '/staff/courses' },
+    { label: 'Courses', to: '/admin/courses' },
     { label: 'Course Detail', to: '/courses/detail' },
   ];
 
@@ -178,7 +178,7 @@ const CourseDetailPage: React.FC = () => {
           </div>
           <h3 className="text-2xl font-semibold text-gray-900 mb-4">Course Not Found</h3>
           <p className="text-gray-600 mb-6">The course you're looking for doesn't exist.</p>
-          <Button onClick={() => navigate('/staff/courses')} variant="secondary">
+          <Button onClick={() => navigate('/admin/courses')} variant="secondary">
             Back to Courses
           </Button>
         </div>
@@ -197,7 +197,7 @@ const CourseDetailPage: React.FC = () => {
             <div className="flex items-center gap-4">
               <Button
                 variant="primary"
-                onClick={() => navigate('/staff/courses')}
+                onClick={() => navigate('/admin/courses')}
                 iconLeft={<ArrowLeft className="w-4 h-4" />}
                 className="!bg-blue-500 hover:!bg-blue-600"
               >

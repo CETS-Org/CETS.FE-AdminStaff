@@ -554,7 +554,7 @@ export default function AddEditClassPage() {
       
       setTimeout(() => {
         if (isStandaloneRoute) navigate(`/staff/classes`);
-        else navigate(`/staff/courses/${formData.courseId}`);
+        else navigate(`/admin/courses/${formData.courseId}`);
       }, 2000);
 
     } catch (err: any) {

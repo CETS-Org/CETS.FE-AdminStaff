@@ -1333,7 +1333,7 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
         showSuccessMessage("Course created successfully with all details!");
         // Navigate after a short delay to allow toast to be seen (only for create)
         setTimeout(() => {
-          navigate('/staff/courses');
+          navigate('/admin/courses');
         }, 1000);
       }
     } catch (error) {

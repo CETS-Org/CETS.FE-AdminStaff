@@ -164,7 +164,7 @@ export default function StudentDetailPage() {
   };
 
   const handleManageCourse = (courseId: string) => {
-    navigate(`/staff/courses/${courseId}`);
+    navigate(`/admin/courses/${courseId}`);
   };
 
   // Table columns for enrolled courses
@@ -246,7 +246,7 @@ export default function StudentDetailPage() {
             </div>
           </button>
           <button
-            onClick={() => window.open(`/staff/courses/${course.id}`, '_blank')}
+            onClick={() => window.open(`/admin/courses/${course.id}`, '_blank')}
             className="p-2.5 rounded-xl border border-gray-300 text-gray-600 hover:bg-green-50 hover:border-green-300 hover:text-green-600 transition-all duration-200 relative group shadow-sm hover:shadow-md"
           >
             <ExternalLink className="w-4 h-4" />

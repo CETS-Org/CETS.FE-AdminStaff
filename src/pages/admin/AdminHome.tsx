@@ -19,6 +19,13 @@ import TeacherDetailPage from "../staff/staff_teachers/TeacherDetailPage";
 import AdminAnalytics from "./admin_analytics";
 import StaffRoomsPage from "../staff/staff_rooms";
 import AdminProfilePage from "./AdminProfilePage";
+import StaffCoursesPage from "../staff/staff_courses/list/CoursesListPage";
+import { CourseDetailPage, AddCoursePage, EditCoursePage } from "../staff/staff_courses";
+import { CourseFeedbackPage } from "../staff/staff_courses/feedback";
+import AddEditClassPage from "../staff/staff_classes/AddEditClassPage";
+import ClassDetailPage from "../staff/staff_classes/ClassDetailPage";
+import StaffRequestPage from "../staff/staff_request";
+import { PackagesListPage, PackageDetailPage, AddPackagePage, EditPackagePage } from "../staff/staff_packages";
 
 export default function AdminHome() {
         const [mobileOpen, setMobileOpen] = useState(false);
@@ -80,14 +87,27 @@ export default function AdminHome() {
                     <Route path="staffs" element={<AdminStaffPage />} />
                     <Route path="staffs/:id" element={<StaffDetailPage />} />
                     <Route path="teachers" element={<TeacherManagement />} />
-            <Route path="teachers/add" element={<AddEditTeacherPage />} />
-            <Route path="teachers/:id" element={<TeacherDetailPage />} />
-            <Route path="teachers/edit/:id" element={<EditTeacherPage />} />
-            <Route path="schedule" element={<StaffSchedulePage />} />
-            <Route path="rooms" element={<StaffRoomsPage />} />
-            <Route path="students" element={<StaffStudentsPage />} />
-            <Route path="students/:id" element={<StudentDetailPage />} />
-            <Route path="students/edit/:id" element={<EditStudentPage />} />
+                    <Route path="teachers/add" element={<AddEditTeacherPage />} />
+                    <Route path="teachers/:id" element={<TeacherDetailPage />} />
+                    <Route path="teachers/edit/:id" element={<EditTeacherPage />} />
+                    <Route path="schedule" element={<StaffSchedulePage />} />
+                    <Route path="rooms" element={<StaffRoomsPage />} />
+                    <Route path="students" element={<StaffStudentsPage />} />
+                    <Route path="students/:id" element={<StudentDetailPage />} />
+                    <Route path="students/edit/:id" element={<EditStudentPage />} />
+                    <Route path="courses" element={<StaffCoursesPage />} />
+                    <Route path="courses/add" element={<AddCoursePage />} />
+                    <Route path="courses/edit/:id" element={<EditCoursePage />} />
+                    <Route path="courses/:courseId/feedback" element={<CourseFeedbackPage />} />
+                    <Route path="courses/:id" element={<CourseDetailPage />} />
+                    <Route path="courses/:courseId/classes/add" element={<AddEditClassPage />} />
+                    <Route path="courses/:courseId/classes/:classId" element={<ClassDetailPage />} />
+                    <Route path="courses/:courseId/classes/:classId/edit" element={<AddEditClassPage />} />
+                    <Route path="packages" element={<PackagesListPage />} />
+                    <Route path="packages/add" element={<AddPackagePage />} />
+                    <Route path="packages/edit/:id" element={<EditPackagePage />} />
+                    <Route path="packages/:id" element={<PackageDetailPage />} />
+                    <Route path="requests" element={<StaffRequestPage />} />
                     <Route path="reports" element={<ComplaintManagement />} />
                     <Route path="reports/:id" element={<ComplaintDetailPage />} />
                     <Route path="reports/:id/response" element={<ComplaintResponsePage />} />

@@ -8,11 +8,8 @@ import StaffSidebar from "@/shared/StaffSidebar";
 
 import StaffSchedulePage from "./staff_schedule/components/StaffSchedulePage";
 import StaffStudentsPage from "./staff_students";
-import StaffCoursesPage from "./staff_courses/list/CoursesListPage";
 import TeacherManagement from "./staff_teachers";
 import StaffAnalytics from "./staff_analys";
-import { CourseDetailPage, AddCoursePage, EditCoursePage } from "./staff_courses";
-import { CourseFeedbackPage } from "./staff_courses/feedback";
 import AddEditClassPage from "./staff_classes/AddEditClassPage";
 import ClassDetailPage from "./staff_classes/ClassDetailPage";
 import AssignTeacherPage from "./staff_assign_teacher";
@@ -34,7 +31,6 @@ import StaffClassesPage from "./staff_classes";
 import StaffRoomsPage from "./staff_rooms";
 import StaffContractsPage from "./staff_contracts";
 import StaffTransactionsPage from "./staff_transactions";
-import { PackagesListPage, PackageDetailPage, AddPackagePage, EditPackagePage } from "./staff_packages";
 import PlacementTestManagementPage from "./staff_placement_test";
 import PlacementQuestionManagementPage from "./staff_placement_test/PlacementQuestionManagementPage";
 import CreatePlacementTestPage from "./staff_placement_test/CreatePlacementTestPage";
@@ -136,14 +132,6 @@ export default function StaffHome() {
               path="transactions"
               element={userRole === 'AccountantStaff' ? <StaffTransactionsPage /> : <Navigate to="/staff/analytics" replace />}
             />
-            <Route path="courses" element={<StaffCoursesPage />} />
-            <Route path="courses/add" element={<AddCoursePage />} />
-            <Route path="courses/edit/:id" element={<EditCoursePage />} />
-            <Route path="courses/:courseId/feedback" element={<CourseFeedbackPage />} />
-            <Route path="courses/:id" element={<CourseDetailPage />} />
-            <Route path="courses/:courseId/classes/add" element={<AddEditClassPage />} />
-            <Route path="courses/:courseId/classes/:classId" element={<ClassDetailPage />} />
-            <Route path="courses/:courseId/classes/:classId/edit" element={<AddEditClassPage />} />
             <Route path="classes" element={<StaffClassesPage />} />
             <Route path="classes/add" element={<AddEditClassPage />} />
             <Route path="classes/:id" element={<ClassDetailPage />} />
@@ -155,16 +143,12 @@ export default function StaffHome() {
             <Route path="complaints" element={<StaffComplaintManagement />} />
             <Route path="complaints/:id" element={<ComplaintDetailPage />} />
             <Route path="complaints/:id/response" element={<ComplaintResponsePage />} />
-            <Route path="requests" element={<StaffRequestPage />} />
-            <Route path="packages" element={<PackagesListPage />} />
-            <Route path="packages/add" element={<AddPackagePage />} />
-            <Route path="packages/edit/:id" element={<EditPackagePage />} />
-            <Route path="packages/:id" element={<PackageDetailPage />} />
             <Route path="placement-test" element={<PlacementTestManagementPage />} />
             <Route path="placement-test/questions" element={<PlacementQuestionManagementPage />} />
             <Route path="placement-test/create" element={<CreatePlacementTestPage />} />
             <Route path="placement-test/edit/:id" element={<CreatePlacementTestPage />} />
             <Route path="placement-test/try/:testId" element={<StaffPlacementTestTaking />} />
+            <Route path="requests" element={<StaffRequestPage />} />
             <Route path="profile" element={<StaffProfilePage />} />
           </Routes>
         </div>

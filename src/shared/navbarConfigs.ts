@@ -1,4 +1,4 @@
-import { Home, Info, Phone, Users, BarChart3, BookOpenText, Settings, HelpCircle, UserCheck, GraduationCap, FileText, User } from "lucide-react";
+import { Home, Info, Phone, Users, BarChart3, BookOpenText, Settings, HelpCircle, UserCheck, GraduationCap, FileText, User, Package as PackageIcon } from "lucide-react";
 import type { NavbarConfig } from "@/types/navbar.type";
 import { createNavbarUserInfo } from "@/types/navbar.type";
 
@@ -53,6 +53,18 @@ export const createAdminNavbarConfig = (userAccount: any): NavbarConfig => {
       description: "Manage student accounts"
     },
     {
+      name: "Courses",
+      href: "/admin/courses",
+      icon: BookOpenText,
+      description: "Manage courses"
+    },
+    {
+      name: "Packages",
+      href: "/admin/packages",
+      icon: PackageIcon,
+      description: "Manage course packages"
+    },
+    {
       name: "Reports",
       href: "/admin/reports",
       icon: FileText,
@@ -100,12 +112,6 @@ export const createAcademicStaffNavbarConfig = (userAccount: any): NavbarConfig 
       href: "/staff/analytics", 
       icon: BarChart3,
       description: "View analytics and reports"
-    },
-    {
-      name: "Courses",
-      href: "/staff/courses",
-      icon: BookOpenText,
-      description: "Manage courses"
     },
     {
       name: "Schedule",

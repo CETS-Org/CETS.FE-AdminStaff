@@ -195,11 +195,11 @@ export default function PackagesList({ packages, loading, error, onRefresh }: Pa
   ];
 
   const handleView = (pkg: Package) => {
-    navigate(`/staff/packages/${pkg.id}`);
+    navigate(`/admin/packages/${pkg.id}`);
   };
 
   const handleEdit = (pkg: Package) => {
-    navigate(`/staff/packages/edit/${pkg.id}`);
+    navigate(`/admin/packages/edit/${pkg.id}`);
   };
 
   const handleDelete = (pkg: Package) => {
@@ -341,7 +341,7 @@ export default function PackagesList({ packages, loading, error, onRefresh }: Pa
         searchFields={['name', 'description', 'packageCode', 'categoryName']}
         filterConfigs={filterConfigs}
         bulkActions={bulkActions}
-        onAdd={() => navigate("/staff/packages/add")}
+        onAdd={() => navigate("/admin/packages/add")}
         addButtonLabel="Add Package"
         addButtonIcon={<Plus className="w-4 h-4" />}
         viewModes={["table", "card"]}
@@ -354,7 +354,7 @@ export default function PackagesList({ packages, loading, error, onRefresh }: Pa
         emptyStateDescription="Get started by creating your first package"
         emptyStateAction={{
           label: "Add Package",
-          onClick: () => navigate("/staff/packages/add")
+          onClick: () => navigate("/admin/packages/add")
         }}
         renderCard={renderPackageCard}
         getItemId={(pkg) => pkg.id}

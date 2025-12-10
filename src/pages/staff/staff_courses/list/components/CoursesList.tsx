@@ -249,15 +249,15 @@ export default function CoursesList() {
   ];
 
   const handleViewFeedback = (course: Course) => {
-    navigate(`/staff/courses/${course.id}/feedback`);
+    navigate(`/admin/courses/${course.id}/feedback`);
   };
 
   const handleView = (course: Course) => {
-    navigate(`/staff/courses/${course.id}`);
+    navigate(`/admin/courses/${course.id}`);
   };
 
   const handleEdit = (course: Course) => {
-    navigate(`/staff/courses/edit/${course.id}`);
+    navigate(`/admin/courses/edit/${course.id}`);
   };
 
   const handleDelete = (course: Course) => {
@@ -413,7 +413,7 @@ export default function CoursesList() {
         searchFields={['courseName', 'description', 'categoryName', 'courseCode']}
         filterConfigs={filterConfigs}
         bulkActions={bulkActions}
-        onAdd={() => navigate("/staff/courses/add")}
+        onAdd={() => navigate("/admin/courses/add")}
         addButtonLabel="Add Course"
         addButtonIcon={<Plus className="w-4 h-4" />}
         viewModes={["table", "card"]}
@@ -426,7 +426,7 @@ export default function CoursesList() {
         emptyStateDescription="Get started by creating your first course"
         emptyStateAction={{
           label: "Add Course",
-          onClick: () => navigate("/staff/courses/add")
+          onClick: () => navigate("/admin/courses/add")
         }}
         renderCard={renderCourseCard}
         getItemId={(course) => course.id}

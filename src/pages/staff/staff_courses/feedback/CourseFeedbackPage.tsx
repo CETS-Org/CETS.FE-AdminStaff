@@ -102,7 +102,7 @@ export default function CourseFeedbackPage() {
   const avgTeacherSupportiveness = calculateAverage(teacherFeedbacks.map(f => f.teacherSupportiveness));
 
   const breadcrumbItems = [
-    { label: "Courses", href: "/staff/courses" },
+    { label: "Courses", href: "/admin/courses" },
     { label: "Course Feedbacks" }
   ];
 
@@ -153,7 +153,7 @@ export default function CourseFeedbackPage() {
         />
         <Button
           variant="secondary"
-          onClick={() => navigate("/staff/courses")}
+          onClick={() => navigate("/admin/courses")}
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Courses

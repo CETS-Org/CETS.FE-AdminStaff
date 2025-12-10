@@ -1,8 +1,8 @@
 // src/shared/sidebarConfigs.ts
 import {
   BarChart3, BookOpenText, Users, GraduationCap, CalendarDays,
-  UserPlus, Mail, MessageSquare, FileText, UserCheck, Percent,
-  Receipt, CreditCard, TrendingUp, PieChart, School, Clock, DoorOpen, ClipboardList,
+  Mail, MessageSquare, FileText, UserCheck, Percent,
+  Receipt, CreditCard, TrendingUp, PieChart, School, DoorOpen, ClipboardList,
   Package as PackageIcon, HelpCircle
 } from "lucide-react";
 import type { SidebarConfig } from "./GenericSidebar";
@@ -13,14 +13,9 @@ export const academicStaffSidebarConfig: SidebarConfig = {
   showUpcomingDeadlines: true,
   submenuPathPrefix: "/staff/placement-test",
   items: [
-    { id: "analytics", label: "Analytics", icon: BarChart3, path: "/staff/analytics" },
-    { id: "courses", label: "Courses", icon: BookOpenText, path: "/staff/courses" },
-    { id: "packages", label: "Packages", icon: PackageIcon, path: "/staff/packages" },
     { id: "classes", label: "Classes", icon: School, path: "/staff/classes" },
     { id: "schedule", label: "Schedule", icon: CalendarDays, path: "/staff/schedule" },
-    { id: "timetable", label: "Timetable", icon: Clock, path: "/staff/timetable" },
     { id: "rooms", label: "Rooms", icon: DoorOpen, path: "/staff/rooms" },
-    { id: "assign-teacher", label: "Assign Teacher", icon: UserPlus, path: "/staff/assign-teacher" },
     {
       id: "placement-test",
       label: "Placement Test",
@@ -31,8 +26,6 @@ export const academicStaffSidebarConfig: SidebarConfig = {
         { id: "placement-questions", label: "Questions", icon: HelpCircle, path: "/staff/placement-test/questions" },
       ],
     },
-    { id: "complaints", label: "System report", icon: MessageSquare, path: "/staff/complaints" },
-    { id: "requests", label: "Requests", icon: Mail, path: "/staff/requests" },
   ],
 };
 
@@ -70,7 +63,10 @@ export const adminSidebarConfig: SidebarConfig = {
       ]
      
     },
+    { id: "courses", label: "Courses", icon: BookOpenText, path: "/admin/courses" },
+    { id: "packages", label: "Packages", icon: PackageIcon, path: "/admin/packages" },
     { id: "rooms", label: "Rooms Management", icon: DoorOpen, path: "/admin/rooms" },
     { id: "reports", label: "System Report", icon: FileText, path: "/admin/reports" },
+    { id: "requests", label: "Requests", icon: Mail, path: "/admin/requests" },
   ]
 };
