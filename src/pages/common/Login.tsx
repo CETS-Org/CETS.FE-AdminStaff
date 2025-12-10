@@ -205,9 +205,9 @@ export default function Login() {
       const userRole = response.account.roleNames?.[0];
       
       if (userRole === "AcademicStaff") {
-        navigate("/staff/analytics");
+        navigate("/staff/classes");
       } else if (userRole === "AccountantStaff") {
-        navigate("/staff/analytics");
+        navigate("/staff/classes");
       } else if (userRole === "Admin") {
         navigate("/admin/analytics");
       } else {
