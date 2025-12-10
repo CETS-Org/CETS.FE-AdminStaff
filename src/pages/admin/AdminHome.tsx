@@ -107,7 +107,6 @@ export default function AdminHome() {
                     <Route path="packages/add" element={<AddPackagePage />} />
                     <Route path="packages/edit/:id" element={<EditPackagePage />} />
                     <Route path="packages/:id" element={<PackageDetailPage />} />
-                    <Route path="requests" element={<StaffRequestPage />} />
                     <Route path="reports" element={<ComplaintManagement />} />
                     <Route path="reports/:id" element={<ComplaintDetailPage />} />
                     <Route path="reports/:id/response" element={<ComplaintResponsePage />} />

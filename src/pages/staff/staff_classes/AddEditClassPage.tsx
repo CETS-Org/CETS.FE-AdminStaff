@@ -783,29 +783,34 @@ export default function AddEditClassPage() {
                             />
                         </div>
                         <div>
-                            <div className="flex justify-between items-center mb-1">
-                                <Label required className="mb-0">Teacher</Label>
+                            <Label required className="mb-1 block">Teacher</Label>
+                            <div className="flex items-center gap-2">
+                                <Select 
+                                    className="flex-1"
+                                    options={[
+                                        { label: availableTeachers.length ? "Select a teacher..." : "No teachers found", value: "" },
+                                        ...availableTeachers.map(t => ({ label: t.fullName, value: t.id }))
+                                    ]}
+                                    value={formData.teacherId || ""}
+                                    onChange={e => handleTeacherSelectChange(e.target.value)}
+                                    disabled={availableTeachers.length === 0 || isEdit}
+                                    error={errors.teacher}
+                                />
                                 <Button 
                                     variant="secondary" 
                                     size="sm" 
-                                    className="h-6 px-2 text-xs"
+                                    className="h-10 px-3 text-sm"
                                     onClick={reloadAvailableTeachers} 
                                     disabled={isLoadingTeachers || !canPickTeacher || isEdit}
+                                    iconLeft={
+                                      isLoadingTeachers 
+                                        ? <Loader2 className="w-4 h-4 animate-spin" /> 
+                                        : <RefreshCw className="w-4 h-4" />
+                                    }
                                 >
-                                    {isLoadingTeachers ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1" />}
-                                    Find Available
+                                    Find
                                 </Button>
                             </div>
-                            <Select 
-                                options={[
-                                    { label: availableTeachers.length ? "Select a teacher..." : "No teachers found", value: "" },
-                                    ...availableTeachers.map(t => ({ label: t.fullName, value: t.id }))
-                                ]}
-                                value={formData.teacherId || ""}
-                                onChange={e => handleTeacherSelectChange(e.target.value)}
-                                disabled={availableTeachers.length === 0 || isEdit}
-                                error={errors.teacher}
-                            />
                         </div>
                      </div>
                 </Card>
@@ -824,8 +829,8 @@ export default function AddEditClassPage() {
                             size="sm" 
                             variant="secondary" 
                             className="flex items-center gap-2 font-medium"
+                            iconLeft={<UserPlus className="w-4 h-4" />}
                         >
-                            <UserPlus className="w-4 h-4" />
                             Manage Students
                         </Button>
                     </div>
@@ -890,8 +895,12 @@ export default function AddEditClassPage() {
 
          <div className="sticky bottom-0 z-10 bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-2xl border-t border-gray-200 flex justify-end gap-3">
             <Button variant="secondary" onClick={() => navigate(-1)} className="min-w-[100px]">Cancel</Button>
-            <Button onClick={handleSave} disabled={isLoading} className="min-w-[140px] bg-blue-600 hover:bg-blue-700 text-white">
-                {isLoading ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+            <Button 
+              onClick={handleSave} 
+              disabled={isLoading} 
+              className="min-w-[140px] bg-blue-600 hover:bg-blue-700 text-white"
+              iconLeft={isLoading ? <Loader2 className="animate-spin w-4 h-4" /> : <Save className="w-4 h-4" />}
+            >
                 {isEdit ? "Update Class" : "Create Class"}
             </Button>
          </div>
@@ -906,9 +915,19 @@ export default function AddEditClassPage() {
                              <Input className="pl-9" placeholder="Search..." value={studentSearch} onChange={e => setStudentSearch(e.target.value)} />
                              {isLoadingStudents && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-blue-500" />}
                          </div>
-                         <Button variant="secondary" onClick={handleAutoSelect} disabled={isAutoPicking} className="flex items-center gap-2">
-                             {isAutoPicking ? <Loader2 className="w-4 h-4 animate-spin"/> : <Wand2 className="w-4 h-4 text-purple-600"/>} Auto Select
-                         </Button>
+                        <Button
+                          variant="secondary"
+                          onClick={handleAutoSelect}
+                          disabled={isAutoPicking}
+                          className="flex items-center gap-2"
+                          iconLeft={
+                            isAutoPicking
+                              ? <Loader2 className="w-4 h-4 animate-spin"/>
+                              : <Wand2 className="w-4 h-4"/>
+                          }
+                        >
+                            Auto Select
+                        </Button>
                      </div>
                      <div className="border rounded-md h-[300px] overflow-y-auto">
                          {waitingStudents.length === 0 ? <div className="p-8 text-center text-gray-500">No students found.</div> : 
@@ -931,17 +950,27 @@ export default function AddEditClassPage() {
                          }
                      </div>
                  </DialogBody>
-                 <DialogFooter className="flex flex-col sm:flex-row sm:justify-between items-center gap-4 sm:gap-0 pt-4 border-t">
-                     <Button variant="secondary" onClick={handleRequestNotify} className="flex items-center gap-2 min-w-[140px] justify-center" disabled={tempSelectedIds.length === 0}>
-                         <MailWarning className="w-4 h-4"/> Notify Selected
-                     </Button>
-                     <div className="flex gap-3 w-full sm:w-auto justify-end">
-                         <Button variant="ghost" onClick={() => setIsWaitingListOpen(false)}>Cancel</Button>
-                         <Button onClick={handleAddStudentsFromDialog} disabled={tempSelectedIds.length === 0} className="bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2">
-                             <Check className="w-4 h-4" /> Add Selected ({tempSelectedIds.length})
-                         </Button>
-                     </div>
-                 </DialogFooter>
+                <DialogFooter className="flex flex-col sm:flex-row sm:justify-between items-center gap-4 sm:gap-0 pt-4 border-t">
+                    <Button
+                      variant="secondary"
+                      onClick={handleRequestNotify}
+                      className="flex items-center gap-2 min-w-[140px] justify-center"
+                      disabled={tempSelectedIds.length === 0}
+                      iconLeft={<MailWarning className="w-4 h-4" />}
+                    >
+                        Notify Selected
+                    </Button>
+                    <div className="flex gap-3 w-full sm:w-auto justify-end">
+                        <Button
+                          onClick={handleAddStudentsFromDialog}
+                          disabled={tempSelectedIds.length === 0}
+                          className="bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2"
+                          iconLeft={<Check className="w-4 h-4" />}
+                        >
+                            Add Selected ({tempSelectedIds.length})
+                        </Button>
+                    </div>
+                </DialogFooter>
              </DialogContent>
          </Dialog>
 

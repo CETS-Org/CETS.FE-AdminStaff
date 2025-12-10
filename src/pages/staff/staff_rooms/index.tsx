@@ -180,13 +180,13 @@ export default function StaffRoomsPage() {
       const monday = new Date(weekDate);
       monday.setHours(0, 0, 0, 0);
 
-      // Saturday is 5 days after Monday
-      const saturday = new Date(monday);
-      saturday.setDate(monday.getDate() + 5);
-      saturday.setHours(23, 59, 59, 999);
+      // Sunday is 6 days after Monday
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
 
       const weekStart = formatDate(monday);
-      const weekEnd = formatDate(saturday);
+      const weekEnd = formatDate(sunday);
 
       const scheduleMap = await getRoomSchedule(weekStart, weekEnd);
       setClassesByRoom(scheduleMap);
@@ -612,7 +612,7 @@ export default function StaffRoomsPage() {
                   {(() => {
                     const startDate = new Date(weekDate);
                     const endDate = new Date(weekDate);
-                    endDate.setDate(startDate.getDate() + 5); // Saturday (6 days after Monday)
+                    endDate.setDate(startDate.getDate() + 6); // Sunday (6 days after Monday)
                     
                     const startStr = startDate.toLocaleDateString('en-US', { 
                       month: 'long', 

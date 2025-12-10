@@ -112,6 +112,7 @@ export default function StaffHome() {
         {/* Main content area with proper padding */}
         <div className="px-6 lg:px-8">
           <Routes>
+            <Route path="/" element={<Navigate to="/staff/classes" replace />} />
             <Route path="analytics" element={<StaffAnalytics />} />
             {/* <Route path="teachers" element={<TeacherManagement />} />
             <Route path="teachers/add" element={<AddEditTeacherPage />} />

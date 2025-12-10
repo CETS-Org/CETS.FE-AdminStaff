@@ -16,6 +16,7 @@ export const academicStaffSidebarConfig: SidebarConfig = {
     { id: "classes", label: "Classes", icon: School, path: "/staff/classes" },
     { id: "schedule", label: "Schedule", icon: CalendarDays, path: "/staff/schedule" },
     { id: "rooms", label: "Rooms", icon: DoorOpen, path: "/staff/rooms" },
+    { id: "requests", label: "Requests", icon: Mail, path: "/staff/requests" },
     {
       id: "placement-test",
       label: "Placement Test",
@@ -67,6 +68,5 @@ export const adminSidebarConfig: SidebarConfig = {
     { id: "packages", label: "Packages", icon: PackageIcon, path: "/admin/packages" },
     { id: "rooms", label: "Rooms Management", icon: DoorOpen, path: "/admin/rooms" },
     { id: "reports", label: "System Report", icon: FileText, path: "/admin/reports" },
-    { id: "requests", label: "Requests", icon: Mail, path: "/admin/requests" },
   ]
 };
