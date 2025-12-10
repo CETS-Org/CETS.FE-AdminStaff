@@ -9,7 +9,6 @@ import Select from "@/components/ui/Select";
 import Label from "@/components/ui/Label";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from "@/components/ui/Dialog";
-// Hãy đảm bảo bạn đã tạo file StatusDialog.tsx như hướng dẫn trước
 import StatusDialog from "@/pages/staff/staff_classes/components/StatusDialog"; 
 
 // Icons
@@ -28,7 +27,8 @@ import {
   Check,
   Wand2,
   Info,
-  AlertTriangle
+  AlertTriangle,
+  Calendar as CalendarIcon 
 } from "lucide-react";
 
 // Components
@@ -108,19 +108,56 @@ const statusOptions = [
   { label: "Full", value: "full" },
 ];
 
+// --- HELPER: Format Date to DD/MM/YYYY ---
+const formatDateToVN = (dateStr: string): string => {
+  if (!dateStr) return "";
+  const parts = dateStr.split("-");
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return dateStr;
+};
+
+// --- COMPONENT: Overlay Date Picker ---
+const DatePickerOverlay = ({ value, onChange, error, disabled }: any) => {
+    return (
+      <div className="relative w-full group">
+        <div className="relative">
+          <Input
+            type="text"
+            value={formatDateToVN(value)} 
+            placeholder="dd/mm/yyyy"
+            readOnly 
+            disabled={disabled}
+            error={error}
+            className="pr-10 text-gray-900 bg-white" 
+          />
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 group-hover:text-blue-500 transition-colors">
+             <CalendarIcon className="w-4 h-4" />
+          </div>
+        </div>
+        <input
+          type="date"
+          value={value || ""}
+          onChange={onChange}
+          disabled={disabled}
+          className={`absolute inset-0 w-full h-full opacity-0 z-10 ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+        />
+      </div>
+    );
+};
+
 export default function AddEditClassPage() {
   const params = useParams<{ courseId?: string; classId?: string; id?: string }>();
   const navigate = useNavigate();
   const { showSuccessMessage, showErrorMessage } = useToast();
   
-  // Lookup options
   const lookupOptions = useLookupOptions(false);
   const timeslotOptions = (lookupOptions as any)?.timeslotOptions || [
      { value: "TS-0800-0900", label: "08:00–09:00" },
      { value: "TS-1800-1930", label: "18:00–19:30" },
   ];
 
-  // Logic Route
   const classId = params.id || params.classId;
   const initialCourseIdFromRoute = params.courseId;
   const isStandaloneRoute = !initialCourseIdFromRoute;
@@ -149,16 +186,13 @@ export default function AddEditClassPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Student Management State
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [studentLookup, setStudentLookup] = useState<Map<string, WaitingStudentItem>>(new Map());
 
-  // Data States
   const [courseOptions, setCourseOptions] = useState<CourseOption[]>([]);
   const [roomOptions, setRoomOptions] = useState<any[]>([]); 
   const [availableTeachers, setAvailableTeachers] = useState<TeacherOption[]>([]);
   
-  // Dialog States
   const [isWaitingListOpen, setIsWaitingListOpen] = useState(false);
   const [isPostponeOpen, setIsPostponeOpen] = useState(false);
   const [statusDialog, setStatusDialog] = useState<{
@@ -168,7 +202,6 @@ export default function AddEditClassPage() {
     message: string;
   }>({ open: false, type: "success", title: "", message: "" });
 
-  // Dialog Data States
   const [waitingStudents, setWaitingStudents] = useState<WaitingStudentItem[]>([]);
   const [tempSelectedIds, setTempSelectedIds] = useState<string[]>([]);
   const [idsToNotify, setIdsToNotify] = useState<string[]>([]);
@@ -181,7 +214,6 @@ export default function AddEditClassPage() {
   const [isLoadingRooms, setIsLoadingRooms] = useState(false);
   const [isLoadingTeachers, setIsLoadingTeachers] = useState(false);
 
-  // Hook Schedule
   const {
     value: scheduleRows,
     load: loadSchedules,
@@ -196,12 +228,10 @@ export default function AddEditClassPage() {
 
   const canPickTeacher = scheduleRows.length > 0;
 
-  // --- HELPER: Show Status Dialog ---
   const showStatusDialog = (type: "success" | "error", title: string, message: string) => {
       setStatusDialog({ open: true, type, title, message });
   };
 
-  // --- HELPER: Update Student Lookup ---
   const updateStudentLookup = useCallback((items: WaitingStudentItem[]) => {
     setStudentLookup(prev => {
         const newMap = new Map(prev);
@@ -231,7 +261,6 @@ export default function AddEditClassPage() {
     return "";
   };
 
-  // --- EFFECTS ---
   useEffect(() => {
     setFormData((prev) => ({ ...prev, currentStudents: selectedStudentIds.length }));
   }, [selectedStudentIds]);
@@ -241,7 +270,6 @@ export default function AddEditClassPage() {
   }, [scheduleRows]);
 
   useEffect(() => {
-    // Chỉ auto calculate date khi KHÔNG PHẢI chế độ Edit (để tránh override dữ liệu cũ)
     if (!isEdit && formData.startDate && syllabusItems.length > 0 && scheduleRows.length > 0) {
         const projectedEndDate = calculateClassEndDate(formData.startDate, syllabusItems.length, scheduleRows);
         if (projectedEndDate && projectedEndDate !== formData.endDate) {
@@ -250,30 +278,27 @@ export default function AddEditClassPage() {
     }
   }, [formData.startDate, syllabusItems, scheduleRows, isEdit]);
 
-  // INITIAL LOAD
+  // INITIAL LOAD - Đã xóa getRoomOptions() khỏi đây
   useEffect(() => {
     const loadInitialData = async () => {
       try {
         setIsLoadingCourseOptions(true);
-        setIsLoadingRooms(true);
-        const [courseRes, roomRes] = await Promise.all([
-          getCourseOptions(),
-          getRoomOptions()
-        ]);
+        // setIsLoadingRooms(true); // Đã xóa
+        const courseRes = await getCourseOptions();
+        // const roomRes = await getRoomOptions(); // Đã xóa
         setCourseOptions(courseRes.data);
-        setRoomOptions(roomRes.data);
+        // setRoomOptions(roomRes.data); // Đã xóa
       } catch (err) {
         console.error(err);
         showErrorMessage("Failed to load initial data.");
       } finally {
         setIsLoadingCourseOptions(false);
-        setIsLoadingRooms(false);
+        // setIsLoadingRooms(false); // Đã xóa
       }
     };
     loadInitialData();
   }, []);
 
-  // LOAD DETAIL FOR EDIT
   useEffect(() => {
     const loadClassDetail = async () => {
       if (!isEdit || !classId) return;
@@ -285,8 +310,7 @@ export default function AddEditClassPage() {
         if (data.teacherAssignmentID && (data as any).teacherName) {
             setAvailableTeachers([{
                 id: data.teacherAssignmentID,
-                fullName: (data as any).teacherName, // Lấy từ API vừa bổ sung
-                // các trường khác có thể null
+                fullName: (data as any).teacherName,
             }]);
         }
 
@@ -303,44 +327,28 @@ export default function AddEditClassPage() {
             status: data.status as any,
         }));
 
-        // Map Schedule (Chỉ để hiển thị)
-        const mappedSchedules: ScheduleRow[] = data.schedules.map((s, idx) => ({
-             dayOfWeek: "Monday", // Placeholder
-             timeSlotID: s.slotID,
-             id: `sched-${idx}`
-        }));
-        // loadSchedules(mappedSchedules); // Optional: Uncomment nếu cần
         if (data.schedules && data.schedules.length > 0) {
             const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
             
-            // Map để lọc trùng lặp (VD: Có 10 buổi Thứ 2 slot 1 -> chỉ lấy 1 dòng mẫu)
             const uniqueScheduleMap = new Map<string, ScheduleRow>();
 
             data.schedules.forEach((s) => {
-                // Parse ngày: "2025-12-10" -> Date object
                 const dateObj = new Date(s.date);
-                const dayIndex = dateObj.getDay(); // 0=Sun, 1=Mon...
+                const dayIndex = dateObj.getDay(); 
                 const dayName = daysOfWeek[dayIndex] as DayOfWeek;
-
-                // Tạo key duy nhất: "Monday-SlotID"
                 const uniqueKey = `${dayName}-${s.slotID}`;
 
                 if (!uniqueScheduleMap.has(uniqueKey)) {
                     uniqueScheduleMap.set(uniqueKey, {
                         dayOfWeek: dayName,
                         timeSlotID: s.slotID,
-                        id: `sched-mapped-${uniqueKey}` // ID tạm
+                        id: `sched-mapped-${uniqueKey}`
                     });
                 }
             });
-
-            // Chuyển Map thành mảng và load vào hook
             const mappedSchedules = Array.from(uniqueScheduleMap.values());
-            
-            // Gọi hàm load của hook useSchedules
             loadSchedules(mappedSchedules);
         }
-        // Map Enrollments
         if (data.enrollments) {
             updateStudentLookup(data.enrollments);
             setSelectedStudentIds(data.enrollments.map(s => s.studentId));
@@ -363,7 +371,6 @@ export default function AddEditClassPage() {
     }
   }, [isEdit, classId, initialCourseIdFromRoute]);
 
-  // --- HANDLERS ---
   const handleCourseChange = async (courseId: string) => {
     if (!isEdit) {
         setFormData((prev) => ({ ...prev, courseId, courseName: "", sessions: 0 }));
@@ -440,6 +447,21 @@ export default function AddEditClassPage() {
     } catch (err) { console.error(err); } finally { setIsLoadingTeachers(false); }
   }, [formData.courseId, formData.startDate, formData.endDate, scheduleRows, showErrorMessage]);
 
+  // --- MỚI: Hàm reload rooms khi bấm nút ---
+  const reloadRooms = async () => {
+    try {
+      setIsLoadingRooms(true);
+      // Gọi API lấy danh sách phòng
+      const res = await getRoomOptions();
+      setRoomOptions(res.data);
+    } catch (err) {
+      console.error(err);
+      showErrorMessage("Failed to load rooms.");
+    } finally {
+      setIsLoadingRooms(false);
+    }
+  };
+
   const handleInputChange = (field: keyof ClassModel, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value as any }));
     if (errors[field]) setErrors((p) => ({ ...p, [field]: "" }));
@@ -479,7 +501,6 @@ export default function AddEditClassPage() {
     return dates;
   };
 
-  // --- SAVE ---
   const handleSave = async () => {
     if (!validateForm()) return;
     if (!currentSyllabusId || syllabusItems.length === 0) {
@@ -530,7 +551,10 @@ export default function AddEditClassPage() {
               };
           });
 
-          const autoClassName = `${formData.courseName} - (${formData.startDate})`;
+          // FORMAT DATE TO VN
+          const formattedStartDate = formatDateToVN(formData.startDate);
+          const autoClassName = `${formData.courseName} - (${formattedStartDate})`;
+          
           const enrollmentObjects = selectedStudentIds
             .map(id => studentLookup.get(id))
             .filter((item): item is WaitingStudentItem => !!item);
@@ -617,7 +641,7 @@ export default function AddEditClassPage() {
   const handleRequestNotify = () => {
     if (tempSelectedIds.length === 0) { showErrorMessage("Please select students to notify."); return; }
     setIdsToNotify(tempSelectedIds); 
-    setIsPostponeOpen(true);         
+    setIsPostponeOpen(true);        
   };
 
   const handleNotifyPostpone = async () => {
@@ -746,10 +770,9 @@ export default function AddEditClassPage() {
                      <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
                             <Label required>Start Date</Label>
-                            <Input 
-                                type="date" 
-                                value={formData.startDate} 
-                                onChange={e => handleInputChange("startDate", e.target.value)} 
+                            <DatePickerOverlay
+                                value={formData.startDate}
+                                onChange={(e: any) => handleInputChange("startDate", e.target.value)}
                                 error={errors.startDate}
                                 disabled={isEdit}
                             />
@@ -757,8 +780,8 @@ export default function AddEditClassPage() {
                         <div>
                             <Label>End Date</Label>
                             <Input 
-                                type="date" 
-                                value={formData.endDate} 
+                                type="text" 
+                                value={formatDateToVN(formData.endDate)} 
                                 readOnly={true}
                                 className="bg-gray-100 cursor-not-allowed"
                                 disabled={isEdit}
@@ -771,17 +794,39 @@ export default function AddEditClassPage() {
                                 <MapPin className="w-4 h-4 text-gray-400" />
                                 <Label required className="mb-0">Room</Label>
                             </div>
-                            <Select 
-                                value={formData.room}
-                                onChange={e => handleInputChange("room", e.target.value)}
-                                options={[
-                                    { label: isLoadingRooms ? "Loading rooms..." : "Select a room...", value: "" },
-                                    ...roomOptions.filter(r => r.isActive).map(r => ({ label: `${r.roomCode} (Cap: ${r.capacity})`, value: r.id }))
-                                ]}
-                                disabled={isLoadingRooms || isEdit}
-                                error={errors.room}
-                            />
+                            
+                            {/* --- MỚI: UI cho Room Select + Button Find --- */}
+                            <div className="flex items-center gap-2">
+                                <Select 
+                                    className="flex-1"
+                                    value={formData.room}
+                                    onChange={e => handleInputChange("room", e.target.value)}
+                                    options={[
+                                        { label: roomOptions.length ? "Select a room..." : "No rooms found", value: "" },
+                                        ...roomOptions.filter(r => r.isActive).map(r => ({ label: `${r.roomCode} (Cap: ${r.capacity})`, value: r.id }))
+                                    ]}
+                                    // Chỉ disable khi chưa load options hoặc đang edit (trừ khi edit cũng muốn cho đổi phòng)
+                                    // Theo logic Teacher, nếu chưa load thì disable select
+                                    disabled={roomOptions.length === 0 || isEdit}
+                                    error={errors.room}
+                                />
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    className="h-10 px-3 text-sm"
+                                    onClick={reloadRooms}
+                                    disabled={isLoadingRooms || isEdit}
+                                    iconLeft={
+                                        isLoadingRooms
+                                        ? <Loader2 className="w-4 h-4 animate-spin" />
+                                        : <RefreshCw className="w-4 h-4" />
+                                    }
+                                >
+                                    Find
+                                </Button>
+                            </div>
                         </div>
+
                         <div>
                             <Label required className="mb-1 block">Teacher</Label>
                             <div className="flex items-center gap-2">
@@ -981,7 +1026,10 @@ export default function AddEditClassPage() {
                      <p className="text-sm text-gray-600 mb-4">Send email to <strong>{idsToNotify.length} students</strong>?</p>
                      <div className="space-y-2 bg-gray-50 p-3 rounded text-sm">
                          <div className="flex justify-between"><span className="text-gray-500">Course:</span><span className="font-medium">{formData.courseName}</span></div>
-                         <div className="flex justify-between"><span className="text-gray-500">New Start Date:</span><span className="font-medium">{formData.startDate}</span></div>
+                         <div className="flex justify-between">
+                            <span className="text-gray-500">New Start Date:</span>
+                            <span className="font-medium">{formatDateToVN(formData.startDate)}</span>
+                         </div>
                      </div>
                  </DialogBody>
                  <DialogFooter>
