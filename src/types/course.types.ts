@@ -6,6 +6,8 @@ export type Course = {
   duration: string;
   courseLevel: string;
   standardPrice: number;
+  standardScore?: number;
+  exitScore?: number;
   rating: number;
   studentsCount: number;
   courseImageUrl: string;
@@ -86,6 +88,8 @@ export type CourseFormData = {
   courseLevelID?: string; // GUID
   courseFormatID?: string; // GUID
   categoryID?: string; // GUID
+  standardScore?: number;
+  exitScore?: number;
 };
 
 // Course Detail Types
@@ -102,6 +106,8 @@ export type CourseDetailData = {
   objectives?: string[];
   image: string;
   price?: number;
+  standardScore?: number;
+  exitScore?: number;
   currentStudents?: number;
   rating?: number;
   category?: string;
@@ -191,6 +197,8 @@ export type CreateCourseRequest = {
   categoryID: string;
   description?: string;
   standardPrice: number;
+  standardScore?: number;
+  exitScore?: number;
   isActive?: boolean;
   benefitIDs?: string[];
   requirementIDs?: string[];

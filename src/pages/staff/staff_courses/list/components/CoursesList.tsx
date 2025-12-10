@@ -193,6 +193,26 @@ export default function CoursesList() {
         </div>
       )
     },
+    {
+      header: "Scores",
+      className: "w-40",
+      accessor: (row) => (
+        <div className="space-y-1 text-sm">
+          {row.standardScore !== undefined && (
+            <div className="flex items-center gap-1">
+              <span className="text-gray-500 text-xs">Entry:</span>
+              <span className="font-medium text-gray-900">{row.standardScore}</span>
+            </div>
+          )}
+          {row.exitScore !== undefined && (
+            <div className="flex items-center gap-1">
+              <span className="text-gray-500 text-xs">Exit:</span>
+              <span className="font-medium text-gray-900">{row.exitScore}</span>
+            </div>
+          )}
+        </div>
+      )
+    },
     { 
       header: "Status",
       className: "w-32", 
@@ -355,6 +375,18 @@ export default function CoursesList() {
             <span className="text-gray-500">Price:</span>
             <span className="font-semibold text-primary-600">{formatVND(course.standardPrice || 0)} ₫</span>
           </div>
+          {course.standardScore !== undefined && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-500">Entry Score:</span>
+              <span className="font-medium text-gray-900">{course.standardScore}</span>
+            </div>
+          )}
+          {course.exitScore !== undefined && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-500">Exit Score:</span>
+              <span className="font-medium text-gray-900">{course.exitScore}</span>
+            </div>
+          )}
         </div>
 
         {/* Status and Category */}

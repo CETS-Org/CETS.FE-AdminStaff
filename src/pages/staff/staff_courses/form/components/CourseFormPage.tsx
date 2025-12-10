@@ -21,7 +21,7 @@ import {
   useCourseObjectives,
   useCourseTeachers
 } from '../../shared/hooks';
-import { formatVND, getOptionLabel, getLabelsFromIds, dayNames } from '../../shared/utils/course-form.utils';
+import { formatVND, getOptionLabel, getLabelsFromIds, dayNames, getScoresFromCourseLevel } from '../../shared/utils/course-form.utils';
 import CourseScheduleSection from './CourseScheduleSection';
 
 type CourseFormPageProps = {
@@ -118,7 +118,9 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
     courseCode: "",
     courseLevelID: "",
     courseFormatID: "",
-    categoryID: ""
+    categoryID: "",
+    standardScore: 200,
+    exitScore: 401
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -214,6 +216,24 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
     }
   }, [isEdit, lookupOptions.defaultValues]);
 
+  // Auto-calculate standardScore and exitScore when course level changes
+  useEffect(() => {
+    if (formData.courseLevelID && lookupOptions.courseLevelOptions.length > 0) {
+      const selectedLevel = lookupOptions.courseLevelOptions.find(
+        opt => opt.value === formData.courseLevelID
+      );
+      
+      if (selectedLevel) {
+        const { standardScore, exitScore } = getScoresFromCourseLevel(selectedLevel.label);
+        setFormData(prev => ({
+          ...prev,
+          standardScore,
+          exitScore
+        }));
+      }
+    }
+  }, [formData.courseLevelID, lookupOptions.courseLevelOptions]);
+
   const loadCourseData = async (_courseId: string) => {
     try {
       setIsLoading(true);
@@ -231,7 +251,9 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
         courseLevelID: d.courseLevelID || "",
         courseFormatID: d.courseFormatID || "",
         categoryID: d.categoryID || "",
-        status: d.isActive ? "active" : "inactive"
+        status: d.isActive ? "active" : "inactive",
+        standardScore: d.standardScore || 200,
+        exitScore: d.exitScore || 401
       }));
       
       setImagePreview(d.courseImageUrl || "");
@@ -905,6 +927,8 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
         categoryID: formData.categoryID,
         description: formData.description,
         standardPrice: formData.price || 0,
+        standardScore: formData.standardScore || 200,
+        exitScore: formData.exitScore || 401,
         isActive: formData.status === "active",
         benefitIDs: selectedBenefits,
         requirementIDs: selectedRequirements,
@@ -1710,6 +1734,38 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
                       error={errors.price}
                       min={50000}
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Standard Score
+                    </label>
+                    <Input
+                      type="number"
+                      value={formData.standardScore || 200}
+                      readOnly
+                      className="bg-gray-100 cursor-not-allowed"
+                      placeholder="Auto-calculated from level"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Automatically set based on course level
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Exit Score
+                    </label>
+                    <Input
+                      type="number"
+                      value={formData.exitScore || 401}
+                      readOnly
+                      className="bg-gray-100 cursor-not-allowed"
+                      placeholder="Auto-calculated from level"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Automatically set to next level minimum
+                    </p>
                   </div>
 
                 </div>

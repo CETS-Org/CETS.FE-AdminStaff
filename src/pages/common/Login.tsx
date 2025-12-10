@@ -203,17 +203,22 @@ export default function Login() {
       
       // Navigate based on role
       const userRole = response.account.roleNames?.[0];
+      console.log("Login - User role detected:", userRole);
+      console.log("Login - All role names:", response.account.roleNames);
       
       if (userRole === "AcademicStaff") {
-        navigate("/staff/classes");
+        console.log("Login - Redirecting AcademicStaff to /staff/classes");
+        navigate("/staff/classes", { replace: true });
       } else if (userRole === "AccountantStaff") {
-        navigate("/staff/classes");
+        console.log("Login - Redirecting AccountantStaff to /staff/classes");
+        navigate("/staff/classes", { replace: true });
       } else if (userRole === "Admin") {
-        navigate("/admin/analytics");
+        console.log("Login - Redirecting Admin to /admin/analytics");
+        navigate("/admin/analytics", { replace: true });
       } else {
         // Default fallback for unknown roles
-        console.warn("Unknown role:", userRole, "redirecting to staff home");
-        navigate("/staff/home");
+        console.warn("Login - Unknown role:", userRole, "redirecting to staff classes");
+        navigate("/staff/classes", { replace: true });
       }
       
     } catch (error) {

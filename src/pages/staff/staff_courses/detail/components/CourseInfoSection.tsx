@@ -192,6 +192,26 @@ export const CourseInfoSection: React.FC<Props> = ({
             </div>
           </div>
 
+          {/* Score Information */}
+          {(courseDetail.standardScore !== undefined || courseDetail.exitScore !== undefined) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              {courseDetail.standardScore !== undefined && (
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-600 mb-1 font-medium">Entry Score (Standard Score)</p>
+                  <p className="text-2xl font-bold text-blue-900">{courseDetail.standardScore}</p>
+                  <p className="text-xs text-blue-600 mt-1">Minimum score required to enter this course</p>
+                </div>
+              )}
+              {courseDetail.exitScore !== undefined && (
+                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                  <p className="text-sm text-green-600 mb-1 font-medium">Exit Score</p>
+                  <p className="text-2xl font-bold text-green-900">{courseDetail.exitScore}</p>
+                  <p className="text-xs text-green-600 mt-1">Minimum score to progress to next level</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Audit Information */}
           {(courseDetail.createdAt || courseDetail.updatedAt) && (
             <div className="mt-6 pt-6 border-t border-gray-200">
