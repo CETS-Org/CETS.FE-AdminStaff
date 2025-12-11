@@ -790,10 +790,7 @@ export default function AddEditClassPage() {
                      </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <div className="flex items-center gap-2 mb-1">
-                                <MapPin className="w-4 h-4 text-gray-400" />
-                                <Label required className="mb-0">Room</Label>
-                            </div>
+                            <Label required className="mb-1 block">Room</Label>
                             
                             {/* --- MỚI: UI cho Room Select + Button Find --- */}
                             <div className="flex items-center gap-2">
