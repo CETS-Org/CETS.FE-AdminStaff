@@ -72,6 +72,18 @@ export default function GenericNavbar({
         loadNotifications();
     }, []);
 
+    // Listen for logout event and clear notifications
+    useEffect(() => {
+        const handleLogout = () => {
+            setNotifications([]);
+        };
+
+        window.addEventListener('auth:logout', handleLogout);
+        return () => {
+            window.removeEventListener('auth:logout', handleLogout);
+        };
+    }, []);
+
     const handleLogoutClick = () => {
         setIsLogoutDialogOpen(true);
     };
@@ -131,6 +143,12 @@ export default function GenericNavbar({
     };
 
     const handleSocketNotification = useCallback((notification: Notification) => {
+        // Check if user is still logged in before processing notification
+        const userInfo = getUserInfo();
+        if (!userInfo?.id) {
+            return;
+        }
+        
         setNotifications(prev => {
             const existing = prev.find(n => n.id === notification.id);
             if (existing) {
