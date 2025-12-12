@@ -25,7 +25,7 @@ export default function CourseFeedbackPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [feedbacks, setFeedbacks] = useState<CourseFeedback[]>([]);
-  const [activeTab, setActiveTab] = useState<'all' | 'course' | 'teacher'>('all');
+  const [activeTab, setActiveTab] = useState<'course' | 'teacher'>('course');
 
   useEffect(() => {
     console.log("CourseFeedbackPage mounted, courseId:", courseId);
@@ -66,7 +66,8 @@ export default function CourseFeedbackPage() {
       f.feedbackTypeName.toLowerCase().includes('course') ||
       f.feedbackTypeName.toLowerCase().includes('forcourse')
     );
-    const hasCourseFields = f.contentClarity || f.courseRelevance || f.materialsQuality;
+    const hasCourseFields = [f.contentClarity, f.courseRelevance, f.materialsQuality]
+      .some(v => v !== undefined && v !== null);
     return isCourseType || hasCourseFields;
   });
 
@@ -76,22 +77,52 @@ export default function CourseFeedbackPage() {
       f.feedbackTypeName.toLowerCase().includes('teacher') ||
       f.feedbackTypeName.toLowerCase().includes('forteacher')
     );
-    const hasTeacherFields = f.teachingEffectiveness || f.communicationSkills || f.teacherSupportiveness;
+    const hasTeacherFields = [f.teachingEffectiveness, f.communicationSkills, f.teacherSupportiveness]
+      .some(v => v !== undefined && v !== null);
     return isTeacherType || hasTeacherFields;
   });
 
-  const displayedFeedbacks = activeTab === 'all' ? feedbacks : 
-                             activeTab === 'course' ? courseFeedbacks : teacherFeedbacks;
+  const displayedFeedbacks = activeTab === 'course' ? courseFeedbacks : teacherFeedbacks;
+
+  const scoreMap: Record<string, number> = {
+    // generic
+    "excellent": 5,
+    "very_good": 4.5,
+    "good": 4,
+    "average": 3,
+    "fair": 2.5,
+    "poor": 2,
+    "very_poor": 1,
+    // relevance
+    "highly_relevant": 5,
+    "relevant": 4,
+    "somewhat_relevant": 3,
+    "not_relevant": 1.5,
+    // supportiveness
+    "very_supportive": 5,
+    "supportive": 4,
+    "neutral": 3,
+    "unsupportive": 2,
+  };
+
+  const normalizeScore = (value: number | string | undefined | null): number | undefined => {
+    if (value === undefined || value === null) return undefined;
+    if (typeof value === "number") return value;
+    const key = value.toString().trim().toLowerCase().replace(/\s+/g, "_");
+    if (scoreMap[key] !== undefined) return scoreMap[key];
+    const parsed = parseFloat(key);
+    return isNaN(parsed) ? undefined : parsed;
+  };
 
   const calculateAverage = (values: (number | string | undefined)[]) => {
     const validValues = values
-      .filter((v): v is number | string => v !== undefined && v !== null)
-      .map(v => typeof v === 'string' ? parseFloat(v) : v)
-      .filter(v => !isNaN(v));
+      .map((v) => normalizeScore(v))
+      .filter((v): v is number => v !== undefined && !isNaN(v));
     if (validValues.length === 0) return 0;
     return (validValues.reduce((sum, v) => sum + v, 0) / validValues.length).toFixed(1);
   };
 
+  // Fallback to overall rating when specific dimension is missing so charts are not empty
   const avgCourseRating = calculateAverage(courseFeedbacks.map(f => f.rating));
   const avgTeacherRating = calculateAverage(teacherFeedbacks.map(f => f.rating));
   const avgContentClarity = calculateAverage(courseFeedbacks.map(f => f.contentClarity));
@@ -100,6 +131,13 @@ export default function CourseFeedbackPage() {
   const avgTeachingEffectiveness = calculateAverage(teacherFeedbacks.map(f => f.teachingEffectiveness));
   const avgCommunicationSkills = calculateAverage(teacherFeedbacks.map(f => f.communicationSkills));
   const avgTeacherSupportiveness = calculateAverage(teacherFeedbacks.map(f => f.teacherSupportiveness));
+
+  const formatScore = (value?: string | number | null) => {
+    if (value === undefined || value === null) return "N/A";
+    const normalized = normalizeScore(value);
+    if (normalized !== undefined && !isNaN(normalized)) return `${normalized}/5`;
+    return String(value);
+  };
 
   const breadcrumbItems = [
     { label: "Courses", href: "/admin/courses" },
@@ -270,16 +308,6 @@ export default function CourseFeedbackPage() {
           {/* Tabs */}
           <div className="flex gap-2 border-b border-neutral-200">
             <button
-              onClick={() => setActiveTab('all')}
-              className={`px-4 py-2 font-medium transition-colors ${
-                activeTab === 'all'
-                  ? 'text-primary-600 border-b-2 border-primary-600'
-                  : 'text-neutral-600 hover:text-neutral-800'
-              }`}
-            >
-              All ({feedbacks.length})
-            </button>
-            <button
               onClick={() => setActiveTab('course')}
               className={`px-4 py-2 font-medium transition-colors ${
                 activeTab === 'course'
@@ -351,19 +379,19 @@ export default function CourseFeedbackPage() {
                         {feedback.contentClarity && (
                           <div className="flex items-center gap-2 text-sm">
                             <span className="text-neutral-600">Content Clarity:</span>
-                            <span className="font-medium text-blue-600">{feedback.contentClarity}/5</span>
+                            <span className="font-medium text-blue-600">{formatScore(feedback.contentClarity)}</span>
                           </div>
                         )}
                         {feedback.courseRelevance && (
                           <div className="flex items-center gap-2 text-sm">
                             <span className="text-neutral-600">Relevance:</span>
-                            <span className="font-medium text-blue-600">{feedback.courseRelevance}/5</span>
+                            <span className="font-medium text-blue-600">{formatScore(feedback.courseRelevance)}</span>
                           </div>
                         )}
                         {feedback.materialsQuality && (
                           <div className="flex items-center gap-2 text-sm">
                             <span className="text-neutral-600">Materials:</span>
-                            <span className="font-medium text-blue-600">{feedback.materialsQuality}/5</span>
+                            <span className="font-medium text-blue-600">{formatScore(feedback.materialsQuality)}</span>
                           </div>
                         )}
                       </div>
@@ -380,19 +408,19 @@ export default function CourseFeedbackPage() {
                         {feedback.teachingEffectiveness && (
                           <div className="flex items-center gap-2 text-sm">
                             <span className="text-neutral-600">Effectiveness:</span>
-                            <span className="font-medium text-purple-600">{feedback.teachingEffectiveness}/5</span>
+                            <span className="font-medium text-purple-600">{formatScore(feedback.teachingEffectiveness)}</span>
                           </div>
                         )}
                         {feedback.communicationSkills && (
                           <div className="flex items-center gap-2 text-sm">
                             <span className="text-neutral-600">Communication:</span>
-                            <span className="font-medium text-purple-600">{feedback.communicationSkills}/5</span>
+                            <span className="font-medium text-purple-600">{formatScore(feedback.communicationSkills)}</span>
                           </div>
                         )}
                         {feedback.teacherSupportiveness && (
                           <div className="flex items-center gap-2 text-sm">
                             <span className="text-neutral-600">Supportiveness:</span>
-                            <span className="font-medium text-purple-600">{feedback.teacherSupportiveness}/5</span>
+                            <span className="font-medium text-purple-600">{formatScore(feedback.teacherSupportiveness)}</span>
                           </div>
                         )}
                       </div>
