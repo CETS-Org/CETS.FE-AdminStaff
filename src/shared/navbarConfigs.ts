@@ -108,10 +108,10 @@ export const createAcademicStaffNavbarConfig = (userAccount: any): NavbarConfig 
   userInfo: createNavbarUserInfo(userAccount, userRole),
   navigationItems: [
     {
-      name: "Analytics",
-      href: "/staff/analytics", 
-      icon: BarChart3,
-      description: "View analytics and reports"
+      name: "Courses",
+      href: "/staff/courses",
+      icon: BookOpenText,
+      description: "Manage courses"
     },
     {
       name: "Schedule",
@@ -157,16 +157,10 @@ export const createAccountantStaffNavbarConfig = (userAccount: any): NavbarConfi
   userInfo: createNavbarUserInfo(userAccount, userRole),
   navigationItems: [
     {
-      name: "Analytics", 
-      href: "/staff/analytics",
-      icon: BarChart3,
-      description: "View financial analytics"
-    },
-    {
       name: "Promotions",
       href: "/staff/promotions",
       icon: FileText,
-      description: "Manage bpromotions"
+      description: "Manage promotions"
     }
   ],
   userMenuItems: [

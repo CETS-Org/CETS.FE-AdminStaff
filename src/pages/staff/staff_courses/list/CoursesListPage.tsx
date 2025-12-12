@@ -6,7 +6,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import CoursesList from "./components/CoursesList";
 import Button from "@/components/ui/Button";
-import { BookOpen, Users, Clock, Award, Download, BarChart3, AlertCircle, Loader2 } from "lucide-react";
+import { BookOpen, Users, Clock, Award, AlertCircle, Loader2 } from "lucide-react";
 import { getCoursesList } from "@/api/course.api";
 import type { Course } from "@/types/course.types";
 
@@ -25,13 +25,6 @@ export default function StaffCoursesPage() {
   });
 
 
-  const handleExportData = () => {
-    console.log("Export course data");
-  };
-
-  const handleViewAnalytics = () => {
-    navigate("/staff/analytics");
-  };
 
   // Fetch real data from API
   useEffect(() => {
@@ -97,22 +90,6 @@ export default function StaffCoursesPage() {
         title="Course Management"
         description="Manage and organize your educational courses with comprehensive tools"
         icon={<BookOpen className="w-5 h-5 text-white" />}
-        controls={[
-          {
-            type: 'button',
-            label: 'View Analytics',
-            variant: 'secondary',
-            icon: <BarChart3 className="w-4 h-4" />,
-            onClick: handleViewAnalytics
-          },
-          {
-            type: 'button',
-            label: 'Export Data',
-            variant: 'secondary',
-            icon: <Download className="w-4 h-4" />,
-            onClick: handleExportData
-          }
-        ]}
       />
 
       {/* Enhanced Stats Cards */}

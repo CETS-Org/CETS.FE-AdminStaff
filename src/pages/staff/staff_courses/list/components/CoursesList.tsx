@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import DeleteConfirmDialog from "../../shared/components/DeleteConfirmDialog";
 import type { Course } from "@/types/course.types";
+import { isStaffUser } from "@/lib/utils";
 import { getCoursesList, deleteCourse } from "@/api/course.api";
 
 export default function CoursesList() {
@@ -21,6 +22,8 @@ export default function CoursesList() {
   const [error, setError] = useState<string | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const isStaff = isStaffUser();
+  const basePath = isStaff ? '/staff' : '/admin';
 
   const itemsPerPage = 8;
 
@@ -92,7 +95,7 @@ export default function CoursesList() {
   ];
 
   // Bulk actions for DataTable
-  const bulkActions: BulkAction<Course>[] = [
+  const bulkActions: BulkAction<Course>[] = isStaff ? [] : [
     {
       id: "export",
       label: "Export",
@@ -193,26 +196,6 @@ export default function CoursesList() {
         </div>
       )
     },
-    {
-      header: "Scores",
-      className: "w-40",
-      accessor: (row) => (
-        <div className="space-y-1 text-sm">
-          {row.standardScore !== undefined && (
-            <div className="flex items-center gap-1">
-              <span className="text-gray-500 text-xs">Entry:</span>
-              <span className="font-medium text-gray-900">{row.standardScore}</span>
-            </div>
-          )}
-          {row.exitScore !== undefined && (
-            <div className="flex items-center gap-1">
-              <span className="text-gray-500 text-xs">Exit:</span>
-              <span className="font-medium text-gray-900">{row.exitScore}</span>
-            </div>
-          )}
-        </div>
-      )
-    },
     { 
       header: "Status",
       className: "w-32", 
@@ -249,35 +232,39 @@ export default function CoursesList() {
           >
             <Eye className="w-4 h-4" />
           </Button>
-          <Button
-            size="sm"
-            onClick={() => handleEdit(row)}
-            className="!p-2 !bg-green-50 !text-green-600 !border !border-green-200 hover:!bg-green-100 hover:!text-green-700 hover:!border-green-300 !transition-colors !rounded-md"
-          >
-            <Edit className="w-4 h-4" />
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => handleDelete(row)}
-            className="!p-2 !bg-red-50 !text-red-600 !border !border-red-200 hover:!bg-red-100 hover:!text-red-700 hover:!border-red-300 !transition-colors !rounded-md"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
+          {!isStaff && (
+            <>
+              <Button
+                size="sm"
+                onClick={() => handleEdit(row)}
+                className="!p-2 !bg-green-50 !text-green-600 !border !border-green-200 hover:!bg-green-100 hover:!text-green-700 hover:!border-green-300 !transition-colors !rounded-md"
+              >
+                <Edit className="w-4 h-4" />
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => handleDelete(row)}
+                className="!p-2 !bg-red-50 !text-red-600 !border !border-red-200 hover:!bg-red-100 hover:!text-red-700 hover:!border-red-300 !transition-colors !rounded-md"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </>
+          )}
         </div>
       )
     }
   ];
 
   const handleViewFeedback = (course: Course) => {
-    navigate(`/admin/courses/${course.id}/feedback`);
+    navigate(`${basePath}/courses/${course.id}/feedback`);
   };
 
   const handleView = (course: Course) => {
-    navigate(`/admin/courses/${course.id}`);
+    navigate(`${basePath}/courses/${course.id}`);
   };
 
   const handleEdit = (course: Course) => {
-    navigate(`/admin/courses/edit/${course.id}`);
+    navigate(`${basePath}/courses/edit/${course.id}`);
   };
 
   const handleDelete = (course: Course) => {
@@ -414,21 +401,25 @@ export default function CoursesList() {
             <Eye className="w-4 h-4 mr-2" />
             View
           </Button>
-          <Button
-            size="sm"
-            onClick={() => handleEdit(course)}
-            className="!flex-1 !bg-green-50 !text-green-600 !border !border-green-200 hover:!bg-green-100 hover:!text-green-700 hover:!border-green-300 !transition-colors !rounded-md"
-          >
-            <Edit className="w-4 h-4 mr-2" />
-            Edit
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => handleDelete(course)}
-            className="!p-2 !bg-red-50 !text-red-600 !border !border-red-200 hover:!bg-red-100 hover:!text-red-700 hover:!border-red-300 !transition-colors !rounded-md"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
+          {!isStaff && (
+            <>
+              <Button
+                size="sm"
+                onClick={() => handleEdit(course)}
+                className="!flex-1 !bg-green-50 !text-green-600 !border !border-green-200 hover:!bg-green-100 hover:!text-green-700 hover:!border-green-300 !transition-colors !rounded-md"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edit
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => handleDelete(course)}
+                className="!p-2 !bg-red-50 !text-red-600 !border !border-red-200 hover:!bg-red-100 hover:!text-red-700 hover:!border-red-300 !transition-colors !rounded-md"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -445,10 +436,10 @@ export default function CoursesList() {
         searchFields={['courseName', 'description', 'categoryName', 'courseCode']}
         filterConfigs={filterConfigs}
         bulkActions={bulkActions}
-        onAdd={() => navigate("/admin/courses/add")}
+        onAdd={!isStaff ? () => navigate(`${basePath}/courses/add`) : undefined}
         addButtonLabel="Add Course"
         addButtonIcon={<Plus className="w-4 h-4" />}
-        viewModes={["table", "card"]}
+        viewModes={["table"]}
         defaultViewMode="table"
         itemsPerPage={itemsPerPage}
         loading={loading}
@@ -456,10 +447,10 @@ export default function CoursesList() {
         onRefresh={() => setRefreshTrigger(prev => prev + 1)}
         emptyStateTitle="No courses found"
         emptyStateDescription="Get started by creating your first course"
-        emptyStateAction={{
+        emptyStateAction={!isStaff ? {
           label: "Add Course",
-          onClick: () => navigate("/admin/courses/add")
-        }}
+          onClick: () => navigate(`${basePath}/courses/add`)
+        } : undefined}
         renderCard={renderCourseCard}
         getItemId={(course) => course.id}
         enableSelection={true}

@@ -16,6 +16,17 @@ export const academicStaffSidebarConfig: SidebarConfig = {
     { id: "classes", label: "Classes", icon: School, path: "/staff/classes" },
     { id: "schedule", label: "Schedule", icon: CalendarDays, path: "/staff/schedule" },
     { id: "rooms", label: "Rooms", icon: DoorOpen, path: "/staff/rooms" },
+    { id: "courses", label: "Courses", icon: BookOpenText, path: "/staff/courses" },
+    {
+      id: "user-management",
+      label: "User Management",
+      icon: Users,
+      path: "#",
+      subItems: [
+        { id: "teachers", label: "Teachers", icon: GraduationCap, path: "/staff/teachers" },
+        { id: "students", label: "Students", icon: Users, path: "/staff/students" },
+      ],
+    },
     { id: "requests", label: "Requests", icon: Mail, path: "/staff/requests" },
     {
       id: "placement-test",

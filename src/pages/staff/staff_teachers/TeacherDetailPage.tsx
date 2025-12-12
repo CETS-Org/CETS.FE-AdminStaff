@@ -12,6 +12,7 @@ import { getListCourseTeaching, getTeacherById, getListCredentialType, getListCr
 import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
 import { setIsDelete, setIsActive } from "@/api/account.api";
 import type { CourseTeaching, Teacher, TeacherCredentialResponse, CredentialTypeResponse } from "@/types/teacher.type";
+import { isStaffUser } from "@/lib/utils";
 
 
 
@@ -35,6 +36,8 @@ export default function TeacherDetailPage() {
   const navigate = useNavigate();
   const [banDialogOpen, setBanDialogOpen] = useState(false);
   const [viewingImage, setViewingImage] = useState<{ url: string; name: string } | null>(null);
+  const isStaff = isStaffUser();
+  const basePath = isStaff ? '/staff' : '/admin';
   
   // Cloud storage base URL
   const CLOUD_STORAGE_BASE_URL = 'https://pub-59cfd11e5f0d4b00af54839edc83842d.r2.dev';
@@ -361,7 +364,7 @@ export default function TeacherDetailPage() {
 
 
   const breadcrumbItems = [
-    { label: "Teachers", to: "/admin/teachers" },
+    { label: "Teachers", to: `${basePath}/teachers` },
     { label: teacher?.fullName || "Teacher Detail" }
   ];
 
@@ -394,7 +397,7 @@ export default function TeacherDetailPage() {
         <div className="flex items-center justify-between mb-6 mt-4">
           <div></div>
           <div className="flex gap-3">
-            {(() => {
+            {!isStaff && (() => {
               const isBanned = (teacher as any)?.isDeleted || teacher.statusName === 'Blocked' || teacher.statusName === 'Locked';
               return isBanned ? (
                 <Button

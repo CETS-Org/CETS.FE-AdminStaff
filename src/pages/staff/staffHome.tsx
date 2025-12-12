@@ -36,6 +36,8 @@ import PlacementQuestionManagementPage from "./staff_placement_test/PlacementQue
 import CreatePlacementTestPage from "./staff_placement_test/CreatePlacementTestPage";
 import StaffPlacementTestTaking from "./staff_placement_test/StaffPlacementTestTaking";
 import StaffProfilePage from "./StaffProfilePage";
+import StaffCoursesPage from "./staff_courses/list/CoursesListPage";
+import { CourseDetailPage } from "./staff_courses";
 
 export default function StaffHome() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -114,14 +116,13 @@ export default function StaffHome() {
           <Routes>
             <Route path="/" element={<Navigate to="/staff/classes" replace />} />
             <Route path="analytics" element={<StaffAnalytics />} />
-            {/* <Route path="teachers" element={<TeacherManagement />} />
-            <Route path="teachers/add" element={<AddEditTeacherPage />} />
+            {/* View-only routes for staff */}
+            <Route path="courses" element={<StaffCoursesPage />} />
+            <Route path="courses/:id" element={<CourseDetailPage />} />
+            <Route path="teachers" element={<TeacherManagement />} />
             <Route path="teachers/:id" element={<TeacherDetailPage />} />
-            <Route path="teachers/edit/:id" element={<EditTeacherPage />} />         
             <Route path="students" element={<StaffStudentsPage />} />
             <Route path="students/:id" element={<StudentDetailPage />} />
-            <Route path="students/edit/:id" element={<EditStudentPage />} />
-            <Route path="students/add" element={<AddStudentPage />} /> */}            
             <Route path="schedule" element={<StaffSchedulePage />} />
             <Route path="timetable" element={<StaffTimetablePage />} />
             <Route path="rooms" element={<StaffRoomsPage />} />

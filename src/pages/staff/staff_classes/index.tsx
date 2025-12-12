@@ -478,7 +478,7 @@ export default function StaffClassesPage() {
         onAdd={() => navigate("/staff/classes/add")}
         addButtonLabel="Add Class"
         addButtonIcon={<Plus className="w-4 h-4" />}
-        viewModes={["table", "card"]}
+        viewModes={["table"]}
         defaultViewMode="table"
         itemsPerPage={itemsPerPage}
         loading={loading}

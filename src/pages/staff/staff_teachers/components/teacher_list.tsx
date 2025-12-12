@@ -15,12 +15,15 @@ import type { FilterUserParam } from "@/types/filter.type";
 import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
 import { setIsDelete, setIsActive } from "@/api/account.api";
 import Pagination from "@/shared/pagination";
+import { isStaffUser } from "@/lib/utils";
 
 
 export default function TeacherList() {
   const navigate = useNavigate();
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; teacher: Teacher | null; action?: 'ban' | 'unban' }>({ open: false, teacher: null });
   const [selectedTeachers, setSelectedTeachers] = useState<string[]>([]);
+  const isStaff = isStaffUser();
+  const basePath = isStaff ? '/staff' : '/admin';
   
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState("");
@@ -279,22 +282,24 @@ export default function TeacherList() {
           >
             <Eye className="w-4 h-4" />
           </Button>
-          {row.statusName === 'Blocked' || row.statusName === 'Locked' ? (
-            <Button
-              size="sm"
-              onClick={() => handleUnban(row)}
-              className="!p-2 !bg-emerald-50 !text-emerald-600 !border !border-emerald-200 hover:!bg-emerald-100 hover:!text-emerald-700 hover:!border-emerald-300 !transition-colors !rounded-md"
-            >
-              <User className="w-4 h-4" />
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              onClick={() => handleBan(row)}
-              className="!p-2 !bg-red-50 !text-red-600 !border !border-red-200 hover:!bg-red-100 hover:!text-red-700 hover:!border-red-300 !transition-colors !rounded-md"
-            >
-              <UserX className="w-4 h-4" />
-            </Button>
+          {!isStaff && (
+            row.statusName === 'Blocked' || row.statusName === 'Locked' ? (
+              <Button
+                size="sm"
+                onClick={() => handleUnban(row)}
+                className="!p-2 !bg-emerald-50 !text-emerald-600 !border !border-emerald-200 hover:!bg-emerald-100 hover:!text-emerald-700 hover:!border-emerald-300 !transition-colors !rounded-md"
+              >
+                <User className="w-4 h-4" />
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                onClick={() => handleBan(row)}
+                className="!p-2 !bg-red-50 !text-red-600 !border !border-red-200 hover:!bg-red-100 hover:!text-red-700 hover:!border-red-300 !transition-colors !rounded-md"
+              >
+                <UserX className="w-4 h-4" />
+              </Button>
+            )
           )}
         </div>
       )
@@ -303,11 +308,11 @@ export default function TeacherList() {
 
 
   const handleAdd = () => {
-    navigate("/admin/teachers/add");
+    navigate(`${basePath}/teachers/add`);
   };
 
   const handleView = (teacher: Teacher) => {
-    navigate(`/admin/teachers/${teacher.accountId}`);
+    navigate(`${basePath}/teachers/${teacher.accountId}`);
   };
 
   const handleBan = (teacher: Teacher) => {
@@ -414,9 +419,11 @@ export default function TeacherList() {
               )}
               
               {/* Add Teacher Button */}
-              <Button onClick={handleAdd} className="whitespace-nowrap" iconLeft={<Plus className="w-4 h-4" />}>
-                Add Teacher
-              </Button>
+              {!isStaff && (
+                <Button onClick={handleAdd} className="whitespace-nowrap" iconLeft={<Plus className="w-4 h-4" />}>
+                  Add Teacher
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -550,9 +557,11 @@ export default function TeacherList() {
                   : "Get started by adding your first teacher"
                 }
               </p>
-              <Button onClick={handleAdd} iconLeft={<Plus className="w-4 h-4" />}>
-                Add Teacher
-              </Button>
+              {!isStaff && (
+                <Button onClick={handleAdd} iconLeft={<Plus className="w-4 h-4" />}>
+                  Add Teacher
+                </Button>
+              )}
             </div>
           ) : (
             <div className="space-y-6">

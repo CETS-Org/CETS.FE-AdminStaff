@@ -15,10 +15,13 @@ import DeleteConfirmDialog from '../shared/components/DeleteConfirmDialog';
 import { convertSessionsToBaseSession, getWeekNavigationProps, DAY_OF_WEEK_MAP } from '../shared/utils/scheduleHelpers';
 import { deleteCourse } from '@/api/course.api';
 import type { Class as ClassInfo } from '@/types/course.types';
+import { isStaffUser } from '@/lib/utils';
 
 const CourseDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const isStaff = isStaffUser();
+  const basePath = isStaff ? '/staff' : '/admin';
   
   // Fetch course data
   const { loading, error, courseDetail, classes, classSessions, skills, benefits, requirements, syllabi } =
@@ -83,7 +86,7 @@ const CourseDetailPage: React.FC = () => {
   }, [classes, classSearch]);
 
   // Handlers
-  const handleEdit = () => navigate(`/admin/courses/edit/${id}`);
+  const handleEdit = () => navigate(`${basePath}/courses/edit/${id}`);
   const handleDelete = () => setDeleteCourseDialog(true);
   
   const handleConfirmDeleteCourse = async () => {
@@ -97,7 +100,7 @@ const CourseDetailPage: React.FC = () => {
       
       // Close dialog and navigate back to courses list
       setDeleteCourseDialog(false);
-      navigate('/admin/courses');
+      navigate(`${basePath}/courses`);
     } catch (err: any) {
       console.error('Error deleting course:', err);
       alert(err.response?.data?.message || 'Failed to delete course. Please try again.');
@@ -134,8 +137,8 @@ const CourseDetailPage: React.FC = () => {
   };
 
   const breadcrumbItems = [
-    { label: 'Courses', to: '/admin/courses' },
-    { label: 'Course Detail', to: '/courses/detail' },
+    { label: 'Courses', to: `${basePath}/courses` },
+    { label: 'Course Detail', to: `${basePath}/courses/detail` },
   ];
 
   // Loading state
@@ -178,7 +181,7 @@ const CourseDetailPage: React.FC = () => {
           </div>
           <h3 className="text-2xl font-semibold text-gray-900 mb-4">Course Not Found</h3>
           <p className="text-gray-600 mb-6">The course you're looking for doesn't exist.</p>
-          <Button onClick={() => navigate('/admin/courses')} variant="secondary">
+          <Button onClick={() => navigate(`${basePath}/courses`)} variant="secondary">
             Back to Courses
           </Button>
         </div>
@@ -197,7 +200,7 @@ const CourseDetailPage: React.FC = () => {
             <div className="flex items-center gap-4">
               <Button
                 variant="primary"
-                onClick={() => navigate('/admin/courses')}
+                onClick={() => navigate(`${basePath}/courses`)}
                 iconLeft={<ArrowLeft className="w-4 h-4" />}
                 className="!bg-blue-500 hover:!bg-blue-600"
               >
@@ -205,25 +208,27 @@ const CourseDetailPage: React.FC = () => {
               </Button>
             </div>
             
-            <div className="flex items-center gap-3">
-              <Button
-                variant="primary"
-                onClick={handleEdit}
-                iconLeft={<Pencil className="w-4 h-4" />}
-                className="!bg-green-500 hover:!bg-green-600"
-              >
-                Edit Course
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={handleDelete}
-                iconLeft={<Trash2 className="w-4 h-4" />}
-                className="!bg-red-500 hover:!bg-red-600 !text-white"
-                disabled={isDeleting}
-              >
-                {isDeleting ? 'Deleting...' : 'Delete Course'}
-              </Button>
-            </div>
+            {!isStaff && (
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="primary"
+                  onClick={handleEdit}
+                  iconLeft={<Pencil className="w-4 h-4" />}
+                  className="!bg-green-500 hover:!bg-green-600"
+                >
+                  Edit Course
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={handleDelete}
+                  iconLeft={<Trash2 className="w-4 h-4" />}
+                  className="!bg-red-500 hover:!bg-red-600 !text-white"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete Course'}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 

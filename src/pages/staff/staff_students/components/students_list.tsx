@@ -15,12 +15,15 @@ import type { Student } from "@/types/student.type";
 import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
 import { useStudentStore } from "@/store/student.store";
 import { setIsDelete, setIsActive } from "@/api/account.api";
+import { isStaffUser } from "@/lib/utils";
 
 export default function StudentsList() {
   const navigate = useNavigate();
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; student: Student | null; action?: 'ban' | 'unban' }>({ open: false, student: null });
   const { students, setStudents } = useStudentStore();
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+  const isStaff = isStaffUser();
+  const basePath = isStaff ? '/staff' : '/admin';
 
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState("");
@@ -204,22 +207,24 @@ export default function StudentsList() {
           >
             <Eye className="w-4 h-4" />
           </Button>
-          {row.statusName === 'Locked' ? (
-            <Button
-              size="sm"
-              onClick={() => handleUnban(row)}
-              className="!p-2 !bg-emerald-50 !text-emerald-600 !border !border-emerald-200 hover:!bg-emerald-100 hover:!text-emerald-700 hover:!border-emerald-300 !transition-colors !rounded-md"
-            >
-              <User className="w-4 h-4" />
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              onClick={() => handleBan(row)}
-              className="!p-2 !bg-red-50 !text-red-600 !border !border-red-200 hover:!bg-red-100 hover:!text-red-700 hover:!border-red-300 !transition-colors !rounded-md"
-            >
-              <UserX className="w-4 h-4" />
-            </Button>
+          {!isStaff && (
+            row.statusName === 'Locked' ? (
+              <Button
+                size="sm"
+                onClick={() => handleUnban(row)}
+                className="!p-2 !bg-emerald-50 !text-emerald-600 !border !border-emerald-200 hover:!bg-emerald-100 hover:!text-emerald-700 hover:!border-emerald-300 !transition-colors !rounded-md"
+              >
+                <User className="w-4 h-4" />
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                onClick={() => handleBan(row)}
+                className="!p-2 !bg-red-50 !text-red-600 !border !border-red-200 hover:!bg-red-100 hover:!text-red-700 hover:!border-red-300 !transition-colors !rounded-md"
+              >
+                <UserX className="w-4 h-4" />
+              </Button>
+            )
           )}
         </div>
       )
@@ -232,7 +237,7 @@ export default function StudentsList() {
 
   const handleView = (student: Student) => {
     // Use accountId for navigation to student detail page
-    navigate(`/admin/students/${student.accountId}`);
+    navigate(`${basePath}/students/${student.accountId}`);
   };
 
   const handleBan = (student: Student) => {
