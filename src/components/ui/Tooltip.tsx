@@ -5,6 +5,7 @@ interface TooltipProps {
   children: React.ReactElement;
   content: React.ReactNode;
   side?: "top" | "bottom" | "left" | "right";
+  align?: "start" | "center" | "end";
   delayDuration?: number;
 }
 
@@ -12,6 +13,7 @@ export default function Tooltip({
   children,
   content,
   side = "top",
+  align = "center",
   delayDuration = 200,
 }: TooltipProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -26,7 +28,7 @@ export default function Tooltip({
     }
     timeoutRef.current = setTimeout(() => {
       setIsOpen(true);
-      updatePosition();
+      // Position will be updated in useEffect after render
     }, delayDuration);
   };
 
@@ -42,28 +44,51 @@ export default function Tooltip({
 
     const triggerRect = triggerRef.current.getBoundingClientRect();
     const tooltipRect = tooltipRef.current.getBoundingClientRect();
-    const scrollX = window.scrollX || window.pageXOffset;
-    const scrollY = window.scrollY || window.pageYOffset;
 
+    // Use viewport coordinates since we're using position: fixed
     let top = 0;
     let left = 0;
 
     switch (side) {
       case "top":
-        top = triggerRect.top + scrollY - tooltipRect.height - 8;
-        left = triggerRect.left + scrollX + triggerRect.width / 2 - tooltipRect.width / 2;
+        top = triggerRect.top - tooltipRect.height - 8;
+        if (align === "start") {
+          left = triggerRect.left;
+        } else if (align === "end") {
+          left = triggerRect.right - tooltipRect.width;
+        } else {
+          left = triggerRect.left + triggerRect.width / 2 - tooltipRect.width / 2;
+        }
         break;
       case "bottom":
-        top = triggerRect.bottom + scrollY + 8;
-        left = triggerRect.left + scrollX + triggerRect.width / 2 - tooltipRect.width / 2;
+        top = triggerRect.bottom + 8;
+        if (align === "start") {
+          left = triggerRect.left;
+        } else if (align === "end") {
+          left = triggerRect.right - tooltipRect.width;
+        } else {
+          left = triggerRect.left + triggerRect.width / 2 - tooltipRect.width / 2;
+        }
         break;
       case "left":
-        top = triggerRect.top + scrollY + triggerRect.height / 2 - tooltipRect.height / 2;
-        left = triggerRect.left + scrollX - tooltipRect.width - 8;
+        left = triggerRect.left - tooltipRect.width - 8;
+        if (align === "start") {
+          top = triggerRect.top;
+        } else if (align === "end") {
+          top = triggerRect.bottom - tooltipRect.height;
+        } else {
+          top = triggerRect.top + triggerRect.height / 2 - tooltipRect.height / 2;
+        }
         break;
       case "right":
-        top = triggerRect.top + scrollY + triggerRect.height / 2 - tooltipRect.height / 2;
-        left = triggerRect.right + scrollX + 8;
+        left = triggerRect.right + 8;
+        if (align === "start") {
+          top = triggerRect.top;
+        } else if (align === "end") {
+          top = triggerRect.bottom - tooltipRect.height;
+        } else {
+          top = triggerRect.top + triggerRect.height / 2 - tooltipRect.height / 2;
+        }
         break;
     }
 
@@ -83,7 +108,12 @@ export default function Tooltip({
 
   useEffect(() => {
     if (isOpen) {
-      updatePosition();
+      // Use double requestAnimationFrame to ensure tooltip is fully rendered and measured
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          updatePosition();
+        });
+      });
       window.addEventListener("scroll", updatePosition, true);
       window.addEventListener("resize", updatePosition);
       return () => {
@@ -91,7 +121,7 @@ export default function Tooltip({
         window.removeEventListener("resize", updatePosition);
       };
     }
-  }, [isOpen]);
+  }, [isOpen, side, align]);
 
   useEffect(() => {
     return () => {
@@ -120,23 +150,40 @@ export default function Tooltip({
         createPortal(
           <div
             ref={tooltipRef}
-            className="fixed z-[100] px-3 py-2 text-sm text-white bg-gray-900 rounded-lg shadow-lg pointer-events-none max-w-xs"
+            className="fixed z-[100] px-3 py-2 text-sm text-gray-800 bg-white border border-gray-200 rounded-lg shadow-xl pointer-events-none max-w-sm"
             style={{
               top: `${position.top}px`,
               left: `${position.left}px`,
+              visibility: position.top === 0 && position.left === 0 ? 'hidden' : 'visible',
             }}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
           >
             {content}
             <div
-              className={`absolute w-2 h-2 bg-gray-900 transform rotate-45 ${
+              className={`absolute w-2 h-2 bg-white border border-gray-200 transform rotate-45 ${
                 side === "top"
-                  ? "bottom-[-4px] left-1/2 -translate-x-1/2"
+                  ? align === "start"
+                    ? "bottom-[-4px] left-3"
+                    : align === "end"
+                    ? "bottom-[-4px] right-3"
+                    : "bottom-[-4px] left-1/2 -translate-x-1/2"
                   : side === "bottom"
-                  ? "top-[-4px] left-1/2 -translate-x-1/2"
+                  ? align === "start"
+                    ? "top-[-4px] left-3"
+                    : align === "end"
+                    ? "top-[-4px] right-3"
+                    : "top-[-4px] left-1/2 -translate-x-1/2"
                   : side === "left"
-                  ? "right-[-4px] top-1/2 -translate-y-1/2"
+                  ? align === "start"
+                    ? "right-[-4px] top-3"
+                    : align === "end"
+                    ? "right-[-4px] bottom-3"
+                    : "right-[-4px] top-1/2 -translate-y-1/2"
+                  : align === "start"
+                  ? "left-[-4px] top-3"
+                  : align === "end"
+                  ? "left-[-4px] bottom-3"
                   : "left-[-4px] top-1/2 -translate-y-1/2"
               }`}
             />

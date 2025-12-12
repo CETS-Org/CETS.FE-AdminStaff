@@ -118,10 +118,19 @@ export const useCourseSchedules = (timeslotOptions: LookupOption[]) => {
   };
 
   const loadSchedules = (apiSchedules: any[]) => {
+    // Helper function to convert day name string to number
+    const dayNameToNumber = (dayName: string | number): number => {
+      if (typeof dayName === 'number') return dayName;
+      
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const index = dayNames.findIndex(day => day.toLowerCase() === dayName?.toString().toLowerCase());
+      return index >= 0 ? index : 0; // Default to Sunday (0) if not found
+    };
+
     const mappedSchedules: CourseScheduleUI[] = apiSchedules.map((sch: any) => ({
       id: sch.id,
       timeSlotID: sch.timeSlotID,
-      dayOfWeek: sch.dayOfWeek
+      dayOfWeek: dayNameToNumber(sch.dayOfWeek)
     }));
     setSchedules(mappedSchedules);
     setOriginalSchedules(JSON.parse(JSON.stringify(mappedSchedules)));
