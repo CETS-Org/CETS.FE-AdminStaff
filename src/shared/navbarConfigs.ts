@@ -35,34 +35,10 @@ export const createAdminNavbarConfig = (userAccount: any): NavbarConfig => {
       description: "View analytics dashboard"
     },
     {
-      name: "Staff",
-      href: "/admin/staffs",
-      icon: UserCheck,
-      description: "Manage staff accounts"
-    },
-    {
-      name: "Teacher", 
-      href: "/admin/teachers",
-      icon: GraduationCap,
-      description: "Manage teacher accounts"
-    },
-    {
-      name: "Student",
-      href: "/admin/students", 
-      icon: Users,
-      description: "Manage student accounts"
-    },
-    {
       name: "Courses",
       href: "/admin/courses",
       icon: BookOpenText,
       description: "Manage courses"
-    },
-    {
-      name: "Packages",
-      href: "/admin/packages",
-      icon: PackageIcon,
-      description: "Manage course packages"
     },
     {
       name: "Reports",
@@ -77,25 +53,9 @@ export const createAdminNavbarConfig = (userAccount: any): NavbarConfig => {
       href: profileHref,
       icon: User,
       description: "View and edit your profile"
-    },
-    {
-      name: "Settings",
-      href: "/admin/settings",
-      icon: Settings,
-      description: "Account settings"
-    },
-    {
-      name: "Help",
-      href: "/admin/help", 
-      icon: HelpCircle,
-      description: "Get help and support"
     }
   ],
-  quickStats: [
-    { label: "Total Staff", value: "24", color: "blue" },
-    { label: "Active Teachers", value: "156", color: "green" },
-    { label: "Students", value: "1,248", color: "purple" }
-  ],
+  quickStats: [],
   portalName: "CETS Admin Portal"
   };
 };
@@ -126,25 +86,9 @@ export const createAcademicStaffNavbarConfig = (userAccount: any): NavbarConfig 
       href: "/staff/profile",
       icon: User,
       description: "View and edit your profile"
-    },
-    {
-      name: "Settings",
-      href: "/staff/settings",
-      icon: Settings,
-      description: "Account settings"
-    },
-    {
-      name: "Help",
-      href: "/staff/help",
-      icon: HelpCircle,
-      description: "Get help and support"
     }
   ],
-  quickStats: [
-    { label: "Active Courses", value: "12", color: "blue" },
-    { label: "Teachers", value: "156", color: "green" },
-    { label: "Students", value: "1,248", color: "purple" }
-  ],
+  quickStats: [],
   portalName: "CETS Academic Staff Portal"
   };
 };
@@ -169,25 +113,9 @@ export const createAccountantStaffNavbarConfig = (userAccount: any): NavbarConfi
       href: "/staff/profile",
       icon: User,
       description: "View and edit your profile"
-    },
-    {
-      name: "Settings",
-      href: "/staff/settings",
-      icon: Settings,
-      description: "Account settings"
-    },
-    {
-      name: "Help", 
-      href: "/staff/help",
-      icon: HelpCircle,
-      description: "Get help and support"
     }
   ],
-  quickStats: [
-    { label: "Monthly Revenue", value: "$24,500", color: "green" },
-    { label: "Pending Payments", value: "18", color: "orange" },
-    { label: "Students", value: "1,248", color: "blue" }
-  ],
+  quickStats: [],
   portalName: "CETS Accountant Staff Portal"
   };
 };

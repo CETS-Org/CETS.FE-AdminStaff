@@ -143,6 +143,7 @@ export default function GenericNavbar({
     useNotificationSocket(handleSocketNotification);
 
     const isStaff = location.pathname.startsWith('/staff');
+    const isAdmin = config.userInfo.role === 'Admin';
     const homeHref = isStaff ? '/staff/classes' : '/admin/analytics';
 
     return (
@@ -272,16 +273,7 @@ export default function GenericNavbar({
                                         <>
                                             <DropdownMenuSeparator className="bg-neutral-200 my-2" />
                                             
-                                            {/* Settings & Help */}
-                                            <DropdownMenuItem className="flex items-center space-x-3 px-3 py-2 text-neutral-700 hover:bg-primary-50 hover:text-white rounded-lg cursor-pointer transition-all">
-                                                <Settings className="w-4 h-4" />
-                                                <span>Settings</span>
-                                            </DropdownMenuItem>
-                                            
-                                            <DropdownMenuItem className="flex items-center space-x-3 px-3 py-2 text-neutral-700 hover:bg-primary-50 hover:text-white rounded-lg cursor-pointer transition-all">
-                                                <HelpCircle className="w-4 h-4" />
-                                                <span>Help & Support</span>
-                                            </DropdownMenuItem>
+                                     
 
                                             <DropdownMenuItem 
                                                 onClick={handleChangePassword} 
