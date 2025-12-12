@@ -272,9 +272,9 @@ export default function RequestDetailDialog({
       case "enrollment_cancellation":
         return "Approving this request will cancel the student's enrollment. Please verify the cancellation policy and any refund implications.";
       case "suspension":
-        return "Approving this request will suspend the student's enrollment for the specified period. The student's account status will be set to 'Suspended' on the start date.\n\nPlease verify:\n(1) Student has no unpaid tuition\n(2) Student has not exceeded 2 suspensions this year\n(3) Proper documentation is provided if required\n(4) Dates meet policy requirements (7-90 days, 7-day notice)";
+        return "Approving this request will suspend the student's enrollment for the specified period. The student's account status will be set to 'Suspended' on the start date.";
       case "dropout":
-        return "Approving this request will PERMANENTLY terminate the student's enrollment. This action is IRREVERSIBLE and the student will be marked as 'Dropped Out' on the effective date.\n\nPlease verify:\n(1) Student has completed the exit survey\n(2) Student has no outstanding financial obligations\n(3) Student has been informed this is permanent\n(4) All required documents are provided\n(5) This is not a temporary leave (use Suspension for temporary)";
+        return "Approving this request will PERMANENTLY terminate the student's enrollment. This action is IRREVERSIBLE and the student will be marked as 'Dropped Out' on the effective date.\n";
       case "refund":
         return "Approving this request will process a refund for the student. Please verify the refund amount and policy compliance.";
       case "other":
@@ -485,7 +485,7 @@ export default function RequestDetailDialog({
         <DialogContent size="xl" className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Request Details</DialogTitle>
-            <DialogDescription>View and manage student request details</DialogDescription>
+            <DialogDescription>View and manage academic request details</DialogDescription>
           </DialogHeader>
           <DialogBody className="flex-1 overflow-y-auto max-h-none">
             <div className="space-y-6">
@@ -521,7 +521,7 @@ export default function RequestDetailDialog({
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getPriorityColor(request.priority)}`}>
-                      {request.priority}
+                      {request.priority ? request.priority.charAt(0).toUpperCase() + request.priority.slice(1).toLowerCase() : request.priority}
                     </span>
                   </div>
                 </div>
@@ -579,21 +579,21 @@ export default function RequestDetailDialog({
                         <div className="flex items-center justify-center">
                           <span className={`inline-block w-1.5 h-1.5 rounded-full ${getStatusDotColor(item.statusID)}`} />
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex-1 flex items-center justify-between">
+                          <div>
                             <span className="font-medium text-gray-800">
                               {getStatusLabelFromHistory(item.statusID)}
                             </span>
-                            {item.updatedAt && (
-                              <span className="text-[11px] text-gray-500">
-                                {new Date(item.updatedAt).toLocaleString()}
-                              </span>
+                            {item.attachmentUrl && (
+                              <div className="text-[11px] text-gray-600 mt-0.5">
+                                Attachment updated
+                              </div>
                             )}
                           </div>
-                          {item.attachmentUrl && (
-                            <div className="text-[11px] text-gray-600 mt-0.5">
-                              Attachment updated
-                            </div>
+                          {item.updatedAt && (
+                            <span className="text-[11px] text-gray-500 whitespace-nowrap ml-2">
+                              {new Date(item.updatedAt).toLocaleString()}
+                            </span>
                           )}
                         </div>
                       </div>

@@ -38,6 +38,7 @@ export default function StaffRequestPage() {
   const [sortBy, setSortBy] = useState<'date' | 'priority' | 'status' | 'name'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [filterPriority, setFilterPriority] = useState('all');
+  const [filterSubmitter, setFilterSubmitter] = useState<'all' | 'student' | 'teacher'>('all');
   const [statusLookups, setStatusLookups] = useState<Array<{ id: string; name: string; code: string }>>([]);
   const [statusMap, setStatusMap] = useState<Map<string, string>>(new Map());
 
@@ -299,6 +300,11 @@ export default function StaffRequestPage() {
     window.URL.revokeObjectURL(url);
   };
 
+  // Helper function to determine if request is from teacher or student
+  const isTeacherRequest = (request: AcademicRequest): boolean => {
+    return request.requestType === "meeting_reschedule";
+  };
+
   const filteredRequests = sortRequests(requests.filter(request => {
     const matchesSearch = request.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          request.studentEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -306,6 +312,14 @@ export default function StaffRequestPage() {
     const matchesStatus = filterStatus === "all" || request.status === filterStatus;
     const matchesType = filterType === "all" || request.requestType === filterType;
     const matchesPriority = filterPriority === "all" || request.priority === filterPriority;
+    
+    // Submitter type filtering
+    let matchesSubmitter = true;
+    if (filterSubmitter === 'student') {
+      matchesSubmitter = !isTeacherRequest(request);
+    } else if (filterSubmitter === 'teacher') {
+      matchesSubmitter = isTeacherRequest(request);
+    }
     
     // Date filtering
     const requestDate = new Date(request.submittedDate);
@@ -321,7 +335,7 @@ export default function StaffRequestPage() {
       matchesDate = requestDate <= toDate;
     }
     
-    return matchesSearch && matchesStatus && matchesType && matchesPriority && matchesDate;
+    return matchesSearch && matchesStatus && matchesType && matchesPriority && matchesSubmitter && matchesDate;
   }));
 
   // Pagination logic
@@ -339,6 +353,7 @@ export default function StaffRequestPage() {
     setFilterStatus("all");
     setFilterType("all");
     setFilterPriority("all");
+    setFilterSubmitter("all");
     setDateFrom("");
     setDateTo("");
     setCurrentPage(1);
@@ -514,7 +529,6 @@ export default function StaffRequestPage() {
 
   // Breadcrumb items
   const breadcrumbItems = [
-    { label: "Staff Dashboard", href: "/staff" },
     { label: "Academic Requests", href: "/staff/requests" }
   ];
 
@@ -537,90 +551,140 @@ export default function StaffRequestPage() {
 
         {/* Enhanced Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <Clock className="w-7 h-7 text-white" />
+          <div
+            className={`cursor-pointer ${
+              filterStatus === 'pending' ? 'ring-2 ring-yellow-500 ring-offset-2 rounded-lg' : ''
+            }`}
+            onClick={() => {
+              setFilterStatus('pending');
+              setCurrentPage(1);
+            }}
+          >
+            <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <Clock className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-yellow-700">Pending</p>
+                  <p className="text-3xl font-bold text-yellow-900 group-hover:text-yellow-600 transition-colors">
+                    {stats.pending}
+                  </p>
+                  <p className="text-xs text-yellow-600 mt-1">
+                    Awaiting review
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-yellow-700">Pending</p>
-                <p className="text-3xl font-bold text-yellow-900 group-hover:text-yellow-600 transition-colors">
-                  {stats.pending}
-                </p>
-                <p className="text-xs text-yellow-600 mt-1">
-                  Awaiting review
-                </p>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          </div>
 
-          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <Clock className="w-7 h-7 text-white" />
+          <div
+            className={`cursor-pointer ${
+              filterStatus === 'underreview' ? 'ring-2 ring-blue-500 ring-offset-2 rounded-lg' : ''
+            }`}
+            onClick={() => {
+              setFilterStatus('underreview');
+              setCurrentPage(1);
+            }}
+          >
+            <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <Clock className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-blue-700">Under Review</p>
+                  <p className="text-3xl font-bold text-blue-900 group-hover:text-blue-600 transition-colors">
+                    {stats.underReview}
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    In progress
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-blue-700">Under Review</p>
-                <p className="text-3xl font-bold text-blue-900 group-hover:text-blue-600 transition-colors">
-                  {stats.underReview}
-                </p>
-                <p className="text-xs text-blue-600 mt-1">
-                  In progress
-                </p>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          </div>
 
-          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <AlertCircle className="w-7 h-7 text-white" />
+          <div
+            className={`cursor-pointer ${
+              filterStatus === 'needinfo' ? 'ring-2 ring-orange-500 ring-offset-2 rounded-lg' : ''
+            }`}
+            onClick={() => {
+              setFilterStatus('needinfo');
+              setCurrentPage(1);
+            }}
+          >
+            <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <AlertCircle className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-orange-700">Need Info</p>
+                  <p className="text-3xl font-bold text-orange-900 group-hover:text-orange-600 transition-colors">
+                    {stats.needInfo}
+                  </p>
+                  <p className="text-xs text-orange-600 mt-1">
+                    Awaiting response
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-orange-700">Need Info</p>
-                <p className="text-3xl font-bold text-orange-900 group-hover:text-orange-600 transition-colors">
-                  {stats.needInfo}
-                </p>
-                <p className="text-xs text-orange-600 mt-1">
-                  Awaiting response
-                </p>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          </div>
 
-          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <CheckCircle className="w-7 h-7 text-white" />
+          <div
+            className={`cursor-pointer ${
+              filterStatus === 'approved' ? 'ring-2 ring-green-500 ring-offset-2 rounded-lg' : ''
+            }`}
+            onClick={() => {
+              setFilterStatus('approved');
+              setCurrentPage(1);
+            }}
+          >
+            <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <CheckCircle className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-green-700">Approved</p>
+                  <p className="text-3xl font-bold text-green-900 group-hover:text-green-600 transition-colors">
+                    {stats.approved}
+                  </p>
+                  <p className="text-xs text-green-600 mt-1">
+                    {stats.total > 0 ? `${Math.round((stats.approved / stats.total) * 100)}% of total` : '0% of total'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-green-700">Approved</p>
-                <p className="text-3xl font-bold text-green-900 group-hover:text-green-600 transition-colors">
-                  {stats.approved}
-                </p>
-                <p className="text-xs text-green-600 mt-1">
-                  {stats.total > 0 ? `${Math.round((stats.approved / stats.total) * 100)}% of total` : '0% of total'}
-                </p>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          </div>
 
-          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <XCircle className="w-7 h-7 text-white" />
+          <div
+            className={`cursor-pointer ${
+              filterStatus === 'rejected' ? 'ring-2 ring-red-500 ring-offset-2 rounded-lg' : ''
+            }`}
+            onClick={() => {
+              setFilterStatus('rejected');
+              setCurrentPage(1);
+            }}
+          >
+            <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <XCircle className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-red-700">Rejected</p>
+                  <p className="text-3xl font-bold text-red-900 group-hover:text-red-600 transition-colors">
+                    {stats.rejected}
+                  </p>
+                  <p className="text-xs text-red-600 mt-1">
+                    {stats.total > 0 ? `${Math.round((stats.rejected / stats.total) * 100)}% of total` : '0% of total'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-red-700">Rejected</p>
-                <p className="text-3xl font-bold text-red-900 group-hover:text-red-600 transition-colors">
-                  {stats.rejected}
-                </p>
-                <p className="text-xs text-red-600 mt-1">
-                  {stats.total > 0 ? `${Math.round((stats.rejected / stats.total) * 100)}% of total` : '0% of total'}
-                </p>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          </div>
         </div>
 
       {/* Requests Table */}
@@ -634,10 +698,10 @@ export default function StaffRequestPage() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-primary-800">
-                  Student Requests Management
+                  Academic Requests Management
                 </h3>
                 <p className="text-sm text-accent-600">
-                  View and manage all student academic requests
+                  View and manage all academic requests from students and teachers
                 </p>
               </div>
             </div>
@@ -681,6 +745,51 @@ export default function StaffRequestPage() {
           </div>
         )}
 
+        {/* Submitter Type Tabs */}
+        <div className="mb-6 border-b border-gray-200">
+          <div className="flex gap-1">
+            <button
+              onClick={() => {
+                setFilterSubmitter('all');
+                setCurrentPage(1);
+              }}
+              className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+                filterSubmitter === 'all'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              All Requests
+            </button>
+            <button
+              onClick={() => {
+                setFilterSubmitter('student');
+                setCurrentPage(1);
+              }}
+              className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+                filterSubmitter === 'student'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Student Requests
+            </button>
+            <button
+              onClick={() => {
+                setFilterSubmitter('teacher');
+                setCurrentPage(1);
+              }}
+              className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+                filterSubmitter === 'teacher'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Teacher Requests
+            </button>
+          </div>
+        </div>
+
         {/* Search and Filter Section */}
         <div className="space-y-4 mb-6">
           {/* Search Bar and Controls */}
@@ -688,7 +797,7 @@ export default function StaffRequestPage() {
             <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
-                placeholder="Search by student name, email, or description..."
+                placeholder="Search by name, email, or description..."
                 value={searchTerm}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -849,15 +958,27 @@ export default function StaffRequestPage() {
                   <Search className="w-8 h-8 text-gray-400" />
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {(searchTerm || filterStatus !== "all" || filterType !== "all" || filterPriority !== "all" || dateFrom || dateTo) ? "No requests match your filters" : "No requests found"}
+                  {(searchTerm || filterStatus !== "all" || filterType !== "all" || filterPriority !== "all" || filterSubmitter !== "all" || dateFrom || dateTo) ? "No requests match your filters" : "No requests found"}
                 </h3>
                 <p className="text-gray-500 mb-4">
-                  {(searchTerm || filterStatus !== "all" || filterType !== "all" || filterPriority !== "all" || dateFrom || dateTo)
-                    ? "Try adjusting your search criteria or filters"
-                    : "No student requests have been submitted yet"
-                  }
+                  {(() => {
+                    const hasSearchOrDateFilters = searchTerm || filterStatus !== "all" || filterType !== "all" || filterPriority !== "all" || dateFrom || dateTo;
+                    if (hasSearchOrDateFilters) {
+                      return "Try adjusting your search criteria or filters";
+                    }
+                    if (filterSubmitter === "student") {
+                      return "No student requests have been submitted yet";
+                    }
+                    if (filterSubmitter === "teacher") {
+                      return "No teacher requests have been submitted yet";
+                    }
+                    if (filterSubmitter !== "all") {
+                      return "Try adjusting your search criteria or filters";
+                    }
+                    return "No academic requests have been submitted yet";
+                  })()}
                 </p>
-                {(searchTerm || filterStatus !== "all" || filterType !== "all" || filterPriority !== "all" || dateFrom || dateTo) && (
+                {(searchTerm || filterStatus !== "all" || filterType !== "all" || filterPriority !== "all" || filterSubmitter !== "all" || dateFrom || dateTo) && (
                   <Button
                     variant="secondary"
                     onClick={clearFilters}
