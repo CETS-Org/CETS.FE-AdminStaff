@@ -1080,6 +1080,7 @@ const loadOptions = async () => {
                       skillType={selectedSkill?.name || "Other"}
                       questionTypeId={questionTypeId}
                       questionTypes={questionTypes}
+                      difficulty={difficulty}
                     />
                   )}
 

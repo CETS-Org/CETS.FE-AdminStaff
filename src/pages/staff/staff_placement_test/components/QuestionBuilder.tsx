@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Plus, Trash2, GripVertical, X, CheckCircle, PenTool, Play, Pause, Headphones, Loader2 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -17,6 +17,7 @@ interface Props {
   skillType: string;
   questionTypeId?: string | null;
   questionTypes?: APIQuestionType[];
+  difficulty?: number;
 }
 
 export default function QuestionBuilder({
@@ -28,6 +29,7 @@ export default function QuestionBuilder({
   skillType,
   questionTypeId,
   questionTypes,
+  difficulty = 1,
 }: Props) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -155,10 +157,11 @@ export default function QuestionBuilder({
       // Auto-open form when audio is set (file uploaded, URL entered, or audio restored from questions)
       // This allows adding multiple questions for the same audio (mặc định audio có nhiều câu hỏi)
       setShowAddForm(true);
+      const calculatedPoints = calculatePoints();
       setNewQuestion({
         type: getDefaultQuestionType(),
         question: "",
-        points: 1,
+        points: calculatedPoints,
         options: [],
         shuffleOptions: false,
       });
@@ -175,13 +178,93 @@ export default function QuestionBuilder({
     return "multiple_choice";
   };
 
-  const [newQuestion, setNewQuestion] = useState<Partial<Question>>(() => ({
-    type: getDefaultQuestionType(),
-    question: "",
-    points: 1,
-    options: [],
-    shuffleOptions: false,
-  }));
+  // Calculate points automatically based on skill type, difficulty, question type, and passage/audio
+  const calculatePoints = useCallback((): number => {
+    const skillTypeLower = skillType.toLowerCase();
+    const isReading = skillTypeLower.includes("reading");
+    const isListening = skillTypeLower.includes("listening");
+    
+    const currentQuestionType = questionTypes?.find((qt) => qt.id === questionTypeId);
+    const questionTypeName = currentQuestionType?.name?.toLowerCase() || "";
+    const isPassage = questionTypeName.includes("passage");
+    const isAudio = questionTypeName.includes("audio");
+    
+    // Check if question has passage or audio
+    const hasPassage = currentPassage && currentPassage.trim().length > 0;
+    const hasAudio = currentAudioFile || (currentAudioUrl && currentAudioUrl.trim().length > 0);
+    
+    // Reading questions
+    if (isReading) {
+      if (difficulty === 3 && (isPassage || hasPassage)) {
+        // Reading Passage dài
+        return 45;
+      } else if (difficulty === 2 && (isPassage || hasPassage)) {
+        // Reading Passage ngắn
+        return 32;
+      } else if (difficulty === 1 && !hasPassage) {
+        // Reading đơn (MCQ - Multiple Choice, không có passage)
+        return 35;
+      }
+    }
+    
+    // Listening questions
+    if (isListening) {
+      if (difficulty === 3 && (isAudio || hasAudio)) {
+        // Listening Audio dài
+        return 45;
+      } else if (difficulty === 2 && (isAudio || hasAudio)) {
+        // Listening Audio ngắn
+        return 32;
+      } else if (difficulty === 1 && !hasAudio) {
+        // Listening đơn (không có audio)
+        return 30;
+      }
+    }
+    
+    // Default fallback
+    return 1;
+  }, [skillType, difficulty, questionTypeId, questionTypes, currentPassage, currentAudioFile, currentAudioUrl]);
+
+  const [newQuestion, setNewQuestion] = useState<Partial<Question>>(() => {
+      const initialPoints = (() => {
+      // Calculate initial points based on current state
+      const skillTypeLower = skillType.toLowerCase();
+      const isReading = skillTypeLower.includes("reading");
+      const isListening = skillTypeLower.includes("listening");
+      
+      const currentQuestionType = questionTypes?.find((qt) => qt.id === questionTypeId);
+      const questionTypeName = currentQuestionType?.name?.toLowerCase() || "";
+      const isPassage = questionTypeName.includes("passage");
+      const isAudio = questionTypeName.includes("audio");
+      
+      if (isReading && difficulty === 3 && isPassage) return 45;
+      if (isReading && difficulty === 2 && isPassage) return 32;
+      if (isReading && difficulty === 1 && !isPassage) return 35; // Reading đơn (MCQ)
+      if (isListening && difficulty === 3 && isAudio) return 45;
+      if (isListening && difficulty === 2 && isAudio) return 32;
+      if (isListening && difficulty === 1 && !isAudio) return 30;
+      return 1;
+    })();
+    
+    return {
+      type: getDefaultQuestionType(),
+      question: "",
+      points: initialPoints,
+      options: [],
+      shuffleOptions: false,
+    };
+  });
+
+  // Auto-calculate points when skillType, difficulty, questionType, passage, or audio changes
+  useEffect(() => {
+    if (showAddForm && !editingId) {
+      const calculatedPoints = calculatePoints();
+      setNewQuestion(prev => ({
+        ...prev,
+        points: calculatedPoints
+      }));
+    }
+  }, [skillType, difficulty, questionTypeId, currentPassage, currentAudioFile, currentAudioUrl, showAddForm, editingId, calculatePoints]);
 
   const questionTypeOptions: { value: QuestionType; label: string; icon: string }[] = [
     { value: "multiple_choice", label: "Multiple Choice", icon: "☑️" },
@@ -194,10 +277,11 @@ export default function QuestionBuilder({
   ];
 
   const resetForm = () => {
+    const calculatedPoints = calculatePoints();
     setNewQuestion({
       type: getDefaultQuestionType(),
       question: "",
-      points: 1,
+      points: calculatedPoints,
       options: [],
       shuffleOptions: false,
     });
@@ -537,7 +621,7 @@ export default function QuestionBuilder({
         ? questions.find((q) => q.id === editingId)?.order || questions.length + 1
         : questions.length + 1,
       question: newQuestion.question!,
-      points: newQuestion.points || 1,
+      points: newQuestion.points || calculatePoints(),
       options: newQuestion.options,
       correctAnswer: newQuestion.correctAnswer,
       explanation: newQuestion.explanation,
@@ -628,19 +712,21 @@ export default function QuestionBuilder({
         questionTypes.find(qt => qt.id === questionTypeId)?.name?.toLowerCase().includes("multiple choice") : 
         false;
       if (skillType.toLowerCase() === "reading" && currentPassage.trim() && !isMultipleChoice) {
+        const calculatedPoints = calculatePoints();
         setNewQuestion({
           type: getDefaultQuestionType(),
           question: "",
-          points: 1,
+          points: calculatedPoints,
           options: [],
           shuffleOptions: false,
         });
       } else if (skillType.toLowerCase() === "listening" && (currentAudioFile || currentAudioUrl.trim())) {
         // For Listening: keep form open to add more questions for the same audio
+        const calculatedPoints = calculatePoints();
         setNewQuestion({
           type: getDefaultQuestionType(),
           question: "",
-          points: 1,
+          points: calculatedPoints,
           options: [],
           shuffleOptions: false,
         });
@@ -1034,16 +1120,13 @@ export default function QuestionBuilder({
 
           {/* Points */}
           <div className="grid grid-cols-2 gap-4">
+            {/* Points are calculated automatically - no input needed */}
             <div>
-              <Input
-                label="Points"
-                type="number"
-                value={newQuestion.points || 1}
-                onChange={(e) =>
-                  setNewQuestion({ ...newQuestion, points: parseInt(e.target.value) || 1 })
-                }
-                min={1}
-              />
+              <div className="text-sm font-medium text-neutral-700 mb-1">Points</div>
+              <div className="px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-neutral-900">
+                {newQuestion.points || calculatePoints()}
+              </div>
+              <p className="text-xs text-neutral-500 mt-1">Calculated automatically</p>
             </div>
             {/* Shuffle options for multiple choice/matching */}
             {(newQuestion.type === "multiple_choice" || newQuestion.type === "matching") && 
@@ -1307,10 +1390,11 @@ export default function QuestionBuilder({
       {!showAddForm && !editingId && (
         <Button
           onClick={() => {
+            const calculatedPoints = calculatePoints();
             setNewQuestion({
               type: getDefaultQuestionType(),
               question: "",
-              points: 1,
+              points: calculatedPoints,
               options: [],
               shuffleOptions: false,
             });
