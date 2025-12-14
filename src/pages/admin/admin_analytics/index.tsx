@@ -53,7 +53,6 @@ export default function AdminAnalytics() {
 
   // Handle tab switching (does NOT trigger API calls)
   const handleTabChange = (tab: AnalysisTab) => {
-    console.log(`[Dashboard] Switching to ${tab} tab (no API call)`);
     setAnalysisTab(tab);
   };
 
@@ -128,7 +127,6 @@ export default function AdminAnalytics() {
   // Main function to load all dashboard data
   // Only called: 1) On page load, 2) When user clicks Refresh button
   const loadDashboardData = async () => {
-    console.log('[Dashboard] Loading data...');
     setLoading(true);
     try {
       // Fetch real data from backend (excluding AI recommendations)
@@ -185,7 +183,6 @@ export default function AdminAnalytics() {
       }
 
       setLastUpdated(new Date());
-      console.log('[Dashboard] Data loaded successfully');
     } catch (error) {
       console.error('[Dashboard] Error loading data:', error);
     } finally {
@@ -206,7 +203,6 @@ export default function AdminAnalytics() {
       });
       
       setAiRecommendations(aiResponse);
-      console.log('AI recommendations loaded successfully');
     } catch (error) {
       console.error('Failed to load AI recommendations:', error);
     } finally {
@@ -227,7 +223,6 @@ export default function AdminAnalytics() {
       
       setAiRecommendations(aiResponse);
       setLastUpdated(new Date());
-      console.log('AI recommendations refreshed successfully');
     } catch (error) {
       console.error('Error refreshing AI recommendations:', error);
     } finally {

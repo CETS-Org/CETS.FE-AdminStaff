@@ -152,11 +152,9 @@ export default function TeacherList() {
   };
 
   const handleBulkExport = () => {
-    console.log("Bulk export:", selectedTeachers);
   };
 
   const handleBulkDelete = () => {
-    console.log("Bulk delete:", selectedTeachers);
     setSelectedTeachers([]);
   };
 
@@ -328,10 +326,8 @@ export default function TeacherList() {
       try {
         if (deleteDialog.action === 'ban') {
           await setIsDelete(deleteDialog.teacher.accountId);
-          console.log("Banned teacher:", deleteDialog.teacher.accountId);
         } else if (deleteDialog.action === 'unban') {
           await setIsActive(deleteDialog.teacher.accountId);
-          console.log("Unbanned teacher:", deleteDialog.teacher.accountId);
         }
         
         // Refresh data from API to get updated status

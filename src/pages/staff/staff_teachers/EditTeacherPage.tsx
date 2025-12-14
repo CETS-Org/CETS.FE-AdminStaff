@@ -86,7 +86,6 @@ export default function EditTeacherPage() {
           
           // Fetch existing credentials separately
           const credentials = await getListCredentialByTeacherId(id);
-          console.log("Fetched existing credentials:", credentials);
           setExistingCredentialIds(new Set(credentials.map((c) => c.credentialId)));
           
           setFormData({
@@ -360,13 +359,9 @@ export default function EditTeacherPage() {
       
       // Update teacher profile using API
       const updatedTeacher = await updateTeacher(teacher.accountId, updateData);
-      console.log("Teacher updated successfully:", updatedTeacher);
       
       // Handle credential updates with mock data
       await handleCredentialUpdates();
-      
-      // Show success message and navigate back
-      console.log("Teacher and credentials updated successfully!");
       // You can replace this with a toast notification library like react-hot-toast
       // toast.success("Teacher updated successfully!");
       navigate(`/admin/teachers/${teacher.accountId}`, { state: { updateStatus: "success" } });
@@ -390,10 +385,6 @@ export default function EditTeacherPage() {
       // Get existing credentials from API
       const existingCredentials = await getListCredentialByTeacherId(teacher.accountId);
       
-      // Mock credential update logic
-      console.log("Existing credentials:", existingCredentials);
-      console.log("New credentials to save:", formData.credentials);
-      
       // Simulate credential operations
       const credentialsToAdd = formData.credentials.filter(cred => 
         !existingCredentials.some(existing => existing.credentialId === cred.id)
@@ -407,35 +398,24 @@ export default function EditTeacherPage() {
         !formData.credentials.some(cred => cred.id === existing.credentialId)
       );
       
-      console.log("Credentials to add:", credentialsToAdd);
-      console.log("Credentials to update:", credentialsToUpdate);
-      console.log("Credentials to delete:", credentialsToDelete);
-      
       // Mock API calls for credential operations
       if (credentialsToAdd.length > 0) {
-        console.log("Mock: Adding new credentials...");
         // In real implementation, you would call addTeacherCredential API here
         // await Promise.all(credentialsToAdd.map(cred => addTeacherCredential(teacher.accountId, cred)));
       }
       
       if (credentialsToUpdate.length > 0) {
-        console.log("Mock: Updating existing credentials...");
         // In real implementation, you would call updateTeacherCredential API here
         // await Promise.all(credentialsToUpdate.map(cred => updateTeacherCredential(cred.id, cred)));
       }
       
       if (credentialsToDelete.length > 0) {
-        console.log("Mock: Deleting credentials...");
         // In real implementation, you would call deleteTeacherCredential API here
         // await Promise.all(credentialsToDelete.map(cred => deleteTeacherCredential(cred.credentialId)));
       }
       
-      console.log("Mock credential operations completed successfully");
-      
     } catch (error) {
-      console.error("Error handling credential updates:", error);
       // Don't throw error here to prevent blocking teacher update
-      console.log("Continuing with teacher update despite credential error");
     }
   };
 

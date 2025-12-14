@@ -126,8 +126,6 @@ export default function Login() {
   const callLoginAPI = async (data: LoginFormData): Promise<LoginResponse> => {
     const { email, password, role } = data;
     const credentials = { email, password };
-    
-    console.log("Request payload:", credentials); // Debug log
 
     try {
       let response;
@@ -147,7 +145,6 @@ export default function Login() {
           throw new Error("Invalid role selected");
       }
 
-      console.log("Response status:", response.status); // Debug log
       return response.data;
     } catch (error: any) {
       console.error("API Error:", error);
@@ -175,8 +172,6 @@ export default function Login() {
     setErrorMessage("");
     
     try {
-      console.log("Login data:", data);
-      
       const response = await callLoginAPI(data);
       
       
@@ -203,21 +198,15 @@ export default function Login() {
       
       // Navigate based on role
       const userRole = response.account.roleNames?.[0];
-      console.log("Login - User role detected:", userRole);
-      console.log("Login - All role names:", response.account.roleNames);
       
       if (userRole === "AcademicStaff") {
-        console.log("Login - Redirecting AcademicStaff to /staff/classes");
         navigate("/staff/classes", { replace: true });
       } else if (userRole === "AccountantStaff") {
-        console.log("Login - Redirecting AccountantStaff to /staff/classes");
         navigate("/staff/classes", { replace: true });
       } else if (userRole === "Admin") {
-        console.log("Login - Redirecting Admin to /admin/analytics");
         navigate("/admin/analytics", { replace: true });
       } else {
         // Default fallback for unknown roles
-        console.warn("Login - Unknown role:", userRole, "redirecting to staff classes");
         navigate("/staff/classes", { replace: true });
       }
       
@@ -237,7 +226,6 @@ export default function Login() {
   const handleResendVerificationEmail = async () => {
     try {
       await resendVerificationEmail(unverifiedUserEmail);
-      console.log("Verification email resent successfully to:", unverifiedUserEmail);
     } catch (error) {
       console.error("Failed to resend verification email:", error);
       throw error;

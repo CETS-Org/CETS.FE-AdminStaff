@@ -257,11 +257,9 @@ export default function CreatePlacementQuestionDialog({
               // audioUrlFromMedia can be public URL (already normalized) or relative path (filePath)
               // Both will work when restored into currentAudioUrl and normalized by getAudioSource()
               if (audioUrlFromMedia) {
-                console.log("🎵 loadQuestionForEdit - Restoring audio URL from media.audioUrl:", audioUrlFromMedia);
                 (formattedQ as any)._audioUrl = audioUrlFromMedia;
                 formattedQ.reference = audioUrlFromMedia;
               } else if (q.reference) {
-                console.log("🎵 loadQuestionForEdit - Restoring audio URL from reference:", q.reference);
                 (formattedQ as any)._audioUrl = q.reference;
               }
               
@@ -711,11 +709,6 @@ const loadOptions = async () => {
 
       // Audio files have been uploaded to cloud immediately in QuestionBuilder when selected
       // So we just need to use the audio URLs from questions, no need to upload again
-      console.log("🔍 Checking questions for audio URLs:", questions.map(q => ({
-        id: q.id,
-        audioUrl: (q as any)._audioUrl || q.reference,
-        hasAudioFile: !!(q as any)._audioFile
-      })));
       
       // Clean up any remaining _audioFile references (shouldn't happen, but just in case)
       const questionsWithAudioUrls = questions.map(q => {

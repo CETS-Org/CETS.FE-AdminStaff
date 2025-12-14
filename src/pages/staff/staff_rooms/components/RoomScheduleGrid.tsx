@@ -197,11 +197,9 @@ export default function RoomScheduleGrid({
 
 
   const handleSlotClick = (room: Room, dayIndex: number, timeSlot: { slot: number; time: string; display: string }) => {
-    console.log('Slot clicked:', { room: room.roomCode, dayIndex, timeSlot });
     const date = weekDates[dayIndex];
     const slotData = { room, dayIndex, timeSlot, date };
     setSelectedSlot(slotData);
-    console.log('Selected slot set:', slotData);
   };
 
   const handleClosePopup = () => {
@@ -223,12 +221,10 @@ export default function RoomScheduleGrid({
     
     // If found, return it
     if (actualClass) {
-      console.log('Found actual class:', actualClass);
       return actualClass;
     }
     
     // No class found, return null
-    console.log('No class found for this slot');
     return null;
   };
 

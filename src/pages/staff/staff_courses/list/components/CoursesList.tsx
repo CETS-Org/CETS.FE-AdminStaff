@@ -53,11 +53,9 @@ export default function CoursesList() {
   }, [refreshTrigger]);
 
   const handleBulkDelete = (selectedCourses: Course[]) => {
-    console.log("Bulk delete:", selectedCourses);
   };
 
   const handleBulkExport = (selectedCourses: Course[]) => {
-    console.log("Bulk export:", selectedCourses);
   };
 
 

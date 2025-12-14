@@ -96,14 +96,12 @@ export const useCourseSyllabus = () => {
   };
 
   const loadSyllabi = (apiSyllabi: any[]) => {
-    console.log('Loading syllabi:', apiSyllabi); // Debug log
     
     const mappedSyllabi: SyllabusUI[] = apiSyllabi.map((syl: any) => {
       // Handle different field name variations from API
       const syllabusId = syl.id || syl.syllabusID || syl.SyllabusID;
       const syllabusItems = syl.syllabusItems || syl.items || syl.SyllabusItems || [];
       
-      console.log('Syllabus:', { id: syllabusId, title: syl.title, itemCount: syllabusItems.length }); // Debug log
       
       return {
         id: syllabusId,
@@ -126,7 +124,6 @@ export const useCourseSyllabus = () => {
       };
     });
     
-    console.log('Mapped syllabi:', mappedSyllabi); // Debug log
     setSyllabi(mappedSyllabi);
     setOriginalSyllabi(JSON.parse(JSON.stringify(mappedSyllabi)));
   };

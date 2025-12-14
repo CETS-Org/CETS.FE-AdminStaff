@@ -114,7 +114,6 @@ export default function Chat() {
   const handleSendMessage = () => {
     if (newMessage.trim()) {
       // Handle sending message
-      console.log("Sending message:", newMessage);
       setNewMessage("");
     }
   };

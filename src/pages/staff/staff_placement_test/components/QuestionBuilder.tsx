@@ -262,7 +262,6 @@ export default function QuestionBuilder({
       // Upload audio file to cloud immediately
       try {
         setUploadingAudio(true);
-        console.log("📤 Uploading audio file to cloud:", file.name);
         
         // Generate unique filename for audio
         const audioFileName = `placement-audio-${Date.now()}-${Math.random().toString(36).substring(7)}-${file.name}`;
@@ -305,7 +304,6 @@ export default function QuestionBuilder({
           
           // Save the filePath (relative path) to currentAudioUrl
           // This URL will be used when saving questions
-          console.log("✅ Audio uploaded successfully, filePath:", filePath);
           setCurrentAudioUrl(filePath); // Use filePath (internal path) instead of publicUrl
           
           // Note: Keep currentAudioFile for preview, but use currentAudioUrl for saving
@@ -348,7 +346,6 @@ export default function QuestionBuilder({
   // Helper function to normalize audio URL
   const getAudioSource = (): string | undefined => {
     if (currentAudioFile && audioObjectUrl) {
-      console.log("🎵 getAudioSource - Using object URL for local file:", audioObjectUrl);
       return audioObjectUrl; // Use object URL for local file
     }
     if (currentAudioUrl) {
@@ -359,11 +356,6 @@ export default function QuestionBuilder({
       } else {
         normalizedUrl = `${config.storagePublicUrl}${currentAudioUrl.startsWith('/') ? currentAudioUrl : '/' + currentAudioUrl}`;
       }
-      console.log("🎵 getAudioSource - Normalized audio URL:", { 
-        original: currentAudioUrl, 
-        normalized: normalizedUrl,
-        editingId: editingId
-      });
       return normalizedUrl;
     }
     if (getExistingAudio) {
@@ -374,19 +366,8 @@ export default function QuestionBuilder({
       } else {
         normalizedUrl = `${config.storagePublicUrl}${getExistingAudio.startsWith('/') ? getExistingAudio : '/' + getExistingAudio}`;
       }
-      console.log("🎵 getAudioSource - Using existing audio URL:", {
-        original: getExistingAudio,
-        normalized: normalizedUrl,
-        editingId: editingId
-      });
       return normalizedUrl;
     }
-    console.log("🎵 getAudioSource - No audio source found", {
-      currentAudioFile: !!currentAudioFile,
-      currentAudioUrl: currentAudioUrl,
-      getExistingAudio: getExistingAudio,
-      editingId: editingId
-    });
     return undefined;
   };
 
@@ -420,7 +401,6 @@ export default function QuestionBuilder({
       audioPlayerRef.current = audio;
       
       audio.onloadeddata = () => {
-        console.log("Audio loaded successfully");
       };
       
       audio.onended = () => {
@@ -700,13 +680,6 @@ export default function QuestionBuilder({
       const hasAudioFile = (question as any)._audioFile;
       const audioUrl = (question as any)._audioUrl || question.reference;
       
-      console.log("🎵 handleEdit - Restoring audio for question:", {
-        questionId: question.id,
-        hasAudioFile: !!hasAudioFile,
-        audioUrl: audioUrl,
-        _audioUrl: (question as any)._audioUrl,
-        reference: question.reference
-      });
       
       if (hasAudioFile) {
         // Question has an audio file - this means it was uploaded but not yet saved to server
@@ -717,12 +690,10 @@ export default function QuestionBuilder({
       } else if (audioUrl) {
         // Question has audio URL - load it so user can see/modify/delete it
         // Audio URL can be relative path (filePath) or public URL, both will work with getAudioSource()
-        console.log("🎵 Setting currentAudioUrl:", audioUrl);
         setCurrentAudioUrl(audioUrl);
         setCurrentAudioFile(null); // Clear file when editing (URL takes precedence)
       } else {
         // No audio - clear everything
-        console.log("🎵 No audio found in question");
         setCurrentAudioUrl("");
         setCurrentAudioFile(null);
       }

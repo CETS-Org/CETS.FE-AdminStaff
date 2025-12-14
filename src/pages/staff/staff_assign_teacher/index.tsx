@@ -266,11 +266,9 @@ export default function AssignTeacherPage() {
   };
 
   const handleExportData = () => {
-    console.log("Export assignment data");
   };
 
   const handleViewAnalytics = () => {
-    console.log("View analytics");
   };
 
   // Table columns configuration

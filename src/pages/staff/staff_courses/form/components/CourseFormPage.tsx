@@ -1032,7 +1032,6 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
             for (const removed of removedSyllabi) {
               try {
                 await deleteSyllabus(removed.id!);
-                console.log(`Deleted syllabus: ${removed.id}`);
               } catch (err) {
                 console.error(`Failed to delete syllabus ${removed.id}:`, err);
               }
@@ -1049,7 +1048,6 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
                   for (const removedItem of removedItems) {
                     try {
                       await deleteSyllabusItem(removedItem.id!);
-                      console.log(`Deleted syllabus item: ${removedItem.id}`);
                     } catch (err) {
                       console.error(`Failed to delete syllabus item ${removedItem.id}:`, err);
                     }
@@ -1062,16 +1060,12 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
           let syllabusCount = 0;
           let itemCount = 0;
 
-          console.log('Saving syllabi:', list); // Debug log
-
           for (const s of list) {
             try {
               let syllabusId = s.id; // Check if syllabus already has an ID
-              console.log('Processing syllabus:', { id: syllabusId, title: s.title, itemCount: s.items?.length }); // Debug log
 
               if (syllabusId) {
                 // Update existing syllabus
-                console.log(`Updating syllabus ${syllabusId}`); // Debug log
                 await updateSyllabus(syllabusId, {
                   SyllabusID: syllabusId,
                   Title: s.title || `${formData.courseCode || formData.name} Syllabus`,
@@ -1080,7 +1074,6 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
                 });
               } else {
                 // Create new syllabus
-                console.log('Creating new syllabus'); // Debug log
               const syllabusPayload = {
                 courseID: savedCourseId,
                 title: s.title || `${formData.courseCode || formData.name} Syllabus`,
@@ -1089,7 +1082,6 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
               };
               const createSyllabusRes = await createSyllabus(syllabusPayload);
                 syllabusId = createSyllabusRes?.data?.syllabusID || createSyllabusRes?.data?.SyllabusID || createSyllabusRes?.data?.id || createSyllabusRes?.data?.Id;
-                console.log('Created syllabus with ID:', syllabusId); // Debug log
               }
 
               if (!syllabusId) {
@@ -1100,13 +1092,10 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
 
               // Create or update items
               if (s.items && s.items.length > 0) {
-                console.log(`Processing ${s.items.length} items for syllabus ${syllabusId}`); // Debug log
                 for (const it of s.items) {
                   try {
-                    console.log('Processing item:', { id: it.id, topicTitle: it.topicTitle, sessionNumber: it.sessionNumber }); // Debug log
                     if (it.id) {
                       // Update existing item
-                      console.log(`Updating item ${it.id}`); // Debug log
                       await updateSyllabusItem(it.id, {
                         SyllabusItemID: it.id,
                         TopicTitle: it.topicTitle || 'Overview',
@@ -1119,7 +1108,6 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
                       });
                     } else {
                       // Create new item
-                      console.log('Creating new item'); // Debug log
                     await createSyllabusItem({
                       syllabusID: syllabusId,
                       sessionNumber: Number(it.sessionNumber) || 1,
@@ -1161,7 +1149,6 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
             for (const removed of removedSchedules) {
               try {
                 await deleteCourseSchedule(removed.id!);
-                console.log(`Deleted schedule: ${removed.id}`);
               } catch (err) {
                 console.error(`Failed to delete schedule ${removed.id}:`, err);
               }
@@ -1229,7 +1216,6 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
             if (!currentSkillIds.has(relation.lookupId)) {
               try {
                 await deleteCourseSkill(relation.relationshipId);
-                console.log(`Deleted skill relationship: ${relation.relationshipId}`);
               } catch (err) {
                 console.error(`Failed to delete skill relationship ${relation.relationshipId}:`, err);
               }
@@ -1244,7 +1230,6 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
                   courseID: savedCourseId,
                   skillID: skillId
                 });
-                console.log(`Created skill relationship for skill: ${skillId}`);
               } catch (err) {
                 console.error(`Failed to create skill relationship for ${skillId}:`, err);
               }
@@ -1260,7 +1245,6 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
             if (!currentBenefitIds.has(relation.lookupId)) {
               try {
                 await deleteCourseBenefit(relation.relationshipId);
-                console.log(`Deleted benefit relationship: ${relation.relationshipId}`);
               } catch (err) {
                 console.error(`Failed to delete benefit relationship ${relation.relationshipId}:`, err);
               }
@@ -1275,7 +1259,6 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
                   courseID: savedCourseId,
                   benefitID: benefitId
                 });
-                console.log(`Created benefit relationship for benefit: ${benefitId}`);
               } catch (err) {
                 console.error(`Failed to create benefit relationship for ${benefitId}:`, err);
               }
@@ -1291,7 +1274,6 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
             if (!currentRequirementIds.has(relation.lookupId)) {
               try {
                 await deleteCourseRequirement(relation.relationshipId);
-                console.log(`Deleted requirement relationship: ${relation.relationshipId}`);
               } catch (err) {
                 console.error(`Failed to delete requirement relationship ${relation.relationshipId}:`, err);
               }
@@ -1306,7 +1288,6 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
                   courseID: savedCourseId,
                   requirementID: requirementId
                 });
-                console.log(`Created requirement relationship for requirement: ${requirementId}`);
               } catch (err) {
                 console.error(`Failed to create requirement relationship for ${requirementId}:`, err);
               }
@@ -1322,7 +1303,6 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
             if (!currentTeacherIds.has(assignment.teacherId)) {
               try {
                 await deleteCourseTeacherAssignment(assignment.assignmentId);
-                console.log(`Deleted teacher assignment: ${assignment.assignmentId}`);
               } catch (err) {
                 console.error(`Failed to delete teacher assignment ${assignment.assignmentId}:`, err);
               }
@@ -1337,7 +1317,6 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
                   courseID: savedCourseId,
                   teacherID: teacherId
                 });
-                console.log(`Created teacher assignment for teacher: ${teacherId}`);
               } catch (err) {
                 console.error(`Failed to create teacher assignment for ${teacherId}:`, err);
               }
@@ -1357,7 +1336,6 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
                 courseID: savedCourseId,
                 teacherID: teacherId
               });
-              console.log(`Created teacher assignment for teacher: ${teacherId}`);
             } catch (err) {
               console.error(`Failed to create teacher assignment for ${teacherId}:`, err);
             }

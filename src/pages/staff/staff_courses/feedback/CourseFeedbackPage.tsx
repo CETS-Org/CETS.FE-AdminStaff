@@ -28,7 +28,6 @@ export default function CourseFeedbackPage() {
   const [activeTab, setActiveTab] = useState<'course' | 'teacher'>('course');
 
   useEffect(() => {
-    console.log("CourseFeedbackPage mounted, courseId:", courseId);
     if (courseId) {
       fetchFeedbacks();
     } else {
@@ -40,17 +39,9 @@ export default function CourseFeedbackPage() {
 
   const fetchFeedbacks = async () => {
     try {
-      console.log("Fetching feedbacks for courseId:", courseId);
       setLoading(true);
       setError(null);
       const response = await getCourseFeedbacks(courseId!);
-      console.log("Feedbacks response:", response.data);
-      console.log("Feedback types:", response.data.map(f => ({
-        id: f.feedbackId,
-        typeName: f.feedbackTypeName,
-        hasCourseFields: !!(f.contentClarity || f.courseRelevance || f.materialsQuality),
-        hasTeacherFields: !!(f.teachingEffectiveness || f.communicationSkills || f.teacherSupportiveness)
-      })));
       setFeedbacks(response.data);
     } catch (err: any) {
       console.error("Error fetching feedbacks:", err);

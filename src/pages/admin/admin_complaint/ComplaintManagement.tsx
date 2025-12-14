@@ -347,7 +347,6 @@ export default function ComplaintManagement() {
         resolvedAt: statusEntry.code === 'RESOLVED' || statusEntry.code === 'CLOSED' ? new Date().toISOString() : undefined
       };
 
-      console.log('Updating complaint with payload:', updatePayload);
       
       await updateComplaint(complaintId, updatePayload);
 
@@ -438,7 +437,6 @@ export default function ComplaintManagement() {
 
   const handleExportComplaints = () => {
     // In a real app, this would generate and download a CSV/Excel file
-    console.log('Exporting complaints...', filteredComplaints);
   };
 
   // Pagination handlers
