@@ -18,7 +18,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/Dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import ConfirmationDialog from "@/components/ui/ConfirmationDialog";
 import NotificationDialog, { type Notification } from "@/components/ui/NotificationDialog";
 import type { GenericNavbarProps } from "@/types/navbar.type";
@@ -70,6 +70,18 @@ export default function GenericNavbar({
         };
 
         loadNotifications();
+    }, []);
+
+    // Listen for logout event and clear notifications
+    useEffect(() => {
+        const handleLogout = () => {
+            setNotifications([]);
+        };
+
+        window.addEventListener('auth:logout', handleLogout);
+        return () => {
+            window.removeEventListener('auth:logout', handleLogout);
+        };
     }, []);
 
     const handleLogoutClick = () => {
@@ -131,6 +143,12 @@ export default function GenericNavbar({
     };
 
     const handleSocketNotification = useCallback((notification: Notification) => {
+        // Check if user is still logged in before processing notification
+        const userInfo = getUserInfo();
+        if (!userInfo?.id) {
+            return;
+        }
+        
         setNotifications(prev => {
             const existing = prev.find(n => n.id === notification.id);
             if (existing) {
@@ -141,6 +159,10 @@ export default function GenericNavbar({
     }, []);
 
     useNotificationSocket(handleSocketNotification);
+
+    const isStaff = location.pathname.startsWith('/staff');
+    const isAdmin = config.userInfo.role === 'Admin';
+    const homeHref = isStaff ? '/staff/classes' : '/admin/analytics';
 
     return (
         <>
@@ -153,7 +175,7 @@ export default function GenericNavbar({
                         
                         {/* Logo & Brand - Left Side */}
                         <div className="flex items-center">
-                            <NavLink to="/" className="flex items-center space-x-3 group">
+                            <NavLink to={homeHref} className="flex items-center space-x-3 group">
                                 <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-accent-600 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
                                     <BookOpen className="w-6 h-6 text-white" />
                                 </div>
@@ -269,16 +291,7 @@ export default function GenericNavbar({
                                         <>
                                             <DropdownMenuSeparator className="bg-neutral-200 my-2" />
                                             
-                                            {/* Settings & Help */}
-                                            <DropdownMenuItem className="flex items-center space-x-3 px-3 py-2 text-neutral-700 hover:bg-primary-50 hover:text-white rounded-lg cursor-pointer transition-all">
-                                                <Settings className="w-4 h-4" />
-                                                <span>Settings</span>
-                                            </DropdownMenuItem>
-                                            
-                                            <DropdownMenuItem className="flex items-center space-x-3 px-3 py-2 text-neutral-700 hover:bg-primary-50 hover:text-white rounded-lg cursor-pointer transition-all">
-                                                <HelpCircle className="w-4 h-4" />
-                                                <span>Help & Support</span>
-                                            </DropdownMenuItem>
+                                     
 
                                             <DropdownMenuItem 
                                                 onClick={handleChangePassword} 

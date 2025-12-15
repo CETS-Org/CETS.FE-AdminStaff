@@ -297,7 +297,7 @@ export default function PackageFormPage({ mode }: PackageFormPageProps) {
       } else {
         await createPackage(payload);
         showSuccessMessage("Package created successfully!");
-        setTimeout(() => navigate('/staff/packages'), 1500);
+        setTimeout(() => navigate('/admin/packages'), 1500);
       }
     } catch (error) {
       console.error("Error saving package:", error);
@@ -308,7 +308,7 @@ export default function PackageFormPage({ mode }: PackageFormPageProps) {
   };
 
   const handleCancel = () => {
-    navigate('/staff/packages');
+    navigate('/admin/packages');
   };
 
   // Format Vietnamese currency

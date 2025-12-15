@@ -142,7 +142,7 @@ export default function StaffSchedulePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50 pt-16 p-6 lg:p-8">
+    <div className="mt-16 p-4 md:p-8 lg:pl-0 space-y-8">
       <PageHeader
         title="Class Schedule"
         description="Manage sessions, view timetables, and organize class activities efficiently."

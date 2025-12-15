@@ -112,8 +112,10 @@ export default function QuestionImport({ onImport, skillType, questionTypeId, qu
           const rowPassage = passageCol !== -1 ? row[passageCol]?.toString().trim() : "";
           let passage: string | undefined = undefined;
           if (rowPassage) {
+            // Format passage with automatic line breaks
+            const formattedPassage = formatPassage(rowPassage);
             // Passage has value - update currentPassage and assign to question
-            currentPassage = rowPassage;
+            currentPassage = formattedPassage;
             passage = currentPassage;
           }
           // If rowPassage is empty, passage remains undefined (question will have no passage)
@@ -275,6 +277,51 @@ export default function QuestionImport({ onImport, skillType, questionTypeId, qu
     return -1;
   };
 
+  // Helper function to format passage text with automatic line breaks
+  const formatPassage = (text: string): string => {
+    if (!text) return "";
+    
+    // Normalize line breaks (handle different formats from Excel)
+    // Excel may store line breaks as \r\n, \r, or \n
+    let formatted = text
+      .replace(/\r\n/g, "\n")      // Windows line breaks -> \n
+      .replace(/\r/g, "\n")        // Old Mac line breaks -> \n
+      .replace(/\n{3,}/g, "\n\n"); // Normalize 3+ line breaks to double
+    
+    // Replace common separators used in Excel with paragraph breaks
+    // Users can use || or | | to indicate paragraph breaks in Excel
+    formatted = formatted.replace(/\s*\|\|\s*/g, "\n\n");
+    formatted = formatted.replace(/\s*\|\s*\|\s*/g, "\n\n");
+    
+    // Auto-format: Add paragraph break after sentence endings (period, exclamation, question mark)
+    // followed by space and capital letter, if there's no recent line break
+    // This helps format long passages into paragraphs automatically
+    // Only apply if the sentence before is reasonably long (more than 40 chars)
+    formatted = formatted.replace(/([.!?])\s+([A-Z])/g, (match, punctuation, capital, offset, fullText) => {
+      // Check if there's a line break nearby (within last 50 characters)
+      const beforeMatch = fullText.substring(0, offset);
+      const lastLineBreak = beforeMatch.lastIndexOf("\n");
+      const charsSinceBreak = beforeMatch.length - (lastLineBreak === -1 ? 0 : lastLineBreak);
+      
+      // Find the start of the current sentence (look for previous sentence end or start)
+      const sentenceStart = lastLineBreak === -1 ? 0 : lastLineBreak;
+      const sentenceLength = beforeMatch.length - sentenceStart;
+      
+      // Add paragraph break if:
+      // 1. No recent line break (more than 50 chars since last break)
+      // 2. AND the current sentence is reasonably long (more than 40 chars) - indicates paragraph end
+      if ((lastLineBreak === -1 || charsSinceBreak > 50) && sentenceLength > 40) {
+        return `${punctuation}\n\n${capital}`;
+      }
+      return match;
+    });
+    
+    // Clean up: remove excessive line breaks at start/end
+    formatted = formatted.trim();
+    
+    return formatted;
+  };
+
   const handleConfirmImport = () => {
     if (previewQuestions.length > 0) {
       onImport(previewQuestions);
@@ -355,11 +402,19 @@ export default function QuestionImport({ onImport, skillType, questionTypeId, qu
           {skillType.toLowerCase() === "reading" && 
            !(questionTypeId && questionTypes && 
              questionTypes.find(qt => qt.id === questionTypeId)?.name?.toLowerCase().includes("multiple choice")) && (
-            <p className="mt-2 text-blue-800">
-              <strong>Note:</strong> For Reading assignments, you can add a "Passage" column. 
-              If a row has a Passage value, that question will use that passage. 
-              If a row has an empty Passage, that question will have no passage (standalone question).
-            </p>
+            <>
+              <p className="mt-2 text-blue-800">
+                <strong>Note:</strong> For Reading assignments, you can add a "Passage" column. 
+                If a row has a Passage value, that question will use that passage. 
+                If a row has an empty Passage, that question will have no passage (standalone question).
+              </p>
+              <p className="mt-1 text-blue-800">
+                <strong>Passage Formatting:</strong> The system will automatically format passages with line breaks. 
+                You can use <code className="bg-blue-100 px-1 rounded">||</code> in Excel to indicate paragraph breaks, 
+                or the system will automatically add paragraph breaks after sentences (period/exclamation/question mark 
+                followed by a capital letter) for long passages.
+              </p>
+            </>
           )}
           {skillType.toLowerCase() === "listening" && (
             <p className="mt-2 text-blue-800">

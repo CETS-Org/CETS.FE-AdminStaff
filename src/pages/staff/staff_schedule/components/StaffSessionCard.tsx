@@ -52,7 +52,7 @@ export default function StaffSessionCard({
       containerStyle = "bg-white border-l-4 border-blue-600 hover:bg-blue-50 transition-colors";
       titleColor = "text-blue-900";
       
-      statusLabel = "Ongoing";
+      statusLabel = "Up Coming";
       statusStyle = "text-blue-600 bg-blue-50 border-blue-200";
       statusIcon = <Clock className="w-3 h-3" />;
   } else {

@@ -42,6 +42,7 @@ interface Student {
   attendance: number;
   progress: number;
   finalGrade?: number | null;
+  isPass: boolean;
 }
 
 export default function ClassDetailPage() {
@@ -55,7 +56,7 @@ export default function ClassDetailPage() {
   const [finalGradeImportDialog, setFinalGradeImportDialog] = useState(false);
   const { success, error: showError } = useToast();
 
-  // Handle both route patterns: /staff/classes/:id and /staff/courses/:courseId/classes/:classId
+  // Handle both route patterns: /staff/classes/:id and /admin/courses/:courseId/classes/:classId
   const classId = params.id || params.classId;
   const courseId = params.courseId;
   const isStandaloneRoute = !courseId; // True if accessed from /staff/classes
@@ -104,6 +105,7 @@ export default function ClassDetailPage() {
           attendance: student.attendanceRate,
           progress: student.progressPercentage,
           finalGrade: student.finalGrade,
+          isPass: student.isPass,
         }));
 
         setClassData(mappedClass);
@@ -123,7 +125,7 @@ export default function ClassDetailPage() {
     if (isStandaloneRoute) {
       navigate(`/staff/classes/${classId}/edit`);
     } else {
-      navigate(`/staff/courses/${courseId}/classes/${classId}/edit`);
+      navigate(`/admin/courses/${courseId}/classes/${classId}/edit`);
     }
   };
 
@@ -136,7 +138,7 @@ export default function ClassDetailPage() {
     if (isStandaloneRoute) {
       navigate(`/staff/classes`);
     } else {
-      navigate(`/staff/courses/${courseId}`);
+      navigate(`/admin/courses/${courseId}`);
     }
     setDeleteDialog(false);
   };
@@ -145,7 +147,7 @@ export default function ClassDetailPage() {
     if (isStandaloneRoute) {
       navigate(`/staff/classes`);
     } else {
-      navigate(`/staff/courses`);
+      navigate(`/admin/courses`);
     }
   };
 
@@ -188,6 +190,7 @@ export default function ClassDetailPage() {
             attendance: student.attendanceRate,
             progress: student.progressPercentage,
             finalGrade: student.finalGrade,
+            isPass: student.isPass,
           }));
           setStudents(updatedStudents);
         }
@@ -251,7 +254,7 @@ export default function ClassDetailPage() {
             </div>
             <Button
               variant="primary"
-              onClick={() => navigate(isStandaloneRoute ? '/staff/classes' : '/staff/courses')}
+              onClick={() => navigate(isStandaloneRoute ? '/staff/classes' : '/admin/courses')}
               className="!bg-blue-500 hover:!bg-blue-600"
             >
               Go Back
@@ -284,7 +287,7 @@ export default function ClassDetailPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => navigate(`/staff/courses/${classData.courseId}`)}
+                  onClick={() => navigate(`/admin/courses/${classData.courseId}`)}
                   className="!text-blue-600 hover:!text-blue-700 !p-1 !h-auto underline"
                 >
                   View Course
@@ -447,6 +450,7 @@ export default function ClassDetailPage() {
                   <th className="text-left py-3 px-4 font-medium text-gray-900">Attendance</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-900">Progress</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-900">Final Grade</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-900">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -495,6 +499,21 @@ export default function ClassDetailPage() {
                         }`}>
                           {student.finalGrade}
                         </span>
+                      ) : (
+                        <span className="text-gray-400 text-sm">Not graded</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4">
+                      {student.finalGrade !== null && student.finalGrade !== undefined ? (
+                        student.isPass ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Pass
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            Fail
+                          </span>
+                        )
                       ) : (
                         <span className="text-gray-400 text-sm">Not graded</span>
                       )}

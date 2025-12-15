@@ -420,12 +420,81 @@ const loadOptions = async () => {
   };
 
   const handleImportQuestions = (importedQuestions: Question[]) => {
-    const newQuestions = importedQuestions.map((q, idx) => ({
-      ...q,
-      id: q.id || `q-${Date.now()}-${idx}`,
-      order: questions.length + idx + 1,
-    }));
-    setQuestions([...questions, ...newQuestions]);
+    // Determine skill type (Reading or Listening)
+    const skillTypeName = selectedSkill?.name?.toLowerCase() || selectedSkill?.code?.toLowerCase() || "";
+    const isReading = skillTypeName.includes("reading");
+    const isListening = skillTypeName.includes("listening");
+    
+    // Group questions by passage (for Reading) or audio (for Listening)
+    const passageGroups = new Map<string, Question[]>();
+    const audioGroups = new Map<string, Question[]>();
+    const standaloneQuestions: Question[] = [];
+    
+    importedQuestions.forEach((q) => {
+      const passage = (q as any)._passage;
+      const audioUrl = (q as any)._audioUrl || q.reference;
+      
+      if (isReading && passage && passage.trim()) {
+        // Group by passage for Reading
+        const passageKey = passage.trim();
+        if (!passageGroups.has(passageKey)) {
+          passageGroups.set(passageKey, []);
+        }
+        passageGroups.get(passageKey)!.push(q);
+      } else if (isListening && audioUrl && audioUrl.trim()) {
+        // Group by audio for Listening
+        const audioKey = audioUrl.trim();
+        if (!audioGroups.has(audioKey)) {
+          audioGroups.set(audioKey, []);
+        }
+        audioGroups.get(audioKey)!.push(q);
+      } else {
+        // Standalone questions (multiple choice, no passage/audio)
+        standaloneQuestions.push(q);
+      }
+    });
+    
+    // Process grouped questions: reset order to 1 for each group
+    const processedQuestions: Question[] = [];
+    let currentOrder = questions.length + 1;
+    
+    // Process passage groups (Reading)
+    if (isReading) {
+      passageGroups.forEach((groupQuestions) => {
+        groupQuestions.forEach((q, idx) => {
+          processedQuestions.push({
+            ...q,
+            id: q.id || `q-${Date.now()}-${processedQuestions.length}`,
+            order: idx + 1, // Reset order to 1 for each passage group
+          });
+        });
+      });
+    }
+    
+    // Process audio groups (Listening)
+    if (isListening) {
+      audioGroups.forEach((groupQuestions) => {
+        groupQuestions.forEach((q, idx) => {
+          processedQuestions.push({
+            ...q,
+            id: q.id || `q-${Date.now()}-${processedQuestions.length}`,
+            order: idx + 1, // Reset order to 1 for each audio group
+          });
+        });
+      });
+    }
+    
+    // Process standalone questions (multiple choice, no passage/audio)
+    // These get continuous numbering
+    standaloneQuestions.forEach((q, idx) => {
+      processedQuestions.push({
+        ...q,
+        id: q.id || `q-${Date.now()}-${processedQuestions.length}`,
+        order: currentOrder + idx,
+      });
+    });
+    
+    setQuestions([...questions, ...processedQuestions]);
   };
 
   // Helper function to normalize audio URL to public URL
@@ -1087,6 +1156,7 @@ const loadOptions = async () => {
                       skillType={selectedSkill?.name || "Other"}
                       questionTypeId={questionTypeId}
                       questionTypes={questionTypes}
+                      difficulty={difficulty}
                     />
                   )}
 

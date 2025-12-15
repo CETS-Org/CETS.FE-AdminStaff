@@ -201,7 +201,7 @@ export default function ComplaintManagement() {
 
   // Get unique roles from complaints data (normalized)
   const rolesFromComplaints = Array.from(
-    new Set(complaints.map(c => c.submitterRole).filter(r => r))
+    new Set(complaints.map(c => c.submitterRole).filter((r): r is string => !!r))
   );
   
   // Define all possible roles in the system

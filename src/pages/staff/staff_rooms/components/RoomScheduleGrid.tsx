@@ -24,7 +24,7 @@ interface RoomScheduleGridProps {
 }
 
 // Days of week
-const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 // Time slots: Slot 1 (9:00), Slot 2 (13:30), Slot 3 (15:00), Slot 4 (16:30), Slot 5 (18:00)
 const TIME_SLOTS = [
@@ -50,7 +50,7 @@ export default function RoomScheduleGrid({
     date: Date;
   } | null>(null);
 
-  // Calculate dates for the current week (Monday to Saturday)
+  // Calculate dates for the current week (Monday to Sunday)
   const weekDates = useMemo(() => {
     const monday = new Date(currentWeek);
     const day = monday.getDay();
@@ -171,7 +171,8 @@ export default function RoomScheduleGrid({
                         classDay === `Wednesday` && dayIndex === 2 ||
                         classDay === `Thursday` && dayIndex === 3 ||
                         classDay === `Friday` && dayIndex === 4 ||
-                        classDay === `Saturday` && dayIndex === 5;
+                        classDay === `Saturday` && dayIndex === 5 ||
+                        classDay === `Sunday` && dayIndex === 6;
       
       if (!matchesDay) return false;
       
@@ -233,14 +234,13 @@ export default function RoomScheduleGrid({
 
   return (
     <>
-      <div className="bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden">
-        <div className="overflow-x-auto relative">
-          <div className="max-h-[600px] overflow-y-auto">
-            <table className="w-full border-collapse">
+      <div className="overflow-x-auto relative w-full -mx-6 px-6">
+        <div className="max-h-[600px] overflow-y-auto">
+          <table className="border-collapse w-full" style={{ minWidth: 'max-content' }}>
               {/* Header */}
               <thead className="bg-gradient-to-r from-gray-50 via-gray-100 to-gray-50 border-b-2 border-gray-300 sticky top-0 z-20">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-800 border-r-2 border-gray-300 sticky left-0 bg-gradient-to-r from-gray-50 to-gray-100 z-30 min-w-[120px] shadow-sm">
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-800 border-r-2 border-gray-300 sticky left-0 bg-gray-50 z-30 min-w-[120px] shadow-sm" style={{ backgroundColor: '#f9fafb' }}>
                     <div className="flex items-center gap-1.5">
                       <DoorOpen className="w-3.5 h-3.5 text-blue-600" />
                       <span>Room</span>
@@ -252,7 +252,7 @@ export default function RoomScheduleGrid({
                     return (
                       <th
                         key={index}
-                        className={`px-2 py-3 text-center border-r border-gray-300 last:border-r-0 ${
+                        className={`px-2 py-3 text-center border-r border-gray-300 last:border-r-0 whitespace-nowrap ${
                           isToday 
                             ? "bg-blue-50 border-blue-200" 
                             : ""
@@ -289,9 +289,18 @@ export default function RoomScheduleGrid({
                 >
                   {/* Room name cell */}
                   <td 
-                    className="px-4 py-3 border-r-2 border-gray-300 sticky left-0 z-10 bg-white group-hover:bg-blue-50/50 transition-colors shadow-sm cursor-pointer"
+                    className="px-4 py-3 border-r-2 border-gray-300 sticky left-0 z-10 transition-colors shadow-sm cursor-pointer"
                     onClick={() => onRoomClick && onRoomClick(room)}
                     title="Click to view/edit room information"
+                    style={{ 
+                      backgroundColor: roomIndex % 2 === 0 ? '#ffffff' : '#f9fafb',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#dbeafe';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = roomIndex % 2 === 0 ? '#ffffff' : '#f9fafb';
+                    }}
                   >
                     <div className="flex items-center gap-2.5">
                       <div
@@ -339,6 +348,7 @@ export default function RoomScheduleGrid({
                         className={`px-1.5 py-2 border-r border-gray-200 last:border-r-0 transition-colors ${
                           isToday ? "bg-blue-50/30" : ""
                         }`}
+                        style={{ minWidth: '140px' }}
                       >
                         <div className="flex gap-2 justify-center px-3">
                           {TIME_SLOTS.map((timeSlot) => {
@@ -402,10 +412,7 @@ export default function RoomScheduleGrid({
             </tbody>
           </table>
         </div>
-        {/* Overlay to hide slots when scrolling horizontally */}
-        <div className="absolute top-0 right-0 bottom-0 w-20 bg-white pointer-events-none z-10 opacity-100"></div>
       </div>
-    </div>
 
       {/* Popup - Always show when slot is selected */}
       {selectedSlot && (

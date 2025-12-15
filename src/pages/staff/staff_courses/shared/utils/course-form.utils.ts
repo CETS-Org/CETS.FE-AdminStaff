@@ -49,3 +49,52 @@ export const toTimeslotOptions = (items: any[]) =>
     value: t.id || t.Id || t.lookUpId || t.LookUpId 
   }));
 
+// Get sort order for course level (for ascending order)
+// Returns a number representing the level's position in the progression
+export const getCourseLevelSortOrder = (levelName: string): number => {
+  const normalizedLevel = levelName?.toLowerCase().trim() || '';
+  
+  if (normalizedLevel.includes('beginner')) return 1;
+  if (normalizedLevel.includes('elementary')) return 2;
+  if (normalizedLevel.includes('pre-intermediate')) return 3;
+  if (normalizedLevel.includes('intermediate') && !normalizedLevel.includes('pre')) return 4;
+  if (normalizedLevel.includes('advanced')) return 5;
+  if (normalizedLevel.includes('mastery')) return 6;
+  
+  // Default: put unknown levels at the end
+  return 999;
+};
+
+// Course level to score mapping based on proficiency levels
+// Beginner: 0-400, Elementary: 401-500, Pre-Intermediate: 501-600, 
+// Intermediate: 601-700, Advanced: 701-800, Mastery: 800+
+// Standard Score = Entry Score (minimum score of the level)
+// Exit Score = minimum score of the next level
+export const getScoresFromCourseLevel = (levelName: string): { standardScore: number; exitScore: number } => {
+  const normalizedLevel = levelName?.toLowerCase().trim() || '';
+  
+  // Map various level name formats to score ranges
+  if (normalizedLevel.includes('beginner')) {
+    // Beginner: 0-400 -> standard: 0 (entry), exit: 401 (next level entry)
+    return { standardScore: 0, exitScore: 401 };
+  } else if (normalizedLevel.includes('elementary')) {
+    // Elementary: 401-500 -> standard: 401 (entry), exit: 501 (next level entry)
+    return { standardScore: 401, exitScore: 501 };
+  } else if (normalizedLevel.includes('pre-intermediate')) {
+    // Pre-Intermediate: 501-600 -> standard: 501 (entry), exit: 601 (next level entry)
+    return { standardScore: 501, exitScore: 601 };
+  } else if (normalizedLevel.includes('intermediate')) {
+    // Intermediate: 601-700 -> standard: 601 (entry), exit: 701 (next level entry)
+    return { standardScore: 601, exitScore: 701 };
+  } else if (normalizedLevel.includes('advanced') ) {
+    // Advanced: 701-800 -> standard: 701 (entry), exit: 801 (next level entry for Mastery)
+    return { standardScore: 701, exitScore: 801 };
+  } else if (normalizedLevel.includes('mastery')) {
+    // Mastery: 800+ -> standard: 800 (entry), exit: 900 (next progression)
+    return { standardScore: 800, exitScore: 900 };
+  }
+  
+  // Default fallback: Beginner level (0-400)
+  return { standardScore: 0, exitScore: 401 };
+};
+

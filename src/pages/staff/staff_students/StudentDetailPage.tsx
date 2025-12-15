@@ -11,6 +11,7 @@ import { getStudentById, getListCourseEnrollment, getTotalAssignmentByStudentId,
 import type { Student, CourseEnrollment, AssignmentSubmited, TotalStudentAttendanceByCourse } from "@/types/student.type";
 import DeleteConfirmDialog from "@/shared/delete_confirm_dialog";
 import { setIsDelete, setIsActive } from "@/api/account.api";
+import { isStaffUser } from "@/lib/utils";
 
 
 export default function StudentDetailPage() {
@@ -18,6 +19,8 @@ export default function StudentDetailPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const isStaff = isStaffUser();
+  const basePath = isStaff ? '/staff' : '/admin';
   const [student, setStudent] = useState<Student | null>(null);
   const [enrolledCourses, setEnrolledCourses] = useState<CourseEnrollment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -164,7 +167,7 @@ export default function StudentDetailPage() {
   };
 
   const handleManageCourse = (courseId: string) => {
-    navigate(`/staff/courses/${courseId}`);
+    navigate(`/admin/courses/${courseId}`);
   };
 
   // Table columns for enrolled courses
@@ -246,7 +249,7 @@ export default function StudentDetailPage() {
             </div>
           </button>
           <button
-            onClick={() => window.open(`/staff/courses/${course.id}`, '_blank')}
+            onClick={() => window.open(`/admin/courses/${course.id}`, '_blank')}
             className="p-2.5 rounded-xl border border-gray-300 text-gray-600 hover:bg-green-50 hover:border-green-300 hover:text-green-600 transition-all duration-200 relative group shadow-sm hover:shadow-md"
           >
             <ExternalLink className="w-4 h-4" />
@@ -300,7 +303,7 @@ export default function StudentDetailPage() {
   //   setEditingStudent(null);
   // }; // Replaced with page navigation
   const breadcrumbItems = [
-    { label: "Students", to: "/admin/students" },
+    { label: "Students", to: `${basePath}/students` },
     { label: student?.fullName || "Student Detail" }
   ];
 
@@ -332,7 +335,7 @@ export default function StudentDetailPage() {
         <div className="flex items-center justify-between mb-6 mt-4">
           <div></div>
           <div className="flex items-center gap-3">
-            {(() => {
+            {!isStaff && (() => {
               const isBanned = (student as any)?.isDeleted || student?.statusName === 'Blocked' || student?.statusName === 'Locked';
               return isBanned ? (
                 <Button

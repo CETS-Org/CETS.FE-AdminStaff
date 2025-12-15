@@ -110,6 +110,18 @@ export function getUserRole(): string | null {
   return userInfo?.roleNames?.[0] || null; 
 }
 
+// Check if user is staff (read-only access)
+export function isStaffUser(): boolean {
+  const role = getUserRole();
+  return role === 'AcademicStaff' || role === 'AccountantStaff';
+}
+
+// Check if user is admin (full access)
+export function isAdminUser(): boolean {
+  const role = getUserRole();
+  return role === 'Admin';
+}
+
 export function getUserPhone(): string | null {
   const userInfo = getUserInfo();
   return userInfo?.phoneNumber || null;

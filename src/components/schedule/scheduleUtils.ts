@@ -70,6 +70,11 @@ export type StaffSession = BaseSession & {
   attendanceStatus?: "attended" | "absent" | "upcoming";
 };
 
+export type StudentSession = BaseSession & {
+  instructor?: string;
+  attendanceStatus?: "attended" | "absent" | "upcoming";
+};
+
 /* =========================
    Session Styles
 ========================= */

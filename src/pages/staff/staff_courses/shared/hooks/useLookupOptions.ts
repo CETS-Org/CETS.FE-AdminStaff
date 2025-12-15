@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { getLookupsByTypeCode, getTimeslots } from '@/api';
 import { getCourseCategories, getCourseSkills, getCourseBenefits, getCourseRequirements } from '@/api/course.api';
 import type { LookupOption } from '../types/course-form.types';
-import { toOptions, toCategoryOptions, toRelationshipOptions, toTimeslotOptions } from '../utils/course-form.utils';
+import { toOptions, toCategoryOptions, toRelationshipOptions, toTimeslotOptions, getCourseLevelSortOrder } from '../utils/course-form.utils';
 
 export const useLookupOptions = (isEdit: boolean) => {
   const [courseLevelOptions, setCourseLevelOptions] = useState<LookupOption[]>([]);
@@ -32,10 +32,17 @@ export const useLookupOptions = (isEdit: boolean) => {
         ]);
 
         const levelOpts = toOptions(levelsRes.data);
+        // Sort course levels in ascending order based on proficiency progression
+        const sortedLevelOpts = [...levelOpts].sort((a, b) => {
+          const orderA = getCourseLevelSortOrder(a.label);
+          const orderB = getCourseLevelSortOrder(b.label);
+          return orderA - orderB;
+        });
+        
         const formatOpts = toOptions(formatsRes.data);
         const catOptions = toCategoryOptions(categoriesRes.data);
 
-        setCourseLevelOptions(levelOpts);
+        setCourseLevelOptions(sortedLevelOpts);
         setCourseFormatOptions(formatOpts);
         setCategoryOptions(catOptions);
         setSkillOptions(toRelationshipOptions(skillsRes.data));
@@ -45,7 +52,7 @@ export const useLookupOptions = (isEdit: boolean) => {
 
         if (!isEdit) {
           setDefaultValues({
-            courseLevelID: levelOpts[0]?.value || '',
+            courseLevelID: sortedLevelOpts[0]?.value || '',
             courseFormatID: formatOpts[0]?.value || '',
             categoryID: catOptions[0]?.value || ''
           });

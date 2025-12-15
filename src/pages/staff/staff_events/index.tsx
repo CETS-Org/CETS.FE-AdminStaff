@@ -304,7 +304,7 @@ export default function EventsPage() {
         {/* Page Header */}
         <PageHeader
           title="Events Dashboard"
-          subtitle="Manage your events, registrations, and check-ins"
+          description="Manage your events, registrations, and check-ins"
         />
 
         {/* Stats Cards */}

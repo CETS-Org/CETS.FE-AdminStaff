@@ -182,3 +182,45 @@ export interface PostponedClassNotifyRequest {
   plannedStartDate: string; // DateTime string
   students: PostponedStudentItem[];
 }
+
+export interface ClassDetailResponseDTO {
+  id: string;
+  courseId: string;
+  className: string;
+  teacherAssignmentID?: string;
+  TeacherName?: string;
+  roomId?: string;
+  startDate: string;
+  endDate: string;
+  capacity: number;
+  status: "active" | "inactive" | "full";
+  
+  // Danh sách lịch học
+  schedules: ClassMeetingScheduleDTO[]; 
+  
+  // Danh sách học viên đang học
+  enrollments: WaitingStudentItem[]; 
+}
+
+export interface UpdateClassCompositeRequestDTO {
+  className: string;
+  teacherAssignmentID?: string;
+  startDate: string;
+  endDate: string;
+  capacity: number;
+  updatedBy: string;
+  
+  
+  enrollmentIds: string[]; 
+  
+
+}
+
+// classPlacement.types.ts
+
+export interface RoomAvailabilityArgs {
+  courseId: string;
+  schedules: ClassScheduleInput[];
+  startDate: string; // "yyyy-MM-dd"
+  endDate: string;   // "yyyy-MM-dd"
+}

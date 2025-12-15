@@ -580,8 +580,7 @@ export default function AddEditTeacherPage() {
       
       console.log('✅ Teacher created successfully:', createdTeacher);
       
-      // Show success message with email notification info
-      alert(`Teacher account created successfully!\n\nAn email containing login credentials has been sent to:\n${teacherData.email}\n\nThe teacher can use this email and the password provided in the email to log in to the system.`);
+      
       
       // Navigate to teacher detail page using accountId from response
       if (createdTeacher.accountId) {

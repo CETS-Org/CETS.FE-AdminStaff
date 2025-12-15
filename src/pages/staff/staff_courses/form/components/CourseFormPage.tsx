@@ -6,7 +6,7 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import PageHeader from "@/components/ui/PageHeader";
 import Label from "@/components/ui/Label";
-import { Trash2, BookOpen, ArrowLeft, Upload, Camera, Save, FileText, Link as LinkIcon, CheckCircle, AlertCircle, Clock, DollarSign, Calendar, Loader2, PlusCircle, MinusCircle, Target, Zap, Gift, X, ChevronDown, ChevronUp, FileSpreadsheet, Download, Users, Search } from "lucide-react";
+import { Trash2, BookOpen, ArrowLeft, Upload, Camera, Save, FileText, Link as LinkIcon, CheckCircle, AlertCircle, Clock, DollarSign, Calendar, Loader2, PlusCircle, MinusCircle, Target, Zap, Gift, X, ChevronDown, ChevronUp, FileSpreadsheet, Download, Users, Search, Mail, Phone, Award, User } from "lucide-react";
 import { createCourse, updateCourse } from "@/api/course.api";
 import { createSyllabus, createSyllabusItem, updateSyllabus, updateSyllabusItem, deleteSyllabus, deleteSyllabusItem, getCourseDetailById, getCourseSchedules, createCourseSchedule, updateCourseSchedule, deleteCourseSchedule, createCourseSkill, deleteCourseSkill, createCourseBenefit, deleteCourseBenefit, createCourseRequirement, deleteCourseRequirement, getCourseTeachers, createCourseTeacherAssignment, deleteCourseTeacherAssignment } from "@/api";
 import { getTeachers } from "@/api/teacher.api";
@@ -21,8 +21,9 @@ import {
   useCourseObjectives,
   useCourseTeachers
 } from '../../shared/hooks';
-import { formatVND, getOptionLabel, getLabelsFromIds, dayNames } from '../../shared/utils/course-form.utils';
+import { formatVND, getOptionLabel, getLabelsFromIds, dayNames, getScoresFromCourseLevel } from '../../shared/utils/course-form.utils';
 import CourseScheduleSection from './CourseScheduleSection';
+import Tooltip from "@/components/ui/Tooltip";
 
 type CourseFormPageProps = {
   mode: 'create' | 'edit';
@@ -118,7 +119,9 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
     courseCode: "",
     courseLevelID: "",
     courseFormatID: "",
-    categoryID: ""
+    categoryID: "",
+    standardScore: 200,
+    exitScore: 401
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -214,6 +217,24 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
     }
   }, [isEdit, lookupOptions.defaultValues]);
 
+  // Auto-calculate standardScore and exitScore when course level changes
+  useEffect(() => {
+    if (formData.courseLevelID && lookupOptions.courseLevelOptions.length > 0) {
+      const selectedLevel = lookupOptions.courseLevelOptions.find(
+        opt => opt.value === formData.courseLevelID
+      );
+      
+      if (selectedLevel) {
+        const { standardScore, exitScore } = getScoresFromCourseLevel(selectedLevel.label);
+        setFormData(prev => ({
+          ...prev,
+          standardScore,
+          exitScore
+        }));
+      }
+    }
+  }, [formData.courseLevelID, lookupOptions.courseLevelOptions]);
+
   const loadCourseData = async (_courseId: string) => {
     try {
       setIsLoading(true);
@@ -231,7 +252,9 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
         courseLevelID: d.courseLevelID || "",
         courseFormatID: d.courseFormatID || "",
         categoryID: d.categoryID || "",
-        status: d.isActive ? "active" : "inactive"
+        status: d.isActive ? "active" : "inactive",
+        standardScore: d.standardScore || 200,
+        exitScore: d.exitScore || 401
       }));
       
       setImagePreview(d.courseImageUrl || "");
@@ -895,6 +918,22 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
          }
       }
       
+      // Calculate standardScore and exitScore from course level if available
+      let calculatedStandardScore = formData.standardScore ?? 200;
+      let calculatedExitScore = formData.exitScore ?? 401;
+      
+      if (formData.courseLevelID && lookupOptions.courseLevelOptions.length > 0) {
+        const selectedLevel = lookupOptions.courseLevelOptions.find(
+          opt => opt.value === formData.courseLevelID
+        );
+        
+        if (selectedLevel) {
+          const scores = getScoresFromCourseLevel(selectedLevel.label);
+          calculatedStandardScore = scores.standardScore;
+          calculatedExitScore = scores.exitScore;
+        }
+      }
+      
       const payload: any = {
         courseCode: formData.courseCode,
         courseName: formData.name,
@@ -905,6 +944,8 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
         categoryID: formData.categoryID,
         description: formData.description,
         standardPrice: formData.price || 0,
+        standardScore: calculatedStandardScore,
+        exitScore: calculatedExitScore,
         isActive: formData.status === "active",
         benefitIDs: selectedBenefits,
         requirementIDs: selectedRequirements,
@@ -1333,7 +1374,7 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
         showSuccessMessage("Course created successfully with all details!");
         // Navigate after a short delay to allow toast to be seen (only for create)
         setTimeout(() => {
-          navigate('/staff/courses');
+          navigate('/admin/courses');
         }, 1000);
       }
     } catch (error) {
@@ -1712,6 +1753,38 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
                     />
                   </div>
 
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Standard Score
+                    </label>
+                    <Input
+                      type="number"
+                      value={formData.standardScore || 200}
+                      readOnly
+                      className="bg-gray-100 cursor-not-allowed"
+                      placeholder="Auto-calculated from level"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Automatically set based on course level
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Exit Score
+                    </label>
+                    <Input
+                      type="number"
+                      value={formData.exitScore || 401}
+                      readOnly
+                      className="bg-gray-100 cursor-not-allowed"
+                      placeholder="Auto-calculated from level"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Automatically set to next level minimum
+                    </p>
+                  </div>
+
                 </div>
 
                 <div className="mt-6">
@@ -2038,27 +2111,149 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
                             const teacherId = teacher.accountId;
                             const teacherName = teacher.fullName || teacher.teacherInfo?.fullName || 'Unknown Teacher';
                             const teacherEmail = teacher.email || teacher.teacherInfo?.email || '';
+                            // Check both root level and teacherInfo for data
+                            const teacherCode = teacher.teacherInfo?.teacherCode || '';
+                            const phoneNumber = teacher.phoneNumber || teacher.teacherInfo?.phoneNumber || '';
+                            const yearsExperience = teacher.teacherInfo?.yearsExperience || null;
+                            const bio = teacher.teacherInfo?.bio || '';
+                            const credentials = teacher.teacherInfo?.teacherCredentials || [];
+                            const address = teacher.address || teacher.teacherInfo?.address || '';
+                            const dateOfBirth = teacher.dateOfBirth || teacher.teacherInfo?.dateOfBirth || '';
+                            const statusName = teacher.statusName || '';
+                            const cid = teacher.cid || teacher.teacherInfo?.cid || '';
+                            const isVerified = teacher.isVerified || teacher.teacherInfo?.isVerified || false;
 
-                            return (
-                              <label
-                                key={teacherId}
-                                className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 cursor-pointer transition-all duration-200 group"
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={selectedTeachers.includes(teacherId)}
-                                  onChange={() => toggleTeacher(teacherId)}
-                                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 mt-1"
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <span className="text-sm font-medium text-gray-700 group-hover:text-indigo-700 block truncate">
-                                    {teacherName}
-                                  </span>
+                            // Format date of birth if available
+                            const formattedDateOfBirth = dateOfBirth 
+                              ? new Date(dateOfBirth).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+                              : '';
+
+                            const tooltipContent = (
+                              <div className="space-y-2.5 max-w-sm">
+                                <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
+                                  <User className="w-4 h-4 text-indigo-600" />
+                                  <span className="font-semibold text-base text-gray-900">{teacherName}</span>
+                                </div>
+                                <div className="space-y-1.5">
+                                  {teacherCode && (
+                                    <div className="flex items-start gap-2 text-xs">
+                                      <span className="text-gray-500 min-w-[50px]">Code:</span>
+                                      <span className="text-gray-800 font-medium">{teacherCode}</span>
+                                    </div>
+                                  )}
                                   {teacherEmail && (
-                                    <span className="text-xs text-gray-500 block truncate">{teacherEmail}</span>
+                                    <div className="flex items-start gap-2 text-xs">
+                                      <Mail className="w-3.5 h-3.5 text-indigo-500 mt-0.5 flex-shrink-0" />
+                                      <span className="text-gray-700 break-all">{teacherEmail}</span>
+                                    </div>
+                                  )}
+                                  {phoneNumber && (
+                                    <div className="flex items-start gap-2 text-xs">
+                                      <Phone className="w-3.5 h-3.5 text-indigo-500 mt-0.5 flex-shrink-0" />
+                                      <span className="text-gray-700">{phoneNumber}</span>
+                                    </div>
+                                  )}
+                                  {formattedDateOfBirth && (
+                                    <div className="flex items-start gap-2 text-xs">
+                                      <Calendar className="w-3.5 h-3.5 text-indigo-500 mt-0.5 flex-shrink-0" />
+                                      <span className="text-gray-700">Born: {formattedDateOfBirth}</span>
+                                    </div>
+                                  )}
+                                  {statusName && (
+                                    <div className="flex items-start gap-2 text-xs">
+                                      <span className="text-gray-500 min-w-[50px]">Status:</span>
+                                      <span className={`font-medium ${
+                                        statusName.toLowerCase() === 'active' ? 'text-green-600' : 
+                                        statusName.toLowerCase() === 'inactive' ? 'text-red-600' : 
+                                        'text-gray-800'
+                                      }`}>
+                                        {statusName}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {isVerified && (
+                                    <div className="flex items-start gap-2 text-xs">
+                                      <CheckCircle className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" />
+                                      <span className="text-green-600">Verified Account</span>
+                                    </div>
+                                  )}
+                                  {cid && (
+                                    <div className="flex items-start gap-2 text-xs">
+                                      <span className="text-gray-500 min-w-[50px]">CID:</span>
+                                      <span className="text-gray-700">{cid}</span>
+                                    </div>
+                                  )}
+                                  {address && (
+                                    <div className="flex items-start gap-2 text-xs">
+                                      <span className="text-gray-500 min-w-[50px]">Address:</span>
+                                      <span className="text-gray-700 line-clamp-2">{address}</span>
+                                    </div>
+                                  )}
+                                  {yearsExperience !== null && yearsExperience !== undefined && (
+                                    <div className="flex items-start gap-2 text-xs">
+                                      <Award className="w-3.5 h-3.5 text-indigo-500 mt-0.5 flex-shrink-0" />
+                                      <span className="text-gray-700">
+                                        {yearsExperience} {yearsExperience === 1 ? 'year' : 'years'} of experience
+                                      </span>
+                                    </div>
                                   )}
                                 </div>
-                              </label>
+                                {credentials.length > 0 && (
+                                  <div className="pt-2 border-t border-gray-200">
+                                    <div className="text-xs text-gray-500 mb-1.5 font-medium">Credentials:</div>
+                                    <div className="space-y-1">
+                                      {credentials.slice(0, 3).map((cred, idx) => (
+                                        <div key={idx} className="text-xs text-gray-700 flex items-start gap-1">
+                                          <span className="text-indigo-500">•</span>
+                                          <span>
+                                            {cred.name || 'Credential'} 
+                                            {cred.level && <span className="text-gray-500"> ({cred.level})</span>}
+                                          </span>
+                                        </div>
+                                      ))}
+                                      {credentials.length > 3 && (
+                                        <div className="text-xs text-gray-500 italic">+{credentials.length - 3} more credential{credentials.length - 3 > 1 ? 's' : ''}</div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                                {bio && bio.trim() && (
+                                  <div className="pt-2 border-t border-gray-200">
+                                    <div className="text-xs text-gray-500 mb-1.5 font-medium">Bio:</div>
+                                    <div className="text-xs text-gray-700 line-clamp-3 leading-relaxed">{bio}</div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+
+                            return (
+                              <div key={teacherId} className="relative">
+                                <Tooltip
+                                  content={tooltipContent}
+                                  side="right"
+                                  align="start"
+                                  delayDuration={200}
+                                >
+                                  <label
+                                    className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 cursor-pointer transition-all duration-200 group w-full"
+                                  >
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedTeachers.includes(teacherId)}
+                                    onChange={() => toggleTeacher(teacherId)}
+                                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 mt-1 flex-shrink-0"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <span className="text-sm font-medium text-gray-700 group-hover:text-indigo-700 block truncate">
+                                      {teacherName}
+                                    </span>
+                                    {teacherEmail && (
+                                      <span className="text-xs text-gray-500 block truncate">{teacherEmail}</span>
+                                    )}
+                                  </div>
+                                  </label>
+                                </Tooltip>
+                              </div>
                             );
                           })}
                         </div>
