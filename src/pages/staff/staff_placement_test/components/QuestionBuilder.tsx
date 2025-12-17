@@ -200,13 +200,13 @@ export default function QuestionBuilder({
       if (isMultipleChoice || (!hasPassage && !isPassage)) {
         return 10;
       }
-      // Long Passage: 20 điểm/câu (100 điểm tổng / 5 câu trung bình)
+      // Long Passage: 30 điểm/câu (150 điểm tổng / 5 câu trung bình)
       if (difficulty === 3 && (isPassage || hasPassage)) {
-        return 20;
+        return 30;
       }
-      // Short Passage: 15 điểm/câu (75 điểm tổng / 5 câu trung bình)
+      // Short Passage: 20 điểm/câu (100 điểm tổng / 5 câu trung bình)
       if (difficulty === 2 && (isPassage || hasPassage)) {
-        return 15;
+        return 20;
       }
     }
     
@@ -218,11 +218,11 @@ export default function QuestionBuilder({
       }
       // Long Audio: 20 điểm/câu (100 điểm tổng / 5 câu trung bình)
       if (difficulty === 3 && (isAudio || hasAudio)) {
-        return 20;
+        return 30;
       }
       // Short Audio: 15 điểm/câu (75 điểm tổng / 5 câu trung bình)
       if (difficulty === 2 && (isAudio || hasAudio)) {
-        return 15;
+        return 20;
       }
     }
     
@@ -248,9 +248,9 @@ export default function QuestionBuilder({
         // Multiple Choice: 10 điểm/câu
         if (isMultipleChoice) return 10;
         // Long Passage: 20 điểm/câu
-        if (difficulty === 3 && isPassage) return 20;
+        if (difficulty === 3 && isPassage) return 30;
         // Short Passage: 15 điểm/câu
-        if (difficulty === 2 && isPassage) return 15;
+        if (difficulty === 2 && isPassage) return 20;
         // Default for reading (no passage): 10 điểm/câu (Multiple Choice)
         return 10;
       }
@@ -260,9 +260,9 @@ export default function QuestionBuilder({
         // Multiple Choice: 10 điểm/câu
         if (isMultipleChoice) return 10;
         // Long Audio: 20 điểm/câu
-        if (difficulty === 3 && isAudio) return 20;
+        if (difficulty === 3 && isAudio) return 30;
         // Short Audio: 15 điểm/câu
-        if (difficulty === 2 && isAudio) return 15;
+        if (difficulty === 2 && isAudio) return 20;
         // Default for listening (no audio): 10 điểm/câu (Multiple Choice)
         return 10;
       }
