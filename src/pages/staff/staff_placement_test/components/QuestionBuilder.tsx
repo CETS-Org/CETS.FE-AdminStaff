@@ -188,6 +188,7 @@ export default function QuestionBuilder({
     const questionTypeName = currentQuestionType?.name?.toLowerCase() || "";
     const isPassage = questionTypeName.includes("passage");
     const isAudio = questionTypeName.includes("audio");
+    const isMultipleChoice = questionTypeName.includes("multiple choice");
     
     // Check if question has passage or audio
     const hasPassage = currentPassage && currentPassage.trim().length > 0;
@@ -195,34 +196,38 @@ export default function QuestionBuilder({
     
     // Reading questions
     if (isReading) {
+      // Multiple Choice: 10 điểm/câu
+      if (isMultipleChoice || (!hasPassage && !isPassage)) {
+        return 10;
+      }
+      // Long Passage: 20 điểm/câu (100 điểm tổng / 5 câu trung bình)
       if (difficulty === 3 && (isPassage || hasPassage)) {
-        // Reading Passage dài
-        return 45;
-      } else if (difficulty === 2 && (isPassage || hasPassage)) {
-        // Reading Passage ngắn
-        return 32;
-      } else if (difficulty === 1 && !hasPassage) {
-        // Reading đơn (MCQ - Multiple Choice, không có passage)
-        return 35;
+        return 20;
+      }
+      // Short Passage: 15 điểm/câu (75 điểm tổng / 5 câu trung bình)
+      if (difficulty === 2 && (isPassage || hasPassage)) {
+        return 15;
       }
     }
     
     // Listening questions
     if (isListening) {
+      // Multiple Choice: 10 điểm/câu
+      if (isMultipleChoice || (!hasAudio && !isAudio)) {
+        return 10;
+      }
+      // Long Audio: 20 điểm/câu (100 điểm tổng / 5 câu trung bình)
       if (difficulty === 3 && (isAudio || hasAudio)) {
-        // Listening Audio dài
-        return 45;
-      } else if (difficulty === 2 && (isAudio || hasAudio)) {
-        // Listening Audio ngắn
-        return 32;
-      } else if (difficulty === 1 && !hasAudio) {
-        // Listening đơn (không có audio)
-        return 30;
+        return 20;
+      }
+      // Short Audio: 15 điểm/câu (75 điểm tổng / 5 câu trung bình)
+      if (difficulty === 2 && (isAudio || hasAudio)) {
+        return 15;
       }
     }
     
     // Default fallback
-    return 1;
+    return 10;
   }, [skillType, difficulty, questionTypeId, questionTypes, currentPassage, currentAudioFile, currentAudioUrl]);
 
   const [newQuestion, setNewQuestion] = useState<Partial<Question>>(() => {
@@ -236,14 +241,33 @@ export default function QuestionBuilder({
       const questionTypeName = currentQuestionType?.name?.toLowerCase() || "";
       const isPassage = questionTypeName.includes("passage");
       const isAudio = questionTypeName.includes("audio");
+      const isMultipleChoice = questionTypeName.includes("multiple choice");
       
-      if (isReading && difficulty === 3 && isPassage) return 45;
-      if (isReading && difficulty === 2 && isPassage) return 32;
-      if (isReading && difficulty === 1 && !isPassage) return 35; // Reading đơn (MCQ)
-      if (isListening && difficulty === 3 && isAudio) return 45;
-      if (isListening && difficulty === 2 && isAudio) return 32;
-      if (isListening && difficulty === 1 && !isAudio) return 30;
-      return 1;
+      // Reading questions
+      if (isReading) {
+        // Multiple Choice: 10 điểm/câu
+        if (isMultipleChoice) return 10;
+        // Long Passage: 20 điểm/câu
+        if (difficulty === 3 && isPassage) return 20;
+        // Short Passage: 15 điểm/câu
+        if (difficulty === 2 && isPassage) return 15;
+        // Default for reading (no passage): 10 điểm/câu (Multiple Choice)
+        return 10;
+      }
+      
+      // Listening questions
+      if (isListening) {
+        // Multiple Choice: 10 điểm/câu
+        if (isMultipleChoice) return 10;
+        // Long Audio: 20 điểm/câu
+        if (difficulty === 3 && isAudio) return 20;
+        // Short Audio: 15 điểm/câu
+        if (difficulty === 2 && isAudio) return 15;
+        // Default for listening (no audio): 10 điểm/câu (Multiple Choice)
+        return 10;
+      }
+      
+      return 10;
     })();
     
     return {
@@ -1120,13 +1144,39 @@ export default function QuestionBuilder({
 
           {/* Points */}
           <div className="grid grid-cols-2 gap-4">
-            {/* Points are calculated automatically - no input needed */}
+            {/* Points are calculated automatically but can be edited */}
             <div>
-              <div className="text-sm font-medium text-neutral-700 mb-1">Points</div>
-              <div className="px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-md text-neutral-900">
-                {newQuestion.points || calculatePoints()}
-              </div>
-              <p className="text-xs text-neutral-500 mt-1">Calculated automatically</p>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
+                Points
+              </label>
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                value={newQuestion.points ?? calculatePoints()}
+                onChange={(e) => {
+                  const inputValue = e.target.value;
+                  // Allow empty input temporarily while user is typing
+                  if (inputValue === "") {
+                    setNewQuestion({ ...newQuestion, points: undefined });
+                    return;
+                  }
+                  const numValue = parseInt(inputValue, 10);
+                  // Only update if it's a valid positive number
+                  if (!isNaN(numValue) && numValue > 0) {
+                    setNewQuestion({ ...newQuestion, points: numValue });
+                  }
+                }}
+                onBlur={(e) => {
+                  // Ensure a valid value when user leaves the field
+                  const numValue = parseInt(e.target.value, 10);
+                  if (isNaN(numValue) || numValue < 1) {
+                    setNewQuestion({ ...newQuestion, points: calculatePoints() });
+                  }
+                }}
+                className="w-full"
+              />
+              <p className="text-xs text-neutral-500 mt-1">Calculated automatically (editable)</p>
             </div>
             {/* Shuffle options for multiple choice/matching */}
             {(newQuestion.type === "multiple_choice" || newQuestion.type === "matching") && 

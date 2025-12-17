@@ -6,6 +6,8 @@ export const api = axios.create({
     timeout: 10000, // Increased timeout to 10 seconds
     headers: {
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`,
     },
   });
   
