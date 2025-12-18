@@ -50,15 +50,14 @@ export default function GenericSidebar({
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
 
   useEffect(() => {
-    if (config.submenuPathPrefix) {
-      const currentItem = config.items.find(item => 
-        item.subItems && location.pathname.startsWith(config.submenuPathPrefix!)
-      );
-      if (currentItem) {
-        setOpenSubmenu(currentItem.id);
-      }
+    // Find which submenu should be open based on current path
+    const activeSubmenu = config.items.find(item => 
+      item.subItems && item.subItems.some(sub => location.pathname.startsWith(sub.path))
+    );
+    if (activeSubmenu) {
+      setOpenSubmenu(activeSubmenu.id);
     }
-  }, [location.pathname, config.submenuPathPrefix, config.items]);
+  }, [location.pathname, config.items]);
 
   const isActive = (path?: string) => path && location.pathname.startsWith(path);
 
@@ -138,10 +137,16 @@ export default function GenericSidebar({
                       </button>
                       {isOpen && !collapsed && (
                         <ul className="pl-6 pt-2 space-y-2">
-                          {item.subItems.map(subItem => (
+                          {item.subItems.map(subItem => {
+                            // Check if this subItem has sibling paths that are more specific
+                            const hasSiblingWithSamePath = item.subItems!.some(
+                              s => s.id !== subItem.id && s.path.startsWith(subItem.path)
+                            );
+                            return (
                              <li key={subItem.id}>
                                <NavLink
                                  to={subItem.path}
+                                 end={hasSiblingWithSamePath}
                                  onClick={onNavigate}
                                  className={({ isActive: isNavItemActive }) =>
                                    cn(
@@ -156,7 +161,8 @@ export default function GenericSidebar({
                                  <span>{subItem.label}</span>
                                </NavLink>
                              </li>
-                          ))}
+                            );
+                          })}
                         </ul>
                       )}
                     </li>
