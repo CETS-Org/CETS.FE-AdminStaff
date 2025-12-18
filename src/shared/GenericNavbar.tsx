@@ -22,7 +22,7 @@ import {
 import ConfirmationDialog from "@/components/ui/ConfirmationDialog";
 import NotificationDialog, { type Notification } from "@/components/ui/NotificationDialog";
 import type { GenericNavbarProps } from "@/types/navbar.type";
-import { getUserInfo, clearAuthData } from "@/lib/utils";
+import { getUserInfo, clearAuthData, isTokenValid } from "@/lib/utils";
 import { 
   getNotificationsByUser, 
   markNotificationAsRead as apiMarkNotificationAsRead,
@@ -52,7 +52,8 @@ export default function GenericNavbar({
     useEffect(() => {
         const userInfo = getUserInfo();
         const userId = userInfo?.id;
-        if (!userId) {
+        // Check both userId exists AND token is still valid
+        if (!userId || !isTokenValid()) {
             setNotifications([]);
             return;
         }
@@ -64,6 +65,7 @@ export default function GenericNavbar({
                 setNotifications(response.data || []);
             } catch (error) {
                 console.error("Failed to load notifications", error);
+                setNotifications([]);
             } finally {
                 setIsLoadingNotifications(false);
             }
