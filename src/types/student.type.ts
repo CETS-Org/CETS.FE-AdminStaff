@@ -18,6 +18,7 @@ export interface Student extends Account {
 }
   export interface CourseEnrollment {
       id: string;
+      courseId: string;
       courseCode: string;
       courseName: string;
       description: string | null;
@@ -35,9 +36,19 @@ export interface Student extends Account {
   }
   export interface TotalStudentAttendanceByCourse {
       studentId: string;
-      totalMeetings: number;
+      courseId: string;
+      courseName: string;
+      className: string;
+      teacherName: string;
+      totalClasses: number;
+      totalSessions: number;
       totalPresent: number;
       totalAbsent: number;
+      attended: number;
+      absent: number;
+      attendanceRate: number;
+      isWarning: boolean;
+      warningMessage: string | null;
   }
 
 

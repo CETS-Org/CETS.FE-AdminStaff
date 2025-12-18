@@ -151,8 +151,8 @@ export default function StudentDetailPage() {
     try {
       // Fetch both assignment and attendance data in parallel
       const [assignmentData, attendanceData] = await Promise.all([
-        getTotalAssignmentByStudentId(id || "", course.id),
-        getTotalAttendceByStudentId(id || "", course.id)
+        getTotalAssignmentByStudentId(id || "", course.courseId),
+        getTotalAttendceByStudentId(id || "", course.courseId)
       ]);
       
       setAssignmentData(assignmentData);
@@ -174,7 +174,7 @@ export default function StudentDetailPage() {
   const courseColumns: TableColumn<CourseEnrollment>[] = [
     {
       header: "Course Name",
-      className: "min-w-[200px]",
+      className: "w-[30%]",
       accessor: (course) => (
         <div className="flex items-center gap-3 py-2">
           <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
@@ -189,7 +189,7 @@ export default function StudentDetailPage() {
     },
     {
       header: "Teachers",
-      className: "min-w-[140px]",
+      className: "w-[15%]",
       accessor: (course) => (
         <div className="space-y-1 py-2">
           {course.teachers.map((teacher, index) => (
@@ -200,9 +200,9 @@ export default function StudentDetailPage() {
     },
     {
       header: "Status",
-      className: "text-center min-w-[100px]",
+      className: "w-[10%]",
       accessor: (course) => (
-        <div className="flex items-center justify-center py-2">
+        <div className="flex items-center py-2">
           <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium shadow-sm ${
             course.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
           }`}>
@@ -213,7 +213,7 @@ export default function StudentDetailPage() {
     },
     {
       header: "Enrolled Date",
-      className: "min-w-[140px]",
+      className: "w-[20%]",
       accessor: (course) => (
         <div className="flex items-center gap-3 py-2">
           <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0">
@@ -225,9 +225,9 @@ export default function StudentDetailPage() {
     },
     {
       header: "Actions",
-      className: "min-w-[160px]",
+      className: "w-[15%]",
       accessor: (course) => (
-        <div className="flex gap-2 py-2 justify-center">
+        <div className="flex gap-2 py-2">
           <button
             onClick={() => handleViewCourse(course)}
             className="p-2.5 rounded-xl border border-gray-300 text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-all duration-200 relative group shadow-sm hover:shadow-md"
@@ -239,7 +239,7 @@ export default function StudentDetailPage() {
             </div>
           </button>
           <button
-            onClick={() => handleManageCourse(course.id)}
+            onClick={() => handleManageCourse(course.courseId)}
             className="p-2.5 rounded-xl border border-gray-300 text-gray-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-all duration-200 relative group shadow-sm hover:shadow-md"
           >
             <Settings className="w-4 h-4" />
@@ -249,7 +249,7 @@ export default function StudentDetailPage() {
             </div>
           </button>
           <button
-            onClick={() => window.open(`/admin/courses/${course.id}`, '_blank')}
+            onClick={() => window.open(`/admin/courses/${course.courseId}`, '_blank')}
             className="p-2.5 rounded-xl border border-gray-300 text-gray-600 hover:bg-green-50 hover:border-green-300 hover:text-green-600 transition-all duration-200 relative group shadow-sm hover:shadow-md"
           >
             <ExternalLink className="w-4 h-4" />
@@ -614,10 +614,7 @@ export default function StudentDetailPage() {
                       <Calendar className="w-8 h-8 text-white" />
                     </div>
                     <h3 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
-                      {attendanceData.totalMeetings > 0 
-                        ? Math.round((attendanceData.totalPresent / attendanceData.totalMeetings) * 100)
-                        : 0
-                      }%
+                      {attendanceData.attendanceRate.toFixed(1)}%
                     </h3>
                     <p className="text-emerald-700 font-medium">Overall Attendance</p>
                     
@@ -626,21 +623,19 @@ export default function StudentDetailPage() {
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
                           <span className="text-emerald-700 font-medium">Present</span>
-                          <span className="font-bold text-emerald-800">{attendanceData.totalPresent}/{attendanceData.totalMeetings}</span>
+                          <span className="font-bold text-emerald-800">{attendanceData.attended}/{attendanceData.attended + attendanceData.absent}</span>
                         </div>
                         <div className="w-full bg-emerald-100 rounded-full h-3 shadow-inner">
                           <div 
                             className="bg-gradient-to-r from-emerald-400 to-teal-500 h-3 rounded-full transition-all duration-1000 shadow-sm" 
                             style={{ 
-                              width: attendanceData.totalMeetings > 0 
-                                ? `${(attendanceData.totalPresent / attendanceData.totalMeetings) * 100}%`
-                                : '0%'
+                              width: `${attendanceData.attendanceRate}%`
                             }}
                           ></div>
                         </div>
                         <div className="flex justify-between text-sm text-emerald-600">
                           <span>Absent</span>
-                          <span>{attendanceData.totalAbsent} days</span>
+                          <span>{attendanceData.absent} days</span>
                         </div>
                       </div>
                     </div>

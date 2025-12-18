@@ -722,11 +722,11 @@ export default function TeacherDetailPage() {
       </div>
 
       {/* Third Row - Teaching Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+      <div className="mb-8">
         {/* Teaching Summary */}
         <Card title="Teaching Summary" className="h-fit">
           <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 hover:shadow-lg transition-all duration-300 group">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
@@ -752,9 +752,7 @@ export default function TeacherDetailPage() {
                   </div>
                 </div>
               </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
+              
               <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200 hover:shadow-lg transition-all duration-300 group">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
