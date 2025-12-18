@@ -117,7 +117,7 @@ export default function CoursesList() {
   const columns: TableColumn<Course>[] = [
     { 
       header: "Course",
-      className: "w-2/5", 
+      className: "w-[32%]",
       accessor: (row) => (
         <div className="flex items-center gap-3">
           {row.courseImageUrl ? (
@@ -151,7 +151,7 @@ export default function CoursesList() {
     },
     {
       header: "Code",
-      className: "w-32",
+      className: "w-40",
       accessor: (row) => (
         <div className="text-sm text-gray-700">
           {row.courseCode || 'N/A'}
@@ -186,10 +186,10 @@ export default function CoursesList() {
     },
     {
       header: "Price",
-      className: "w-36",
+      className: "w-40",
       accessor: (row) => (
         <div className="space-y-1 text-sm">
-          <div className="flex items-center gap-1 text-gray-900">
+          <div className="flex items-center gap-1 text-gray-900 whitespace-nowrap">
             {formatVND(row.standardPrice || 0)} ₫
           </div>
           
