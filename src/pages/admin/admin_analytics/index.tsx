@@ -280,8 +280,8 @@ export default function AdminAnalytics() {
             size="sm"
             onClick={() => loadDashboardData()}
             disabled={loading}
+            iconLeft={<RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />}
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh Data
           </Button>
         </div>
