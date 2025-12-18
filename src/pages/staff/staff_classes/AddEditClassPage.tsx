@@ -22,6 +22,7 @@ import {
   Users,
   UserPlus,
   MailWarning,
+  Send,
   X,
   Search,
   Check,
@@ -1030,10 +1031,14 @@ export default function AddEditClassPage() {
                      </div>
                  </DialogBody>
                  <DialogFooter>
-                     <Button variant="secondary" onClick={() => setIsPostponeOpen(false)}>Cancel</Button>
-                     <Button onClick={handleNotifyPostpone} disabled={isLoading} className="bg-amber-600 hover:bg-amber-700 text-white flex items-center">
-                         {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <MailWarning className="w-4 h-4 mr-2" />} Send Notifications
-                     </Button>
+                    <Button 
+                        onClick={handleNotifyPostpone} 
+                        disabled={isLoading} 
+                        className="bg-amber-600 hover:bg-amber-700 text-white"
+                        iconLeft={isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    >
+                        Send Notifications
+                    </Button>
                  </DialogFooter>
              </DialogContent>
          </Dialog>

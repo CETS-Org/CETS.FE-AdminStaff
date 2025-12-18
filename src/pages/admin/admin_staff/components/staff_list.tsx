@@ -93,7 +93,6 @@ export default function StaffList() {
       setLoading(true);
       setError(null);
       const data = await getStaffs();
-      console.log("Staffs data:", data);
       setStaffs(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch staffs');
@@ -157,11 +156,9 @@ export default function StaffList() {
   };
 
   const handleBulkExport = () => {
-    console.log("Bulk export:", selectedStaffs);
   };
 
   const handleBulkDelete = () => {
-    console.log("Bulk delete:", selectedStaffs);
     setSelectedStaffs([]);
   };
 
@@ -316,7 +313,6 @@ export default function StaffList() {
   ];
 
   const handleAdd = () => {
-    console.log("handleAdd called - opening Add Staff dialog");
     setAddEditDialog({ open: true, staff: null, mode: "add" });
   };
 
@@ -337,10 +333,8 @@ export default function StaffList() {
       try {
         if (deleteDialog.action === 'ban') {
           await setIsDelete(deleteDialog.staff.accountId);
-          console.log("Banned staff:", deleteDialog.staff.accountId);
         } else if (deleteDialog.action === 'unban') {
           await setIsActive(deleteDialog.staff.accountId);
-          console.log("Unbanned staff:", deleteDialog.staff.accountId);
         }
         
         // Refresh data from API to get updated status

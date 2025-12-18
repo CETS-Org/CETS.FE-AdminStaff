@@ -331,7 +331,6 @@ export default function StaffAnalytics() {
               ,
               onClick: () => {
                 // Handle export functionality
-                console.log('Export data clicked');
               }
             }
           ] as PageHeaderControl[]}

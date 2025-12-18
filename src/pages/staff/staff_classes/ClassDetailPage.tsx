@@ -134,7 +134,6 @@ export default function ClassDetailPage() {
   };
 
   const handleConfirmDelete = () => {
-    console.log("Delete class:", classId);
     if (isStandaloneRoute) {
       navigate(`/staff/classes`);
     } else {

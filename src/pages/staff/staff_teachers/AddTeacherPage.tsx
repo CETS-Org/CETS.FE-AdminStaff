@@ -360,12 +360,10 @@ export default function AddEditTeacherPage() {
   };
 
   const updateCredential = (id: string, field: keyof CredentialFormData, value: string) => {
-    console.log(`Updating credential ${id}, field: ${field}, value length: ${value?.length}, value preview: ${value?.substring(0, 50)}`);
     setFormData(prev => {
       const updatedCredentials = prev.credentials.map(cred => {
         if (cred.id === id) {
           const updated = { ...cred, [field]: value };
-          console.log('Updated credential:', { id, field, newValue: updated[field] });
           return updated;
         }
         return cred;
@@ -413,8 +411,6 @@ export default function AddEditTeacherPage() {
         ...prev,
         credentials: updatedCredentials
       };
-      console.log('FormData updated, credentials count:', newFormData.credentials.length);
-      console.log('Credential with updated field:', newFormData.credentials.find(c => c.id === id));
       
       return newFormData;
     });
@@ -432,8 +428,6 @@ export default function AddEditTeacherPage() {
         }
       );
       
-      console.log('📤 Upload response received:', response.data);
-      
       // Upload file to presigned URL
       const uploadResponse = await fetch(response.data.uploadUrl, {
         method: 'PUT',
@@ -449,8 +443,6 @@ export default function AddEditTeacherPage() {
       
       // Use filePath as the public URL
       const publicUrl = response.data.filePath;
-      
-      console.log('✅ Upload completed. Received cloud URL:', publicUrl);
       
       return publicUrl;
     } catch (error) {
@@ -501,9 +493,7 @@ export default function AddEditTeacherPage() {
       const updatedCredentials = await Promise.all(
         formData.credentials.map(async (cred) => {
           if (cred.imageFile) {
-            console.log(`📤 Uploading image for credential ${cred.id}...`);
             const publicUrl = await handleCredentialImageUpload(cred.id, cred.imageFile);
-            console.log(`✅ Image uploaded for credential ${cred.id}, received URL:`, publicUrl);
             
             // Return credential with cloud URL
             return {
@@ -523,7 +513,6 @@ export default function AddEditTeacherPage() {
         credentials: updatedCredentials
       }));
       
-      console.log('📋 Updated credentials with cloud URLs:', updatedCredentials);
       
       // Wait a bit for state to update
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -546,13 +535,9 @@ export default function AddEditTeacherPage() {
     setIsLoading(true);
     try {
       // Step 1: Upload all credential images to cloud and get URLs
-      console.log('📤 Step 1: Uploading credential images to cloud...');
       const credentialsWithCloudUrls = await uploadCredentialImages();
       
-      console.log('✅ Step 1 completed. Credentials with cloud URLs:', credentialsWithCloudUrls);
-      
       // Step 2: Create teacher with credentials that have cloud URLs attached to pictureUrl
-      console.log('👤 Step 2: Creating teacher with cloud URLs...');
       const teacherData: AddTeacherProfile = {
         email: formData.email,
         phoneNumber: formData.phoneNumber,
@@ -573,12 +558,10 @@ export default function AddEditTeacherPage() {
           }))
       };
       
-      console.log('📋 Creating teacher with data:', teacherData);
-      console.log('📸 Credentials pictureUrls:', teacherData.credentials.map(c => c.pictureUrl));
-      
       const createdTeacher = await createTeacher(teacherData);
       
-      console.log('✅ Teacher created successfully:', createdTeacher);
+      // Show success message with email notification info
+      alert(`Teacher account created successfully!\n\nAn email containing login credentials has been sent to:\n${teacherData.email}\n\nThe teacher can use this email and the password provided in the email to log in to the system.`);
       
       
       
@@ -1028,7 +1011,6 @@ export default function AddEditTeacherPage() {
                                   }}
                                   onClick={() => setViewingImage({ url: cred.pictureUrl!, name: cred.name || 'Credential' })}
                                   onLoad={(e) => {
-                                    console.log('✅ Image loaded successfully for credential:', cred.id);
                                     // Ensure image is visible
                                     e.currentTarget.style.opacity = '1';
                                     e.currentTarget.style.visibility = 'visible';
@@ -1089,8 +1071,6 @@ export default function AddEditTeacherPage() {
                                     }
                                     
                                     // Store file object and show preview from local file
-                                    console.log('Storing file for credential:', cred.id);
-                                    
                                     // Store file object for later upload
                                     setFormData(prev => ({
                                       ...prev,
@@ -1103,7 +1083,6 @@ export default function AddEditTeacherPage() {
                                     const reader = new FileReader();
                                     reader.onload = (event) => {
                                       const localPreview = event.target?.result as string;
-                                      console.log('Local preview loaded for review');
                                       if (localPreview && localPreview.startsWith('data:image')) {
                                         // Store as preview URL (base64) for review
                                         updateCredential(cred.id, 'pictureUrl', localPreview);

@@ -387,17 +387,12 @@ export default function RoomSchedulePopup({
     }
   }, [open]);
 
-  // Debug log
-  console.log('RoomSchedulePopup render:', { open, room: room.roomCode, classInfo, hasClass, popupLeft });
-
   const handleBookThisSlotClick = () => {
-    console.log('Book This Slot clicked for room', room.id, 'date', date, 'slot', timeSlot);
     handleBookSlotClick();
   };
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
-      console.log('Dialog onOpenChange:', isOpen);
       if (!isOpen) onClose();
     }}>
       <DialogContent 

@@ -36,12 +36,7 @@ export const getStaffs = async (): Promise<Account[]> => {
   export const getStaffById = async (id: string): Promise<Account> => {
     try {
       const url = `${endpoint.account}/${id}`;
-      console.log("API URL:", url);
-      console.log("Base URL:", api.defaults.baseURL);
-      console.log("Full URL:", `${api.defaults.baseURL}${url}`);
-      
       const response = await api.get<Account>(url);
-      console.log("API Response:", response);
       return response.data as Account;
     } catch (error) {
       console.error(`Error fetching student ${id}:`, error);

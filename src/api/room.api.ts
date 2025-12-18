@@ -106,16 +106,11 @@ export const updateRoom = async (id: string, roomData: UpdateRoom): Promise<Room
       isActive: roomData.isActive ?? true
     };
 
-    console.log('Sending PATCH request to:', `${endpoint.room}/${id}`);
-    console.log('Request payload:', JSON.stringify(updatePayload, null, 2));
-
     const response = await api.patch<Room>(`${endpoint.room}/${id}`, updatePayload, {
       headers: {
         'Content-Type': 'application/json',
       },
     });
-
-    console.log('Update room response:', response.data);
     return response.data;
   } catch (error: any) {
     console.error('Error updating room:', error);

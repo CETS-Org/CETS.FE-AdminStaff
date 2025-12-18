@@ -495,7 +495,6 @@ export default function StaffRequestPage() {
     if (confirmRequest) {
       const status = confirmAction === "approve" ? "approved" : "rejected";
       await handleStatusChange(confirmRequest.id, status, reply);
-      console.log(`${status} with reply:`, reply);
     }
     setShowConfirmDialog(false);
     setConfirmRequest(null);

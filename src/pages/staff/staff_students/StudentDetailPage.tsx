@@ -95,7 +95,6 @@ export default function StudentDetailPage() {
 
       try {
         setCoursesLoading(true);
-        console.log("Fetching enrolled courses for student:", id);
         const coursesData = await getListCourseEnrollment(id);
         // Sort so that active courses are at the top, then by createdAt descending
         coursesData.sort((a, b) => {
@@ -106,7 +105,6 @@ export default function StudentDetailPage() {
           // Then, sort by createdAt descending
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         });
-        console.log("Enrolled courses data received:", coursesData);
         setEnrolledCourses(coursesData);
       } catch (err) {
         console.error("Error fetching enrolled courses:", err);

@@ -263,10 +263,8 @@ export default function StudentsList() {
       try {
         if (deleteDialog.action === 'ban') {
           await setIsDelete(deleteDialog.student.accountId);
-          console.log("Banned student:", deleteDialog.student.accountId);
         } else if (deleteDialog.action === 'unban') {
           await setIsActive(deleteDialog.student.accountId);
-          console.log("Unbanned student:", deleteDialog.student.accountId);
         }
         
         // Refresh data from API to get updated status
@@ -310,11 +308,9 @@ export default function StudentsList() {
   };
 
   const handleBulkExport = () => {
-    console.log("Bulk export:", selectedStudents);
   };
 
   const handleBulkDelete = () => {
-    console.log("Bulk delete:", selectedStudents);
     setSelectedStudents([]);
   };
 

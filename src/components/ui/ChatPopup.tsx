@@ -153,7 +153,6 @@ export default function ChatPopup({
 
   const handleSendMessage = () => {
     if (newMessage.trim()) {
-      console.log("Sending message:", newMessage);
       setNewMessage("");
     }
   };
