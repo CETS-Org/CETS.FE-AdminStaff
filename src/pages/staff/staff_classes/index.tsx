@@ -348,22 +348,7 @@ export default function StaffClassesPage() {
         title="Class Management"
         description="Manage individual class sessions and schedules"
         icon={<Users className="w-5 h-5 text-white" />}
-        controls={[
-          {
-            type: 'button',
-            label: 'View Analytics',
-            variant: 'secondary',
-            icon: <BarChart3 className="w-4 h-4" />,
-            onClick: handleViewAnalytics
-          },
-          {
-            type: 'button',
-            label: 'Export Data',
-            variant: 'secondary',
-            icon: <Download className="w-4 h-4" />,
-            onClick: handleExportData
-          }
-        ]}
+       
       />
 
       {/* Stats Cards */}
