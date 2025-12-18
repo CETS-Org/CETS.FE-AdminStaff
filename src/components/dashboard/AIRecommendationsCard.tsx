@@ -1,4 +1,4 @@
-import { Brain, TrendingUp, Users, DollarSign, Target, Sparkles, ChevronRight } from 'lucide-react';
+import { Brain, TrendingUp, Users, DollarSign, Target, Sparkles, ChevronRight, RefreshCw } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 
@@ -125,8 +125,7 @@ export default function AIRecommendationsCard({
             </div>
           </div>
           {onRefresh && (
-            <Button variant="secondary" size="sm" onClick={onRefresh}>
-              <Sparkles className="w-4 h-4 mr-2" />
+            <Button variant="secondary" size="sm" onClick={onRefresh} iconLeft={<RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />}>
               Refresh
             </Button>
           )}

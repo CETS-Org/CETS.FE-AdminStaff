@@ -6,7 +6,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import CoursesList from "./components/CoursesList";
 import Button from "@/components/ui/Button";
-import { BookOpen, Users, Clock, Award, AlertCircle, Loader2 } from "lucide-react";
+import { BookOpen, Users, Clock, Award, AlertCircle, Loader2, RotateCcw } from "lucide-react";
 import { getCoursesList } from "@/api/course.api";
 import type { Course } from "@/types/course.types";
 
@@ -103,7 +103,12 @@ export default function StaffCoursesPage() {
               <h3 className="text-lg font-semibold text-red-900">Error Loading Statistics</h3>
               <p className="text-red-700">{error}</p>
             </div>
-            <Button variant="secondary" onClick={handleRetry} className="text-red-600 border-red-300 hover:bg-red-100">
+            <Button
+              variant="secondary"
+              onClick={handleRetry}
+              className="text-red-600 border-red-300 hover:bg-red-100"
+              iconLeft={<RotateCcw className="w-4 h-4" />}
+            >
               Try Again
             </Button>
           </div>
