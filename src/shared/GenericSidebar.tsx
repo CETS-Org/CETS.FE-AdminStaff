@@ -50,15 +50,14 @@ export default function GenericSidebar({
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
 
   useEffect(() => {
-    if (config.submenuPathPrefix) {
-      const currentItem = config.items.find(item => 
-        item.subItems && location.pathname.startsWith(config.submenuPathPrefix!)
-      );
-      if (currentItem) {
-        setOpenSubmenu(currentItem.id);
-      }
+    // Find which submenu should be open based on current path
+    const activeSubmenu = config.items.find(item => 
+      item.subItems && item.subItems.some(sub => location.pathname.startsWith(sub.path))
+    );
+    if (activeSubmenu) {
+      setOpenSubmenu(activeSubmenu.id);
     }
-  }, [location.pathname, config.submenuPathPrefix, config.items]);
+  }, [location.pathname, config.items]);
 
   const isActive = (path?: string) => path && location.pathname.startsWith(path);
 
@@ -125,23 +124,29 @@ export default function GenericSidebar({
                       <button
                         onClick={() => handleSubmenuToggle(item.id)}
                         className={cn(
-                          "w-full flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-sidebar-hover",
+                          "w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-sidebar-hover",
                           isSubmenuActive && "bg-sidebar-active font-semibold shadow-md",
                           collapsed && "lg:justify-center lg:px-2"
                         )}
                       >
-                        <div className="flex items-center gap-3">
-                          <item.icon className="h-4 w-4 shrink-0 text-white" />
-                          <span className={cn("truncate", collapsed && "lg:hidden")}>{item.label}</span>
-                        </div>
+                        <span className="w-5 h-5 flex items-center justify-center shrink-0">
+                          <item.icon className="h-4 w-4 text-white" />
+                        </span>
+                        <span className={cn("truncate flex-1 text-left", collapsed && "lg:hidden")}>{item.label}</span>
                         <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", isOpen && "rotate-180", collapsed && "lg:hidden")} />
                       </button>
                       {isOpen && !collapsed && (
                         <ul className="pl-6 pt-2 space-y-2">
-                          {item.subItems.map(subItem => (
+                          {item.subItems.map(subItem => {
+                            // Check if this subItem has sibling paths that are more specific
+                            const hasSiblingWithSamePath = item.subItems!.some(
+                              s => s.id !== subItem.id && s.path.startsWith(subItem.path)
+                            );
+                            return (
                              <li key={subItem.id}>
                                <NavLink
                                  to={subItem.path}
+                                 end={hasSiblingWithSamePath}
                                  onClick={onNavigate}
                                  className={({ isActive: isNavItemActive }) =>
                                    cn(
@@ -150,11 +155,14 @@ export default function GenericSidebar({
                                    )
                                  }
                                >
-                                 <subItem.icon className="h-4 w-4 shrink-0 text-white" />
+                                 <span className="w-5 h-5 flex items-center justify-center shrink-0">
+                                   <subItem.icon className="h-4 w-4 text-white" />
+                                 </span>
                                  <span>{subItem.label}</span>
                                </NavLink>
                              </li>
-                          ))}
+                            );
+                          })}
                         </ul>
                       )}
                     </li>
@@ -174,18 +182,18 @@ export default function GenericSidebar({
                           collapsed && "lg:justify-center lg:px-2"
                         )}
                     >
-                        <div className="flex items-center gap-3 w-full">
-                          <item.icon className="h-4 w-4 shrink-0 text-white" />
-                          <span className={cn("truncate flex-1", collapsed && "lg:hidden")}>{item.label}</span>
-                          {item.badge && item.badge > 0 && !collapsed && (
-                            <span className={cn(
-                              "text-xs font-semibold px-2 py-1 rounded-full min-w-[20px] text-center",
-                              active ? "bg-white text-primary" : "bg-white/20 text-white"
-                            )}>
-                              {item.badge}
-                            </span>
-                          )}
-                        </div>
+                        <span className="w-5 h-5 flex items-center justify-center shrink-0">
+                          <item.icon className="h-4 w-4 text-white" />
+                        </span>
+                        <span className={cn("truncate flex-1", collapsed && "lg:hidden")}>{item.label}</span>
+                        {item.badge && item.badge > 0 && !collapsed && (
+                          <span className={cn(
+                            "text-xs font-semibold px-2 py-1 rounded-full min-w-[20px] text-center",
+                            active ? "bg-white text-primary" : "bg-white/20 text-white"
+                          )}>
+                            {item.badge}
+                          </span>
+                        )}
                     </NavLink>
                   </li>
                 );

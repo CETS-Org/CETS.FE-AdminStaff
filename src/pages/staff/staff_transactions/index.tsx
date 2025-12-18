@@ -249,7 +249,6 @@ export default function StaffTransactionsPage() {
       label: "Export Selected",
       icon: <Download className="w-4 h-4" />,
       onClick: (selectedTransactions) => {
-        console.log("Exporting:", selectedTransactions);
         alert(`Exporting ${selectedTransactions.length} transactions`);
       },
       variant: "secondary",

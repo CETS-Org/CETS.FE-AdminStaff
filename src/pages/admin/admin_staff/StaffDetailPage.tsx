@@ -72,9 +72,7 @@ export default function StaffDetailPage() {
       try {
         setLoading(true);
         setError(null);
-        console.log("Fetching staff with ID:", id);
         const staffData = await getStaffById(id);
-        console.log("Staff data received:", staffData);
         setStaff(staffData);
       } catch (err) {
         console.error("Error fetching staff:", err);
@@ -150,7 +148,6 @@ export default function StaffDetailPage() {
   const handleAddNote = () => {
     if (newNote.trim()) {
       // Add new note logic
-      console.log("Adding note:", newNote);
       setNewNote("");
     }
   };

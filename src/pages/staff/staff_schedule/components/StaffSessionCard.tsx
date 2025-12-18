@@ -1,5 +1,5 @@
 // src/components/schedule/StaffSessionCard.tsx
-import { Edit, Trash2, MapPin, Video, FileText, Ban, CheckCircle2, Clock } from "lucide-react";
+import { MapPin, Video, FileText, Ban, CheckCircle2, Clock } from "lucide-react";
 import type { StaffSession } from "@/components/schedule";
 
 type ScheduleDisplayMode = 'full' | 'classOnly' | 'roomOnly';
@@ -9,8 +9,6 @@ type StaffSessionCardProps = {
   startLabel: string;
   endLabel: string;
   onSessionClick: (session: StaffSession, startLabel: string, endLabel: string) => void;
-  onEdit: (session: StaffSession) => void;
-  onDelete: (session: StaffSession) => void;
   displayMode?: ScheduleDisplayMode;
 };
 
@@ -19,8 +17,6 @@ export default function StaffSessionCard({
   startLabel,
   endLabel,
   onSessionClick,
-  onEdit,
-  onDelete,
   displayMode = 'full',
 }: StaffSessionCardProps) {
   
@@ -116,24 +112,6 @@ export default function StaffSessionCard({
             </div>
         )}
       </button>
-      
-      {/* --- HOVER ACTIONS --- */}
-      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-col gap-1 z-10 translate-x-2 group-hover:translate-x-0">
-        <button
-          onClick={(e) => { e.stopPropagation(); onEdit(session); }}
-          className="p-1.5 bg-white hover:bg-blue-50 rounded-full shadow-md border border-gray-200 text-blue-600 transition-transform hover:scale-110"
-          title="Edit"
-        >
-          <Edit className="w-3.5 h-3.5" />
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); onDelete(session); }}
-          className="p-1.5 bg-white hover:bg-red-50 rounded-full shadow-md border border-gray-200 text-red-500 transition-transform hover:scale-110"
-          title="Delete"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
-      </div>
     </div>
   );
 }

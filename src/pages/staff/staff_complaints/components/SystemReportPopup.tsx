@@ -137,7 +137,6 @@ const SystemReportPopup: React.FC<SystemReportPopupProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('Submit button clicked', { userId, formData, isSubmitting, isLoadingTypes });
     
     if (!userId || userId === "00000000-0000-0000-0000-000000000000") {
       showError('User ID not found. Please login again.');

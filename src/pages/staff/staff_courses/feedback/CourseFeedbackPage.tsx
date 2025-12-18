@@ -18,17 +18,19 @@ import {
   Award
 } from "lucide-react";
 import { getCourseFeedbacks, type CourseFeedback } from "@/api/feedback.api";
+import { isStaffUser } from "@/lib/utils";
 
 export default function CourseFeedbackPage() {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
+  const isStaff = isStaffUser();
+  const basePath = isStaff ? '/staff' : '/admin';
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [feedbacks, setFeedbacks] = useState<CourseFeedback[]>([]);
   const [activeTab, setActiveTab] = useState<'course' | 'teacher'>('course');
 
   useEffect(() => {
-    console.log("CourseFeedbackPage mounted, courseId:", courseId);
     if (courseId) {
       fetchFeedbacks();
     } else {
@@ -40,17 +42,9 @@ export default function CourseFeedbackPage() {
 
   const fetchFeedbacks = async () => {
     try {
-      console.log("Fetching feedbacks for courseId:", courseId);
       setLoading(true);
       setError(null);
       const response = await getCourseFeedbacks(courseId!);
-      console.log("Feedbacks response:", response.data);
-      console.log("Feedback types:", response.data.map(f => ({
-        id: f.feedbackId,
-        typeName: f.feedbackTypeName,
-        hasCourseFields: !!(f.contentClarity || f.courseRelevance || f.materialsQuality),
-        hasTeacherFields: !!(f.teachingEffectiveness || f.communicationSkills || f.teacherSupportiveness)
-      })));
       setFeedbacks(response.data);
     } catch (err: any) {
       console.error("Error fetching feedbacks:", err);
@@ -140,7 +134,7 @@ export default function CourseFeedbackPage() {
   };
 
   const breadcrumbItems = [
-    { label: "Courses", href: "/admin/courses" },
+    { label: "Courses", href: `${basePath}/courses` },
     { label: "Course Feedbacks" }
   ];
 
@@ -183,20 +177,20 @@ export default function CourseFeedbackPage() {
     <div className="mt-16 p-4 md:p-8 lg:pl-0 space-y-8">
       <Breadcrumbs items={breadcrumbItems} />
       
-      <div className="flex items-center justify-between">
-        <PageHeader
-          title="Course Feedbacks"
-          description="View and analyze student feedback for this course"
-          icon={<MessageSquare className="w-5 h-5 text-white" />}
-        />
-        <Button
-          variant="secondary"
-          onClick={() => navigate("/admin/courses")}
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Courses
-        </Button>
-      </div>
+      <PageHeader
+        title="Course Feedbacks"
+        description="View and analyze student feedback for this course"
+        icon={<MessageSquare className="w-5 h-5 text-white" />}
+        controls={[
+          {
+            type: 'button',
+            label: 'Back to Courses',
+            variant: 'secondary',
+            icon: <ArrowLeft className="w-4 h-4" />,
+            onClick: () => navigate(`${basePath}/courses`)
+          }
+        ]}
+      />
 
       {loading ? (
         <Card>

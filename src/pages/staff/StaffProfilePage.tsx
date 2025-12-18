@@ -235,7 +235,6 @@ export default function StaffProfilePage() {
             try {
               const emailExists = await checkEmailExist(emailValue);
               // checkEmailExist returns true if email EXISTS in database (including 404), false if email is UNIQUE
-              console.log("Email uniqueness check:", { emailValue, emailExists, shouldShowError: emailExists });
               if (emailExists) {
                 setErrors((prev) => ({ ...prev, email: "Email already exists" }));
               } else {
@@ -277,7 +276,6 @@ export default function StaffProfilePage() {
             try {
               const phoneExists = await checkPhoneExist(phoneValue);
               // checkPhoneExist returns true if phone EXISTS in database (including 404), false if phone is UNIQUE
-              console.log("Phone uniqueness check:", { phoneValue, phoneExists, shouldShowError: phoneExists });
               if (phoneExists) {
                 setErrors((prev) => ({ ...prev, phoneNumber: "Phone number already exists" }));
               } else {
@@ -322,7 +320,6 @@ export default function StaffProfilePage() {
             try {
               const cidExists = await checkCIDExist(cidValue);
               // checkCIDExist returns true if CID EXISTS in database (including 404), false if CID is UNIQUE
-              console.log("CID uniqueness check:", { cidValue, cidExists, shouldShowError: cidExists });
               if (cidExists) {
                 setErrors((prev) => ({ ...prev, cid: "CID already exists" }));
               } else {
@@ -406,7 +403,6 @@ export default function StaffProfilePage() {
         try {
           const emailExists = await checkEmailExist(emailValue);
           // checkEmailExist returns true if email EXISTS in database (including 404), false if email is UNIQUE
-          console.log("Final email check:", { emailValue, originalEmail, emailExists });
           if (emailExists) {
             setErrors((prev) => ({ ...prev, email: "Email already exists" }));
             return;
@@ -426,7 +422,6 @@ export default function StaffProfilePage() {
         try {
           const phoneExists = await checkPhoneExist(phoneValue);
           // checkPhoneExist returns true if phone EXISTS in database (including 404), false if phone is UNIQUE
-          console.log("Final phone check:", { phoneValue, originalPhone, phoneExists });
           if (phoneExists) {
             setErrors((prev) => ({ ...prev, phoneNumber: "Phone number already exists" }));
             return;
@@ -446,7 +441,6 @@ export default function StaffProfilePage() {
         try {
           const cidExists = await checkCIDExist(cidValue);
           // checkCIDExist returns true if CID EXISTS in database (including 404), false if CID is UNIQUE
-          console.log("Final CID check:", { cidValue, originalCID, cidExists });
           if (cidExists) {
             setErrors((prev) => ({ ...prev, cid: "CID already exists" }));
             return;

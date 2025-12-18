@@ -94,9 +94,7 @@ const CourseDetailPage: React.FC = () => {
     
     try {
       setIsDeleting(true);
-      console.log('Deleting course:', id);
       await deleteCourse(id);
-      console.log('Course deleted successfully');
       
       // Close dialog and navigate back to courses list
       setDeleteCourseDialog(false);

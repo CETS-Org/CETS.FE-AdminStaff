@@ -319,7 +319,6 @@ export default function StaffRoomsPage() {
           url: window.location.href,
         });
       } catch (err) {
-        console.log('Error sharing:', err);
       }
     } else {
       // Fallback: copy to clipboard

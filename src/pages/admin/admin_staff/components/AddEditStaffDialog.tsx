@@ -27,10 +27,6 @@ export default function AddEditStaffDialog({
 }: AddEditStaffDialogProps) {
   const navigate = useNavigate();
   
-  // Debug log
-  useEffect(() => {
-    console.log("AddEditStaffDialog rendered - open:", open, "mode:", mode);
-  }, [open, mode]);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -51,10 +47,6 @@ export default function AddEditStaffDialog({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   
-  // Debug: Log when isConfirmOpen changes
-  useEffect(() => {
-    console.log("isConfirmOpen changed to:", isConfirmOpen);
-  }, [isConfirmOpen]);
 
   // Derived form validity for disabling submit
   const isFormValid = (() => {
@@ -105,7 +97,6 @@ export default function AddEditStaffDialog({
 
   // Initialize form data when dialog opens or staff changes
   useEffect(() => {
-    console.log("AddEditStaffDialog - open:", open, "mode:", mode, "staff:", staff);
     if (open) {
       if (mode === "edit" && staff) {
         setFormData({
@@ -160,44 +151,36 @@ export default function AddEditStaffDialog({
   }, [open, mode, staffRoles]);
 
   const validateForm = () => {
-    console.log("validateForm called - formData:", formData, "mode:", mode);
     const newErrors: Record<string, string> = {};
 
     if (!formData.fullName.trim()) {
       newErrors.fullName = "Full name is required";
-      console.log("Validation error: fullName is required");
     }
 
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
-      console.log("Validation error: email is required");
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = "Please enter a valid email";
-      console.log("Validation error: email format invalid");
     }
 
     // Required phone validation
     if (!formData.phoneNumber.trim()) {
       newErrors.phoneNumber = "Phone number is required";
-      console.log("Validation error: phoneNumber is required");
     } else {
       const phoneRegex = /^0\d{9}$/;
       const cleanedPhone = formData.phoneNumber.replace(/\s/g, '');
       if (!phoneRegex.test(cleanedPhone)) {
         newErrors.phoneNumber = "Phone number must start with 0 and have 10 digits";
-        console.log("Validation error: phoneNumber format invalid - cleaned:", cleanedPhone);
       }
     }
 
     if (!formData.dateOfBirth) {
       newErrors.dateOfBirth = "Date of birth is required";
-      console.log("Validation error: dateOfBirth is required");
     } else {
       const dob = new Date(formData.dateOfBirth);
       const today = new Date();
       if (dob > today) {
         newErrors.dateOfBirth = "Date of birth cannot be in the future";
-        console.log("Validation error: dateOfBirth is in the future");
       } else {
         // Calculate age
         const age = today.getFullYear() - dob.getFullYear();
@@ -209,20 +192,17 @@ export default function AddEditStaffDialog({
         
         if (actualAge < 18) {
           newErrors.dateOfBirth = "Age must be at least 18 years old";
-          console.log("Validation error: age is less than 18 - actualAge:", actualAge);
         }
       }
     }
 
     if (!formData.cid.trim()) {
       newErrors.cid = "CID is required";
-      console.log("Validation error: cid is required");
     } else {
       const cidRegex = /^\d{9,12}$/;
       const trimmedCid = formData.cid.trim();
       if (!cidRegex.test(trimmedCid)) {
         newErrors.cid = "CID must be 9-12 digits";
-        console.log("Validation error: cid format invalid - trimmed:", trimmedCid);
       }
     }
 
@@ -231,10 +211,8 @@ export default function AddEditStaffDialog({
     //   newErrors.roleID = "Role is required";
     // }
 
-    console.log("Validation errors:", newErrors);
     setErrors(newErrors);
     const isValid = Object.keys(newErrors).length === 0;
-    console.log("Validation result:", isValid);
     return isValid;
   };
 
@@ -276,12 +254,9 @@ export default function AddEditStaffDialog({
   };
 
   const performSave = async () => {
-    console.log("performSave called - mode:", mode);
     const isValid = validateForm();
-    console.log("validateForm result:", isValid, "errors:", errors);
     
     if (isValid) {
-      console.log("Form is valid, proceeding to save...");
       setIsLoading(true);
       setUpdateError(null);
       
@@ -323,7 +298,6 @@ export default function AddEditStaffDialog({
           });
         } else {
           // For add mode, use the addStaff API
-          console.log("Add mode - preparing staff data");
           const staffData: AddStaffProfile = {
             email: formData.email.trim() || null,
             phoneNumber: formData.phoneNumber.trim() || null,
@@ -335,9 +309,7 @@ export default function AddEditStaffDialog({
             roleID: formData.roleID || null
           };
           
-          console.log("Calling addStaff API with data:", staffData);
           const created = await addStaff(staffData);
-          console.log("addStaff API response:", created);
           
           // Show success message with email notification info
           alert(`Staff account created successfully!\n\nAn email containing login credentials has been sent to:\n${staffData.email}\n\nThe staff member can use this email and the password provided in the email to log in to the system.`);
@@ -378,8 +350,6 @@ export default function AddEditStaffDialog({
       } finally {
         setIsLoading(false);
       }
-    } else {
-      console.log("Form validation failed, not saving");
     }
   };
 
@@ -676,11 +646,9 @@ export default function AddEditStaffDialog({
     <ConfirmationDialog
       isOpen={isConfirmOpen}
       onClose={() => {
-        console.log("ConfirmationDialog onClose called");
         setIsConfirmOpen(false);
       }}
       onConfirm={() => {
-        console.log("ConfirmationDialog onConfirm called");
         setIsConfirmOpen(false);
         void performSave();
       }}

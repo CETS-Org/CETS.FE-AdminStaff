@@ -26,11 +26,8 @@ export default function PromotionManagement() {
       setLoading(true);
       setError(null);
       
-      console.log("Fetching promotions from API...");
-      
       // Call API to get promotions
       const promotionsData = await getPromotions();
-      console.log("Promotions data received:", promotionsData);
       
       setPromotions(promotionsData);
     } catch (err: any) {
@@ -48,16 +45,12 @@ export default function PromotionManagement() {
 
   const handleDelete = async (promotionId: string) => {
     try {
-      console.log("Deleting promotion:", promotionId);
-      
       // Call API to delete promotion
       await deletePromotion(promotionId);
       
       // Update local state
       setPromotions(prev => prev.filter(p => p.id !== promotionId));
       setDeleteDialog({ open: false, promotion: null });
-      
-      console.log("Promotion deleted successfully");
     } catch (err: any) {
       console.error('Error deleting promotion:', err);
       const errorMessage = err.response?.data?.message || 'Failed to delete promotion. Please try again.';
@@ -205,15 +198,12 @@ export default function PromotionManagement() {
       onClick: async (selectedItems: Promotion[]) => {
         try {
           const ids = selectedItems.map(item => item.id);
-          console.log("Bulk delete:", ids);
           
           if (window.confirm(`Are you sure you want to delete ${ids.length} promotion(s)?`)) {
             await bulkDeletePromotions(ids);
             
             // Update local state
             setPromotions(prev => prev.filter(p => !ids.includes(p.id)));
-            
-            console.log("Bulk delete successful");
           }
         } catch (err: any) {
           console.error('Error bulk deleting promotions:', err);
@@ -230,14 +220,11 @@ export default function PromotionManagement() {
       onClick: async (selectedItems: Promotion[]) => {
         try {
           const ids = selectedItems.map(item => item.id);
-          console.log("Bulk activate:", ids);
           
           await bulkActivatePromotions(ids);
           
           // Refresh data to get updated status
           await fetchPromotions();
-          
-          console.log("Bulk activate successful");
         } catch (err: any) {
           console.error('Error bulk activating promotions:', err);
           const errorMessage = err.response?.data?.message || 'Failed to activate promotions. Please try again.';

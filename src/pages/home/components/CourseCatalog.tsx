@@ -400,7 +400,6 @@ export default function CourseCatalog({ onCourseSelect }: CourseCatalogProps) {
       onCourseSelect(course);
     } else {
       // Default behavior - you can add navigation logic here
-      console.log("Enrolling in course:", course.title);
     }
   };
 

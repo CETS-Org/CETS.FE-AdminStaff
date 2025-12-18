@@ -76,7 +76,6 @@ export default function CourseDetail({ course }: CourseDetailProps) {
 
   const handleEnrollmentSubmit = () => {
     // Handle enrollment submission
-    console.log("Enrollment data:", enrollmentData);
     setShowEnrollmentDialog(false);
     // You can add success notification here
   };

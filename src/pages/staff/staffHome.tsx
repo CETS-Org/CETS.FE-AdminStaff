@@ -38,6 +38,7 @@ import StaffPlacementTestTaking from "./staff_placement_test/StaffPlacementTestT
 import StaffProfilePage from "./StaffProfilePage";
 import StaffCoursesPage from "./staff_courses/list/CoursesListPage";
 import { CourseDetailPage } from "./staff_courses";
+import { CourseFeedbackPage } from "./staff_courses/feedback";
 
 export default function StaffHome() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -119,6 +120,7 @@ export default function StaffHome() {
             {/* View-only routes for staff */}
             <Route path="courses" element={<StaffCoursesPage />} />
             <Route path="courses/:id" element={<CourseDetailPage />} />
+            <Route path="courses/:courseId/feedback" element={<CourseFeedbackPage />} />
             <Route path="teachers" element={<TeacherManagement />} />
             <Route path="teachers/:id" element={<TeacherDetailPage />} />
             <Route path="students" element={<StaffStudentsPage />} />

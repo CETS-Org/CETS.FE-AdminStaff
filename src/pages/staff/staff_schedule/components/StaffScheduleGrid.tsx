@@ -17,8 +17,6 @@ type Props = {
   todayIdx: number;
   selectedIdx: number;
   onSessionClick: (session: StaffSession, startLabel: string, endLabel: string) => void;
-  onEdit: (session: StaffSession) => void;
-  onDelete: (session: StaffSession) => void;
   displayMode?: ScheduleDisplayMode;
 };
 
@@ -32,8 +30,6 @@ export default function StaffScheduleGrid({
   todayIdx,
   selectedIdx,
   onSessionClick,
-  onEdit,
-  onDelete,
   displayMode = 'full',
 }: Props) {
   
@@ -191,8 +187,6 @@ export default function StaffScheduleGrid({
                             startLabel={startLabel}
                             endLabel={endLabel}
                             onSessionClick={onSessionClick}
-                            onEdit={onEdit}
-                            onDelete={onDelete}
                             displayMode={displayMode}
                           />
                         </div>

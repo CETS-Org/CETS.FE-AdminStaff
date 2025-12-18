@@ -119,9 +119,7 @@ export default function TeacherDetailPage() {
       try {
         setLoading(true);
         setError(null);
-        console.log("Fetching teacher with ID:", id);
         const teacherData = await getTeacherById(id);
-        console.log("Teacher data received:", teacherData);
         setTeacher(teacherData);
         
         // Load credentials after teacher data is loaded
@@ -148,7 +146,6 @@ export default function TeacherDetailPage() {
 
       try {
         setCoursesLoading(true);
-        console.log("Fetching teaching courses for teacher:", id);
         const coursesData = await getListCourseTeaching(id);
         // Sort so that courses with more students are at the top, then by assignedAt descending
         coursesData.sort((a, b) => {
@@ -163,7 +160,6 @@ export default function TeacherDetailPage() {
           const bDate = new Date(b.assignedAt || 0).getTime();
           return bDate - aDate;
         });
-        console.log("Teaching courses data received:", coursesData);
         setTeachingCourses(coursesData);
       } catch (err) {
         console.error("Error fetching teaching courses:", err);

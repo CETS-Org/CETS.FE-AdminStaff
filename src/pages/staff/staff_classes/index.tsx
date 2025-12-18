@@ -38,11 +38,8 @@ export default function StaffClassesPage() {
       setLoading(true);
       setError(null);
       
-      console.log("Fetching staff classes from API...");
-      
       // Call API to get staff classes
       const classesData = await getStaffClasses();
-      console.log("Classes data received:", classesData);
       
       // Sort classes by className (name field) in ascending order
       const sortedClasses = classesData.sort((b, a) => 
@@ -55,8 +52,6 @@ export default function StaffClassesPage() {
       // Calculate and update statistics
       const calculatedStats = calculateClassStatistics(sortedClasses);
       setStats(calculatedStats);
-      
-      console.log("Statistics calculated:", calculatedStats);
     } catch (err: any) {
       console.error("Error fetching classes:", err);
       const errorMessage = err.response?.data?.message || "Failed to load classes. Please try again.";
@@ -67,7 +62,6 @@ export default function StaffClassesPage() {
   };
 
   const handleExportData = () => {
-    console.log("Export class data");
   };
 
   const handleViewAnalytics = () => {
@@ -87,8 +81,6 @@ export default function StaffClassesPage() {
     if (!selectedClass) return;
     
     try {
-      console.log("Deleting class:", selectedClass.id);
-      
       // Call API to delete class
       await deleteClass(selectedClass.id);
       
@@ -99,8 +91,6 @@ export default function StaffClassesPage() {
       const updatedClasses = rows.filter(c => c.id !== selectedClass.id);
       const calculatedStats = calculateClassStatistics(updatedClasses);
       setStats(calculatedStats);
-      
-      console.log("Class deleted successfully");
     } catch (err: any) {
       console.error("Error deleting class:", err);
       const errorMessage = err.response?.data?.message || "Failed to delete class. Please try again.";
@@ -138,7 +128,6 @@ export default function StaffClassesPage() {
       label: "Export",
       icon: <Download className="w-4 h-4" />,
       onClick: (selectedClasses) => {
-        console.log("Bulk export:", selectedClasses);
       },
       variant: "secondary",
       className: "text-blue-600 border-blue-300 hover:bg-blue-100",
@@ -148,7 +137,6 @@ export default function StaffClassesPage() {
       label: "Delete",
       icon: <Trash2 className="w-4 h-4" />,
       onClick: (selectedClasses) => {
-        console.log("Bulk delete:", selectedClasses);
       },
       variant: "secondary",
       className: "text-red-600 border-red-300 hover:bg-red-100",
@@ -360,22 +348,7 @@ export default function StaffClassesPage() {
         title="Class Management"
         description="Manage individual class sessions and schedules"
         icon={<Users className="w-5 h-5 text-white" />}
-        controls={[
-          {
-            type: 'button',
-            label: 'View Analytics',
-            variant: 'secondary',
-            icon: <BarChart3 className="w-4 h-4" />,
-            onClick: handleViewAnalytics
-          },
-          {
-            type: 'button',
-            label: 'Export Data',
-            variant: 'secondary',
-            icon: <Download className="w-4 h-4" />,
-            onClick: handleExportData
-          }
-        ]}
+       
       />
 
       {/* Stats Cards */}

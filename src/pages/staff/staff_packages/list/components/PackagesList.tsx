@@ -35,11 +35,9 @@ export default function PackagesList({ packages, loading, error, onRefresh }: Pa
   };
 
   const handleBulkDelete = (selectedPackages: Package[]) => {
-    console.log("Bulk delete:", selectedPackages);
   };
 
   const handleBulkExport = (selectedPackages: Package[]) => {
-    console.log("Bulk export:", selectedPackages);
   };
 
   // Extract unique categories from actual data
