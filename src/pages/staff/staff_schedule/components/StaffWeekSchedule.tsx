@@ -168,8 +168,6 @@ export default function StaffWeekSchedule({
         todayIdx={todayIdx}
         selectedIdx={selectedIdx}
         onSessionClick={handleSessionClickWrapper}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
         displayMode={displayMode}
       />
 

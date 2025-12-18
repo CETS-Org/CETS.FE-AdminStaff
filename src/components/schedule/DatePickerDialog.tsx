@@ -75,65 +75,33 @@ export default function DatePickerDialog({
 
   // Update position when open (fixed positioning relative to viewport)
   useEffect(() => {
-    if (open && triggerRef?.current) {
-      const updatePosition = () => {
-        if (!triggerRef?.current) return;
-        
-        const triggerRect = triggerRef.current.getBoundingClientRect();
-        
-        // Estimate popover width (max-w-sm = 384px)
-        const popoverWidth = 384;
-        
-        // Position below the trigger button, centered
-        // Use getBoundingClientRect() which is relative to viewport for fixed positioning
-        let top = triggerRect.bottom + 8;
-        let left = triggerRect.left + (triggerRect.width / 2) - (popoverWidth / 2);
-
-        // Keep within viewport
-        const padding = 8;
-        if (left < padding) left = padding;
-        if (left + popoverWidth > window.innerWidth - padding) {
-          left = window.innerWidth - popoverWidth - padding;
-        }
-
-        // Check if popover would go below viewport
-        const estimatedHeight = 400; // Approximate popover height
-        if (top + estimatedHeight > window.innerHeight) {
-          // Position above the button instead
-          top = triggerRect.top - estimatedHeight - 8;
-          if (top < padding) {
-            top = padding;
-          }
-        }
-
-        setPosition({ top, left });
-        setIsPositioned(true);
-      };
-
-      // Reset positioning state
-      setIsPositioned(false);
-      
-      // Initial position calculation
-      updatePosition();
-      
-      // After popover renders, recalculate with actual dimensions
-      const timeoutId = setTimeout(() => {
-        if (triggerRef?.current && popoverRef.current) {
+    if (open) {
+      if (triggerRef?.current) {
+        const updatePosition = () => {
+          if (!triggerRef?.current) return;
+          
           const triggerRect = triggerRef.current.getBoundingClientRect();
-          const popoverRect = popoverRef.current.getBoundingClientRect();
-
+          
+          // Estimate popover width (max-w-sm = 384px)
+          const popoverWidth = 384;
+          
+          // Position below the trigger button, centered
+          // Use getBoundingClientRect() which is relative to viewport for fixed positioning
           let top = triggerRect.bottom + 8;
-          let left = triggerRect.left + (triggerRect.width / 2) - (popoverRect.width / 2);
+          let left = triggerRect.left + (triggerRect.width / 2) - (popoverWidth / 2);
 
+          // Keep within viewport
           const padding = 8;
           if (left < padding) left = padding;
-          if (left + popoverRect.width > window.innerWidth - padding) {
-            left = window.innerWidth - popoverRect.width - padding;
+          if (left + popoverWidth > window.innerWidth - padding) {
+            left = window.innerWidth - popoverWidth - padding;
           }
 
           // Check if popover would go below viewport
-          if (top + popoverRect.height > window.innerHeight) {
-            top = triggerRect.top - popoverRect.height - 8;
+          const estimatedHeight = 400; // Approximate popover height
+          if (top + estimatedHeight > window.innerHeight) {
+            // Position above the button instead
+            top = triggerRect.top - estimatedHeight - 8;
             if (top < padding) {
               top = padding;
             }
@@ -141,17 +109,54 @@ export default function DatePickerDialog({
 
           setPosition({ top, left });
           setIsPositioned(true);
-        }
-      }, 10);
+        };
 
-      window.addEventListener("resize", updatePosition);
-      window.addEventListener("scroll", updatePosition, true);
+        // Reset positioning state
+        setIsPositioned(false);
+        
+        // Initial position calculation
+        updatePosition();
+        
+        // After popover renders, recalculate with actual dimensions
+        const timeoutId = setTimeout(() => {
+          if (triggerRef?.current && popoverRef.current) {
+            const triggerRect = triggerRef.current.getBoundingClientRect();
+            const popoverRect = popoverRef.current.getBoundingClientRect();
 
-      return () => {
-        clearTimeout(timeoutId);
-        window.removeEventListener("resize", updatePosition);
-        window.removeEventListener("scroll", updatePosition, true);
-      };
+            let top = triggerRect.bottom + 8;
+            let left = triggerRect.left + (triggerRect.width / 2) - (popoverRect.width / 2);
+
+            const padding = 8;
+            if (left < padding) left = padding;
+            if (left + popoverRect.width > window.innerWidth - padding) {
+              left = window.innerWidth - popoverRect.width - padding;
+            }
+
+            // Check if popover would go below viewport
+            if (top + popoverRect.height > window.innerHeight) {
+              top = triggerRect.top - popoverRect.height - 8;
+              if (top < padding) {
+                top = padding;
+              }
+            }
+
+            setPosition({ top, left });
+            setIsPositioned(true);
+          }
+        }, 10);
+
+        window.addEventListener("resize", updatePosition);
+        window.addEventListener("scroll", updatePosition, true);
+
+        return () => {
+          clearTimeout(timeoutId);
+          window.removeEventListener("resize", updatePosition);
+          window.removeEventListener("scroll", updatePosition, true);
+        };
+      } else {
+        // No triggerRef - center on screen
+        setIsPositioned(true);
+      }
     }
   }, [open, triggerRef]);
 
@@ -226,18 +231,31 @@ export default function DatePickerDialog({
 
   if (!open || !isPositioned) return null;
 
+  // If no triggerRef, center on screen
+  const isCentered = !triggerRef?.current;
+
   return createPortal(
-    <div
-      ref={popoverRef}
-      className="fixed z-[1500] max-w-sm border border-gray-200 shadow-xl rounded-lg bg-white p-0"
-      style={{
-        top: `${position.top}px`,
-        left: `${position.left}px`,
-        transform: 'translateZ(0)', // Force GPU acceleration
-        willChange: 'transform', // Optimize for position changes
-        pointerEvents: 'auto', // Ensure popover can receive events
-      }}
-    >
+    <>
+      {/* Backdrop for centered mode */}
+      {isCentered && (
+        <div 
+          className="fixed inset-0 bg-black/30 z-[1499]"
+          onClick={() => onOpenChange(false)}
+        />
+      )}
+      <div
+        ref={popoverRef}
+        className={`fixed z-[1500] max-w-sm border border-gray-200 shadow-xl rounded-lg bg-white p-0 ${
+          isCentered ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2' : ''
+        }`}
+        style={isCentered ? undefined : {
+          top: `${position.top}px`,
+          left: `${position.left}px`,
+          transform: 'translateZ(0)', // Force GPU acceleration
+          willChange: 'transform', // Optimize for position changes
+          pointerEvents: 'auto', // Ensure popover can receive events
+        }}
+      >
       <div className="p-4">
           {/* Header */}
           <div className="mb-4">
@@ -362,7 +380,8 @@ export default function DatePickerDialog({
           </div>
 
       </div>
-    </div>,
+    </div>
+    </>,
     document.body
   );
 }
