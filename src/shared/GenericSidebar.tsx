@@ -125,15 +125,13 @@ export default function GenericSidebar({
                       <button
                         onClick={() => handleSubmenuToggle(item.id)}
                         className={cn(
-                          "w-full flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-sidebar-hover",
+                          "w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-sidebar-hover",
                           isSubmenuActive && "bg-sidebar-active font-semibold shadow-md",
                           collapsed && "lg:justify-center lg:px-2"
                         )}
                       >
-                        <div className="flex items-center gap-3">
-                          <item.icon className="h-4 w-4 shrink-0 text-white" />
-                          <span className={cn("truncate", collapsed && "lg:hidden")}>{item.label}</span>
-                        </div>
+                        <item.icon className="h-4 w-4 shrink-0 text-white" />
+                        <span className={cn("truncate flex-1", collapsed && "lg:hidden")}>{item.label}</span>
                         <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", isOpen && "rotate-180", collapsed && "lg:hidden")} />
                       </button>
                       {isOpen && !collapsed && (
@@ -174,18 +172,16 @@ export default function GenericSidebar({
                           collapsed && "lg:justify-center lg:px-2"
                         )}
                     >
-                        <div className="flex items-center gap-3 w-full">
-                          <item.icon className="h-4 w-4 shrink-0 text-white" />
-                          <span className={cn("truncate flex-1", collapsed && "lg:hidden")}>{item.label}</span>
-                          {item.badge && item.badge > 0 && !collapsed && (
-                            <span className={cn(
-                              "text-xs font-semibold px-2 py-1 rounded-full min-w-[20px] text-center",
-                              active ? "bg-white text-primary" : "bg-white/20 text-white"
-                            )}>
-                              {item.badge}
-                            </span>
-                          )}
-                        </div>
+                        <item.icon className="h-4 w-4 shrink-0 text-white" />
+                        <span className={cn("truncate flex-1", collapsed && "lg:hidden")}>{item.label}</span>
+                        {item.badge && item.badge > 0 && !collapsed && (
+                          <span className={cn(
+                            "text-xs font-semibold px-2 py-1 rounded-full min-w-[20px] text-center",
+                            active ? "bg-white text-primary" : "bg-white/20 text-white"
+                          )}>
+                            {item.badge}
+                          </span>
+                        )}
                     </NavLink>
                   </li>
                 );

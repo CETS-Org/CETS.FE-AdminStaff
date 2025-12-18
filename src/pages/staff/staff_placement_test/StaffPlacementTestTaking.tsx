@@ -757,12 +757,11 @@ export default function StaffPlacementTestTaking() {
             />
           </Card>
 
-          {/* Reading: luôn có layout 2 cột với passage cố định bên trái (nếu có passage thì hiển thị, không có thì không hiển thị nội dung) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left - Reading Passage (cố định, chỉ hiển thị nội dung khi có passage) */}
-            
+          {/* Layout: 2 columns when passage exists, centered single column otherwise */}
+          <div className={`grid gap-6 ${currentPassage ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 max-w-3xl mx-auto'}`}>
+              {/* Left - Reading Passage (only shown when passage exists) */}
+              {currentPassage && (
                 <div className="lg:sticky lg:top-24 h-full lg:self-start">
-                {currentPassage && (
                   <Card className="p-4">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
@@ -786,11 +785,10 @@ export default function StaffPlacementTestTaking() {
                       </div>
                     )}
                   </Card>
-                    )}
                 </div>
-            
+              )}
 
-                {/* Right - Question Area */}
+                {/* Question Area */}
                 <div>
                   <Card className="p-6">
                     {currentQuestion && (() => {
