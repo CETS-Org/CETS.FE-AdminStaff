@@ -130,8 +130,10 @@ export default function GenericSidebar({
                           collapsed && "lg:justify-center lg:px-2"
                         )}
                       >
-                        <item.icon className="h-4 w-4 shrink-0 text-white" />
-                        <span className={cn("truncate flex-1", collapsed && "lg:hidden")}>{item.label}</span>
+                        <span className="w-5 h-5 flex items-center justify-center shrink-0">
+                          <item.icon className="h-4 w-4 text-white" />
+                        </span>
+                        <span className={cn("truncate flex-1 text-left", collapsed && "lg:hidden")}>{item.label}</span>
                         <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", isOpen && "rotate-180", collapsed && "lg:hidden")} />
                       </button>
                       {isOpen && !collapsed && (
@@ -148,7 +150,9 @@ export default function GenericSidebar({
                                    )
                                  }
                                >
-                                 <subItem.icon className="h-4 w-4 shrink-0 text-white" />
+                                 <span className="w-5 h-5 flex items-center justify-center shrink-0">
+                                   <subItem.icon className="h-4 w-4 text-white" />
+                                 </span>
                                  <span>{subItem.label}</span>
                                </NavLink>
                              </li>
@@ -172,7 +176,9 @@ export default function GenericSidebar({
                           collapsed && "lg:justify-center lg:px-2"
                         )}
                     >
-                        <item.icon className="h-4 w-4 shrink-0 text-white" />
+                        <span className="w-5 h-5 flex items-center justify-center shrink-0">
+                          <item.icon className="h-4 w-4 text-white" />
+                        </span>
                         <span className={cn("truncate flex-1", collapsed && "lg:hidden")}>{item.label}</span>
                         {item.badge && item.badge > 0 && !collapsed && (
                           <span className={cn(
