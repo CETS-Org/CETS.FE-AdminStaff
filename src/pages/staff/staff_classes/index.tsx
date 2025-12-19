@@ -6,7 +6,7 @@ import Button from "@/components/ui/Button";
 import PageHeader from "@/components/ui/PageHeader";
 import { type TableColumn } from "@/components/ui/Table";
 import DataTable, { type FilterConfig, type BulkAction } from "@/components/ui/DataTable";
-import { Eye, Pencil, Users, TrendingUp, AlertCircle, BookOpen, Download, BarChart3, Loader2, Plus, Trash2, CheckSquare, Square } from "lucide-react";
+import { Eye, Pencil, Users, TrendingUp, AlertCircle, BookOpen, Download, BarChart3, Loader2, Plus, Trash2, CheckSquare, Square, MessageSquare } from "lucide-react";
 import { getStaffClasses, calculateClassStatistics, deleteClass, type ClassData } from "@/api/class.api";
 import DeleteClassDialog from "./components/DeleteClassDialog";
 
@@ -70,6 +70,10 @@ export default function StaffClassesPage() {
 
   const handleRetry = () => {
     fetchClassesData();
+  };
+
+  const handleViewFeedback = (classRow: ClassRow) => {
+    navigate(`/staff/courses/${classRow.courseId}/feedback`);
   };
 
   const handleDelete = (classRow: ClassRow) => {
@@ -213,6 +217,14 @@ export default function StaffClassesPage() {
         <div className="flex items-center gap-1">
           <Button
             size="sm"
+            onClick={() => handleViewFeedback(r)}
+            className="!p-2 !bg-purple-50 !text-purple-600 !border !border-purple-200 hover:!bg-purple-100 hover:!text-purple-700 hover:!border-purple-300 !transition-colors !rounded-md"
+            title="View Feedback"
+          >
+            <MessageSquare className="w-4 h-4" />
+          </Button>
+          <Button
+            size="sm"
             onClick={() => navigate(`/staff/classes/${r.id}`)}
             className="!p-2 !bg-blue-50 !text-blue-600 !border !border-blue-200 hover:!bg-blue-100 hover:!text-blue-700 hover:!border-blue-300 !transition-colors !rounded-md"
           >
@@ -309,6 +321,14 @@ export default function StaffClassesPage() {
 
         {/* Action Buttons */}
         <div className="flex gap-2">
+          <Button
+            size="sm"
+            onClick={() => handleViewFeedback(classRow)}
+            className="!flex-1 !bg-purple-50 !text-purple-600 !border !border-purple-200 hover:!bg-purple-100 hover:!text-purple-700 hover:!border-purple-300 !transition-colors !rounded-md"
+          >
+            <MessageSquare className="w-4 h-4 mr-2" />
+            Feedback
+          </Button>
           <Button
             size="sm"
             onClick={() => navigate(`/staff/classes/${classRow.id}`)}
