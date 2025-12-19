@@ -297,7 +297,7 @@ export default function SessionDetailDialog({
   };
 
   const handleReset = () => {
-    if (confirm("Reset all changes?")) {
+    {
       initializeForm();
     }
   };

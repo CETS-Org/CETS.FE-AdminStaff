@@ -30,7 +30,7 @@ import {
   Info,
   AlertTriangle,
   Calendar as CalendarIcon,
-  UserCheck // Icon mới cho Sub-teacher
+  UserCheck 
 } from "lucide-react";
 
 // Components
@@ -87,10 +87,8 @@ interface ClassModel {
   courseName: string;
   teacher: string;
   teacherId?: string;
-  // --- MỚI: Thêm trường cho Sub Teacher ---
   subTeacher: string;
   subTeacherId?: string;
-  // ----------------------------------------
   schedules: ScheduleRow[];
   room: string;
   currentStudents: number;
@@ -182,8 +180,8 @@ export default function AddEditClassPage() {
   
   const lookupOptions = useLookupOptions(false);
   const timeslotOptions = (lookupOptions as any)?.timeslotOptions || [
-     { value: "TS-0800-0900", label: "08:00–09:00" },
-     { value: "TS-1800-1930", label: "18:00–19:30" },
+      { value: "TS-0800-0900", label: "08:00–09:00" },
+      { value: "TS-1800-1930", label: "18:00–19:30" },
   ];
 
   const classId = params.id || params.classId;
@@ -198,7 +196,7 @@ export default function AddEditClassPage() {
     teacher: "",
     teacherId: undefined,
     subTeacher: "",
-    subTeacherId: undefined, // Init subTeacher
+    subTeacherId: undefined,
     schedules: [],
     room: "",
     currentStudents: 0,
@@ -308,12 +306,28 @@ export default function AddEditClassPage() {
     }
   }, [formData.startDate, syllabusItems, scheduleRows, isEdit]);
 
+  // --- 1. SỬA: Load Data Logic (Updated for Edit Mode) ---
   useEffect(() => {
     const loadInitialData = async () => {
       try {
         setIsLoadingCourseOptions(true);
+        
+        // Luôn load danh sách khóa học
         const courseRes = await getCourseOptions();
         setCourseOptions(courseRes.data);
+
+        // NẾU LÀ EDIT: Tự động load danh sách phòng để hiển thị tên phòng
+        if (isEdit) {
+           setIsLoadingRooms(true); 
+           try {
+              const roomRes = await getRoomOptions();
+              setRoomOptions(roomRes.data);
+           } catch(e) {
+              console.error("Failed to load rooms in edit mode", e);
+           } finally {
+              setIsLoadingRooms(false);
+           }
+        }
       } catch (err) {
         console.error(err);
         showErrorMessage("Failed to load initial data.");
@@ -322,7 +336,7 @@ export default function AddEditClassPage() {
       }
     };
     loadInitialData();
-  }, []);
+  }, [isEdit]); // Thêm isEdit vào dependency để chạy lại nếu mode thay đổi (ít khi xảy ra nhưng an toàn)
 
   // LOAD DETAIL
   useEffect(() => {
@@ -332,8 +346,8 @@ export default function AddEditClassPage() {
         setIsLoading(true);
         const res = await getClassDetailForEdit(classId);
         const data = res.data;
+        console.log("update i4", data);
 
-        // Xử lý Teacher và SubTeacher từ response (Giả sử API trả về subTeacherAssignmentID)
         const teachersToSet: TeacherOption[] = [];
         
         if (data.teacherAssignmentID && (data as any).teacherName) {
@@ -342,7 +356,6 @@ export default function AddEditClassPage() {
                 fullName: (data as any).teacherName,
             });
         }
-        // Nếu API có trả về thông tin SubTeacher
         if ((data as any).subTeacherAssignmentID && (data as any).subTeacherName) {
              teachersToSet.push({
                 id: (data as any).subTeacherAssignmentID,
@@ -358,7 +371,6 @@ export default function AddEditClassPage() {
             courseName: data.className,
             teacherId: data.teacherAssignmentID,
             teacher: (data as any).teacherName || "",
-            // Map SubTeacher fields
             subTeacherId: (data as any).subTeacherAssignmentID,
             subTeacher: (data as any).subTeacherName || "",
             
@@ -369,7 +381,6 @@ export default function AddEditClassPage() {
             status: data.status as any,
         }));
 
-        // ... (Schedule and Enrollments mapping - No changes)
         if (data.schedules && data.schedules.length > 0) {
             const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
             const uniqueScheduleMap = new Map<string, ScheduleRow>();
@@ -411,7 +422,6 @@ export default function AddEditClassPage() {
     }
   }, [isEdit, classId, initialCourseIdFromRoute]);
 
-  // ... (Other handlers keep same)
   const handleCourseChange = async (courseId: string) => {
     if (!isEdit) {
         setFormData((prev) => ({ ...prev, courseId, courseName: "", sessions: 0 }));
@@ -506,11 +516,9 @@ export default function AddEditClassPage() {
     if (errors[field]) setErrors((p) => ({ ...p, [field]: "" }));
   };
 
-  // --- LOGIC XỬ LÝ CHỌN GIÁO VIÊN ---
   const handleTeacherSelectChange = (value: string) => {
     const teacher = availableTeachers.find((x) => x.id === value);
     setFormData((prev) => {
-        // Nếu chọn giáo viên chính trùng với giáo viên phụ đang chọn -> Reset giáo viên phụ
         const newSubTeacherId = (prev.subTeacherId === value) ? undefined : prev.subTeacherId;
         const newSubTeacherName = (prev.subTeacherId === value) ? "" : prev.subTeacher;
         
@@ -547,7 +555,6 @@ export default function AddEditClassPage() {
     if (dup.hasDup) newErrors.schedules = "Duplicate schedules detected.";
     if (scheduleRows.length > 0 && !formData.teacherId) newErrors.teacher = "Required";
     
-    // Validate SubTeacher duplicate
     if (formData.subTeacherId && formData.subTeacherId === formData.teacherId) {
         newErrors.subTeacher = "Sub-teacher cannot be the same as Main teacher.";
     }
@@ -582,15 +589,13 @@ export default function AddEditClassPage() {
       setIsLoading(true);
 
       if (isEdit && classId) {
-          // UPDATE
           const enrollmentIdsForUpdate = selectedStudentIds
             .map(studentId => studentLookup.get(studentId)?.enrollmentId)
             .filter((id): id is string => !!id);
           const updatePayload: UpdateClassCompositeRequestDTO = {
               className: formData.courseName,
               teacherAssignmentID: formData.teacherId,
-              // Mới: Gửi SubTeacher ID nếu có (thêm vào type DTO nếu cần)
-              // subTeacherAssignmentID: formData.subTeacherId || null, 
+              subTeacherAssignmentID: formData.subTeacherId, 
               startDate: formData.startDate,
               endDate: formData.endDate,
               capacity: formData.maxStudents,
@@ -598,14 +603,13 @@ export default function AddEditClassPage() {
               enrollmentIds: enrollmentIdsForUpdate
           };
           
-          // @ts-ignore: Bỏ qua lỗi type check nếu DTO chưa update kịp
+          // @ts-ignore
           if(formData.subTeacherId) updatePayload.subTeacherAssignmentID = formData.subTeacherId;
 
           await updateClassComposite(classId, updatePayload);
           showStatusDialog("success", "Class Updated!", "Class updated successfully.");
 
       } else {
-          // CREATE
           const CONST_STATUS_PLANED = "D5621E55-A2FB-4DAC-B0EE-B53F378405FF"; 
           const CONST_COURSE_FORMAT = "2423c370-7205-463f-bea6-530ddc9aa544"; 
 
@@ -638,8 +642,7 @@ export default function AddEditClassPage() {
             classStatusID: CONST_STATUS_PLANED,
             courseFormatID: CONST_COURSE_FORMAT,
             teacherAssignmentID: formData.teacherId,
-            // Mới: Gửi SubTeacher ID (thêm vào type DTO nếu cần)
-            // subTeacherAssignmentID: formData.subTeacherId || null,
+            subTeacherAssignmentID: formData.subTeacherId,
             startDate: formData.startDate,
             endDate: formData.endDate,
             capacity: formData.maxStudents,
@@ -648,7 +651,7 @@ export default function AddEditClassPage() {
             enrollments: enrollmentObjects 
           };
           
-          // @ts-ignore: Bỏ qua lỗi type check nếu DTO chưa update kịp
+          // @ts-ignore
           if(formData.subTeacherId) compositePayload.subTeacherAssignmentID = formData.subTeacherId;
 
           await createClassComposite(compositePayload);
@@ -668,8 +671,6 @@ export default function AddEditClassPage() {
     }
   };
 
-  // ... (Popup Logic keeps same)
-  // --- POPUP LOGIC ---
   useEffect(() => {
     const fetchStudents = async () => {
         if (!isWaitingListOpen || !formData.courseId) return;
@@ -765,10 +766,6 @@ export default function AddEditClassPage() {
     .map(id => studentLookup.get(id))
     .filter(Boolean) as WaitingStudentItem[];
 
-  // -----------------------------------------------------------
-  // FILTER OPTIONS FOR SUB TEACHER
-  // Loại bỏ giáo viên chính khỏi danh sách chọn giáo viên phụ
-  // -----------------------------------------------------------
   const subTeacherOptions = availableTeachers
     .filter(t => t.id !== formData.teacherId)
     .map(t => ({ label: t.fullName, value: t.id }));
@@ -776,7 +773,6 @@ export default function AddEditClassPage() {
   return (
     <div className="min-h-screen bg-gray-50/50 pt-16">
       <div className="p-6 space-y-6 max-w-5xl mx-auto">
-         {/* ... Breadcrumbs and Headers ... */}
          <div className="flex flex-col gap-2">
             <Breadcrumbs items={[{ label: "Classes", to: "/staff/classes" }, { label: isEdit ? "Edit Class" : "New Class" }]} />
             <h1 className="text-2xl font-bold text-gray-800">{isEdit ? "Edit Class" : "Create New Class"}</h1>
@@ -799,7 +795,6 @@ export default function AddEditClassPage() {
                         <BookOpen className="w-5 h-5 text-blue-600" />
                         <h2 className="font-semibold text-lg text-gray-800">General Information</h2>
                     </div>
-                    {/* ... Course and Status Selectors ... */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="md:col-span-2">
                             {isStandaloneRoute && !isEdit ? (
@@ -887,13 +882,17 @@ export default function AddEditClassPage() {
                                 <Label required className="mb-0">Room</Label>
                             </div>
                             <div className="flex items-center gap-2">
+                                {/* 2. SỬA: Logic Render Select Room */}
                                 <Select 
                                     className="flex-1"
                                     value={formData.room}
                                     onChange={e => handleInputChange("room", e.target.value)}
                                     options={[
                                         { label: roomOptions.length ? "Select a room..." : "No rooms found", value: "" },
-                                        ...roomOptions.filter(r => r.isActive).map(r => ({ label: `${r.roomCode} (Cap: ${r.capacity})`, value: r.id }))
+                                        // Chỉ hiện phòng Active HOẶC phòng đang được chọn (dù inactive)
+                                        ...roomOptions
+                                            .filter(r => r.isActive || r.id === formData.room)
+                                            .map(r => ({ label: `${r.roomCode} (Cap: ${r.capacity})`, value: r.id }))
                                     ]}
                                     disabled={roomOptions.length === 0 || isEdit}
                                     error={errors.room}
@@ -949,17 +948,16 @@ export default function AddEditClassPage() {
                                 </div>
                             </div>
 
-                            {/* --- MỚI: Sub Teacher Selection --- */}
-                        <div>
+                            {/* Sub Teacher Selection */}
+                            <div>
                               <div className="flex items-center gap-2 mb-1">
                                   <UserCheck className="w-4 h-4 text-gray-400" />
                                   <Label className="mb-0">Sub-Teacher (Optional)</Label>
                               </div>
                               
-                              {/* Bọc Select vào div flex và thêm nút ẩn để căn chỉnh width */}
                               <div className="flex items-center gap-2">
                                   <Select 
-                                      className="flex-1" // Đổi từ w-full thành flex-1 để tự co giãn
+                                      className="flex-1"
                                       options={[
                                           { label: "None", value: "" },
                                           ...subTeacherOptions
@@ -970,13 +968,12 @@ export default function AddEditClassPage() {
                                       error={errors.subTeacher}
                                   />
 
-                                  {/* --- SPACER BUTTON --- */}
-                                  {/* Nút này dùng để giữ chỗ (invisible), giúp width của input bên trái bằng với input ở trên */}
+                                  {/* Spacer Button */}
                                   <Button 
                                       variant="secondary" 
                                       size="sm" 
-                                      className="h-10 px-3 text-sm invisible pointer-events-none" // invisible: không hiện, pointer-events-none: không click được
-                                      iconLeft={<RefreshCw className="w-4 h-4" />} // Giữ nguyên icon để width bằng nhau tuyệt đối
+                                      className="h-10 px-3 text-sm invisible pointer-events-none" 
+                                      iconLeft={<RefreshCw className="w-4 h-4" />} 
                                   >
                                       Find
                                   </Button>
@@ -985,14 +982,13 @@ export default function AddEditClassPage() {
                               {!formData.teacherId && availableTeachers.length > 0 && (
                                   <p className="text-xs text-gray-400 mt-1 ml-1">Please select main teacher first.</p>
                               )}
-                          </div>
+                            </div>
                         </div>
                      </div>
                 </Card>
 
-                {/* ... Students Card ... */}
+                {/* Students Card */}
                 <Card className="p-6 border-t-4 border-t-purple-500">
-                    {/* ... Same content as before ... */}
                     <div className="flex items-center justify-between mb-6 pb-2 border-b">
                         <div className="flex items-center gap-2">
                             <Users className="w-5 h-5 text-purple-600" />
@@ -1054,13 +1050,13 @@ export default function AddEditClassPage() {
                                            </div>
                                        </div>
                                        <Button 
-                                          size="sm" 
-                                          variant="ghost" 
-                                          className="text-red-400 hover:text-red-600 hover:bg-red-50 h-8 w-8 p-0 rounded-full"
-                                          onClick={() => setSelectedStudentIds(prev => prev.filter(id => id !== student.studentId))}
-                                          title="Remove student"
+                                            size="sm" 
+                                            variant="ghost" 
+                                            className="text-red-400 hover:text-red-600 hover:bg-red-50 h-8 w-8 p-0 rounded-full"
+                                            onClick={() => setSelectedStudentIds(prev => prev.filter(id => id !== student.studentId))}
+                                            title="Remove student"
                                        >
-                                           <X className="w-4 h-4" />
+                                            <X className="w-4 h-4" />
                                        </Button>
                                    </div>
                                ))}
@@ -1070,7 +1066,6 @@ export default function AddEditClassPage() {
                 </Card>
          </div>
 
-         {/* ... Footer and Dialogs ... */}
          <div className="sticky bottom-0 z-10 bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-2xl border-t border-gray-200 flex justify-end gap-3">
             <Button variant="secondary" onClick={() => navigate(-1)} className="min-w-[100px]">Cancel</Button>
             <Button 
