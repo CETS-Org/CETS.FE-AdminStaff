@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 // UI Components
@@ -29,7 +29,8 @@ import {
   Wand2,
   Info,
   AlertTriangle,
-  Calendar as CalendarIcon 
+  Calendar as CalendarIcon,
+  UserCheck // Icon mới cho Sub-teacher
 } from "lucide-react";
 
 // Components
@@ -86,6 +87,10 @@ interface ClassModel {
   courseName: string;
   teacher: string;
   teacherId?: string;
+  // --- MỚI: Thêm trường cho Sub Teacher ---
+  subTeacher: string;
+  subTeacherId?: string;
+  // ----------------------------------------
   schedules: ScheduleRow[];
   room: string;
   currentStudents: number;
@@ -121,31 +126,53 @@ const formatDateToVN = (dateStr: string): string => {
 
 // --- COMPONENT: Overlay Date Picker ---
 const DatePickerOverlay = ({ value, onChange, error, disabled }: any) => {
-    return (
-      <div className="relative w-full group">
-        <div className="relative">
-          <Input
-            type="text"
-            value={formatDateToVN(value)} 
-            placeholder="dd/mm/yyyy"
-            readOnly 
-            disabled={disabled}
-            error={error}
-            className="pr-10 text-gray-900 bg-white" 
-          />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 group-hover:text-blue-500 transition-colors">
-             <CalendarIcon className="w-4 h-4" />
-          </div>
+  const dateInputRef = useRef<HTMLInputElement>(null);
+
+  const handleContainerClick = () => {
+    if (disabled) return;
+    try {
+      if (dateInputRef.current && typeof dateInputRef.current.showPicker === 'function') {
+        dateInputRef.current.showPicker();
+      } else {
+        dateInputRef.current?.focus(); 
+      }
+    } catch (err) {
+      console.error("Error opening date picker:", err);
+    }
+  };
+
+  return (
+    <div 
+      className={`relative w-full h-10 group ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`} 
+      onClick={handleContainerClick}
+    >
+      <div className="absolute inset-0 z-0 pointer-events-none flex items-center">
+        <div 
+          className={`
+            w-full h-10 px-3 py-2 text-sm border rounded-md flex items-center bg-white
+            ${error ? "border-red-500 text-red-900" : "border-neutral-300"}
+            ${disabled ? "bg-gray-100 text-gray-400" : "text-gray-900"}
+          `}
+        >
+          <span className={!value ? "text-neutral-400" : ""}>
+            {formatDateToVN(value) || "dd/mm/yyyy"}
+          </span>
         </div>
-        <input
-          type="date"
-          value={value || ""}
-          onChange={onChange}
-          disabled={disabled}
-          className={`absolute inset-0 w-full h-full opacity-0 z-10 ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-        />
+        <div className="absolute right-3 text-gray-500 group-hover:text-blue-500 transition-colors">
+           <CalendarIcon className="w-4 h-4" />
+        </div>
       </div>
-    );
+      <input
+        ref={dateInputRef}
+        type="date"
+        value={value || ""}
+        onChange={onChange}
+        disabled={disabled}
+        className="absolute inset-0 w-full h-full opacity-0 z-10 pointer-events-none"
+        tabIndex={-1} 
+      />
+    </div>
+  );
 };
 
 export default function AddEditClassPage() {
@@ -170,6 +197,8 @@ export default function AddEditClassPage() {
     courseName: "",
     teacher: "",
     teacherId: undefined,
+    subTeacher: "",
+    subTeacherId: undefined, // Init subTeacher
     schedules: [],
     room: "",
     currentStudents: 0,
@@ -279,27 +308,23 @@ export default function AddEditClassPage() {
     }
   }, [formData.startDate, syllabusItems, scheduleRows, isEdit]);
 
-  // INITIAL LOAD - Đã xóa getRoomOptions() khỏi đây
   useEffect(() => {
     const loadInitialData = async () => {
       try {
         setIsLoadingCourseOptions(true);
-        // setIsLoadingRooms(true); // Đã xóa
         const courseRes = await getCourseOptions();
-        // const roomRes = await getRoomOptions(); // Đã xóa
         setCourseOptions(courseRes.data);
-        // setRoomOptions(roomRes.data); // Đã xóa
       } catch (err) {
         console.error(err);
         showErrorMessage("Failed to load initial data.");
       } finally {
         setIsLoadingCourseOptions(false);
-        // setIsLoadingRooms(false); // Đã xóa
       }
     };
     loadInitialData();
   }, []);
 
+  // LOAD DETAIL
   useEffect(() => {
     const loadClassDetail = async () => {
       if (!isEdit || !classId) return;
@@ -308,12 +333,24 @@ export default function AddEditClassPage() {
         const res = await getClassDetailForEdit(classId);
         const data = res.data;
 
+        // Xử lý Teacher và SubTeacher từ response (Giả sử API trả về subTeacherAssignmentID)
+        const teachersToSet: TeacherOption[] = [];
+        
         if (data.teacherAssignmentID && (data as any).teacherName) {
-            setAvailableTeachers([{
+            teachersToSet.push({
                 id: data.teacherAssignmentID,
                 fullName: (data as any).teacherName,
-            }]);
+            });
         }
+        // Nếu API có trả về thông tin SubTeacher
+        if ((data as any).subTeacherAssignmentID && (data as any).subTeacherName) {
+             teachersToSet.push({
+                id: (data as any).subTeacherAssignmentID,
+                fullName: (data as any).subTeacherName,
+            });
+        }
+        
+        if(teachersToSet.length > 0) setAvailableTeachers(teachersToSet);
 
         setFormData(prev => ({
             ...prev,
@@ -321,6 +358,10 @@ export default function AddEditClassPage() {
             courseName: data.className,
             teacherId: data.teacherAssignmentID,
             teacher: (data as any).teacherName || "",
+            // Map SubTeacher fields
+            subTeacherId: (data as any).subTeacherAssignmentID,
+            subTeacher: (data as any).subTeacherName || "",
+            
             room: data.roomId || "",
             maxStudents: data.capacity,
             startDate: data.startDate,
@@ -328,17 +369,15 @@ export default function AddEditClassPage() {
             status: data.status as any,
         }));
 
+        // ... (Schedule and Enrollments mapping - No changes)
         if (data.schedules && data.schedules.length > 0) {
             const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-            
             const uniqueScheduleMap = new Map<string, ScheduleRow>();
-
             data.schedules.forEach((s) => {
                 const dateObj = new Date(s.date);
                 const dayIndex = dateObj.getDay(); 
                 const dayName = daysOfWeek[dayIndex] as DayOfWeek;
                 const uniqueKey = `${dayName}-${s.slotID}`;
-
                 if (!uniqueScheduleMap.has(uniqueKey)) {
                     uniqueScheduleMap.set(uniqueKey, {
                         dayOfWeek: dayName,
@@ -372,6 +411,7 @@ export default function AddEditClassPage() {
     }
   }, [isEdit, classId, initialCourseIdFromRoute]);
 
+  // ... (Other handlers keep same)
   const handleCourseChange = async (courseId: string) => {
     if (!isEdit) {
         setFormData((prev) => ({ ...prev, courseId, courseName: "", sessions: 0 }));
@@ -448,11 +488,9 @@ export default function AddEditClassPage() {
     } catch (err) { console.error(err); } finally { setIsLoadingTeachers(false); }
   }, [formData.courseId, formData.startDate, formData.endDate, scheduleRows, showErrorMessage]);
 
-  // --- MỚI: Hàm reload rooms khi bấm nút ---
   const reloadRooms = async () => {
     try {
       setIsLoadingRooms(true);
-      // Gọi API lấy danh sách phòng
       const res = await getRoomOptions();
       setRoomOptions(res.data);
     } catch (err) {
@@ -468,9 +506,33 @@ export default function AddEditClassPage() {
     if (errors[field]) setErrors((p) => ({ ...p, [field]: "" }));
   };
 
+  // --- LOGIC XỬ LÝ CHỌN GIÁO VIÊN ---
   const handleTeacherSelectChange = (value: string) => {
     const teacher = availableTeachers.find((x) => x.id === value);
-    setFormData((prev) => ({ ...prev, teacherId: value, teacher: teacher?.fullName ?? "" }));
+    setFormData((prev) => {
+        // Nếu chọn giáo viên chính trùng với giáo viên phụ đang chọn -> Reset giáo viên phụ
+        const newSubTeacherId = (prev.subTeacherId === value) ? undefined : prev.subTeacherId;
+        const newSubTeacherName = (prev.subTeacherId === value) ? "" : prev.subTeacher;
+        
+        return { 
+            ...prev, 
+            teacherId: value, 
+            teacher: teacher?.fullName ?? "",
+            subTeacherId: newSubTeacherId,
+            subTeacher: newSubTeacherName
+        };
+    });
+    if (errors.teacher) setErrors((p) => ({ ...p, teacher: "" }));
+  };
+
+  const handleSubTeacherSelectChange = (value: string) => {
+    const teacher = availableTeachers.find((x) => x.id === value);
+    setFormData((prev) => ({ 
+        ...prev, 
+        subTeacherId: value, 
+        subTeacher: teacher?.fullName ?? "" 
+    }));
+    if (errors.subTeacher) setErrors((p) => ({ ...p, subTeacher: "" }));
   };
 
   const validateForm = () => {
@@ -484,6 +546,12 @@ export default function AddEditClassPage() {
     const dup = checkDuplicate(scheduleRows);
     if (dup.hasDup) newErrors.schedules = "Duplicate schedules detected.";
     if (scheduleRows.length > 0 && !formData.teacherId) newErrors.teacher = "Required";
+    
+    // Validate SubTeacher duplicate
+    if (formData.subTeacherId && formData.subTeacherId === formData.teacherId) {
+        newErrors.subTeacher = "Sub-teacher cannot be the same as Main teacher.";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -521,12 +589,18 @@ export default function AddEditClassPage() {
           const updatePayload: UpdateClassCompositeRequestDTO = {
               className: formData.courseName,
               teacherAssignmentID: formData.teacherId,
+              // Mới: Gửi SubTeacher ID nếu có (thêm vào type DTO nếu cần)
+              // subTeacherAssignmentID: formData.subTeacherId || null, 
               startDate: formData.startDate,
               endDate: formData.endDate,
               capacity: formData.maxStudents,
               updatedBy: CURRENT_USER_ID,
               enrollmentIds: enrollmentIdsForUpdate
           };
+          
+          // @ts-ignore: Bỏ qua lỗi type check nếu DTO chưa update kịp
+          if(formData.subTeacherId) updatePayload.subTeacherAssignmentID = formData.subTeacherId;
+
           await updateClassComposite(classId, updatePayload);
           showStatusDialog("success", "Class Updated!", "Class updated successfully.");
 
@@ -552,7 +626,6 @@ export default function AddEditClassPage() {
               };
           });
 
-          // FORMAT DATE TO VN
           const formattedStartDate = formatDateToVN(formData.startDate);
           const autoClassName = `${formData.courseName} - (${formattedStartDate})`;
           
@@ -565,6 +638,8 @@ export default function AddEditClassPage() {
             classStatusID: CONST_STATUS_PLANED,
             courseFormatID: CONST_COURSE_FORMAT,
             teacherAssignmentID: formData.teacherId,
+            // Mới: Gửi SubTeacher ID (thêm vào type DTO nếu cần)
+            // subTeacherAssignmentID: formData.subTeacherId || null,
             startDate: formData.startDate,
             endDate: formData.endDate,
             capacity: formData.maxStudents,
@@ -572,6 +647,9 @@ export default function AddEditClassPage() {
             schedules: schedulePayloads,
             enrollments: enrollmentObjects 
           };
+          
+          // @ts-ignore: Bỏ qua lỗi type check nếu DTO chưa update kịp
+          if(formData.subTeacherId) compositePayload.subTeacherAssignmentID = formData.subTeacherId;
 
           await createClassComposite(compositePayload);
           showStatusDialog("success", "Class Created!", "Class created & students enrolled successfully!");
@@ -590,6 +668,7 @@ export default function AddEditClassPage() {
     }
   };
 
+  // ... (Popup Logic keeps same)
   // --- POPUP LOGIC ---
   useEffect(() => {
     const fetchStudents = async () => {
@@ -686,9 +765,18 @@ export default function AddEditClassPage() {
     .map(id => studentLookup.get(id))
     .filter(Boolean) as WaitingStudentItem[];
 
+  // -----------------------------------------------------------
+  // FILTER OPTIONS FOR SUB TEACHER
+  // Loại bỏ giáo viên chính khỏi danh sách chọn giáo viên phụ
+  // -----------------------------------------------------------
+  const subTeacherOptions = availableTeachers
+    .filter(t => t.id !== formData.teacherId)
+    .map(t => ({ label: t.fullName, value: t.id }));
+
   return (
     <div className="min-h-screen bg-gray-50/50 pt-16">
       <div className="p-6 space-y-6 max-w-5xl mx-auto">
+         {/* ... Breadcrumbs and Headers ... */}
          <div className="flex flex-col gap-2">
             <Breadcrumbs items={[{ label: "Classes", to: "/staff/classes" }, { label: isEdit ? "Edit Class" : "New Class" }]} />
             <h1 className="text-2xl font-bold text-gray-800">{isEdit ? "Edit Class" : "Create New Class"}</h1>
@@ -711,6 +799,7 @@ export default function AddEditClassPage() {
                         <BookOpen className="w-5 h-5 text-blue-600" />
                         <h2 className="font-semibold text-lg text-gray-800">General Information</h2>
                     </div>
+                    {/* ... Course and Status Selectors ... */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="md:col-span-2">
                             {isStandaloneRoute && !isEdit ? (
@@ -789,11 +878,14 @@ export default function AddEditClassPage() {
                             />
                         </div>
                      </div>
+                     
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Cột 1: Room Selection */}
                         <div>
-                            <Label required className="mb-1 block">Room</Label>
-                            
-                            {/* --- MỚI: UI cho Room Select + Button Find --- */}
+                            <div className="flex items-center gap-2 mb-1">
+                                <MapPin className="w-4 h-4 text-gray-400" />
+                                <Label required className="mb-0">Room</Label>
+                            </div>
                             <div className="flex items-center gap-2">
                                 <Select 
                                     className="flex-1"
@@ -803,8 +895,6 @@ export default function AddEditClassPage() {
                                         { label: roomOptions.length ? "Select a room..." : "No rooms found", value: "" },
                                         ...roomOptions.filter(r => r.isActive).map(r => ({ label: `${r.roomCode} (Cap: ${r.capacity})`, value: r.id }))
                                     ]}
-                                    // Chỉ disable khi chưa load options hoặc đang edit (trừ khi edit cũng muốn cho đổi phòng)
-                                    // Theo logic Teacher, nếu chưa load thì disable select
                                     disabled={roomOptions.length === 0 || isEdit}
                                     error={errors.room}
                                 />
@@ -825,40 +915,84 @@ export default function AddEditClassPage() {
                             </div>
                         </div>
 
-                        <div>
-                            <Label required className="mb-1 block">Teacher</Label>
-                            <div className="flex items-center gap-2">
-                                <Select 
-                                    className="flex-1"
-                                    options={[
-                                        { label: availableTeachers.length ? "Select a teacher..." : "No teachers found", value: "" },
-                                        ...availableTeachers.map(t => ({ label: t.fullName, value: t.id }))
-                                    ]}
-                                    value={formData.teacherId || ""}
-                                    onChange={e => handleTeacherSelectChange(e.target.value)}
-                                    disabled={availableTeachers.length === 0 || isEdit}
-                                    error={errors.teacher}
-                                />
-                                <Button 
-                                    variant="secondary" 
-                                    size="sm" 
-                                    className="h-10 px-3 text-sm"
-                                    onClick={reloadAvailableTeachers} 
-                                    disabled={isLoadingTeachers || !canPickTeacher || isEdit}
-                                    iconLeft={
-                                      isLoadingTeachers 
-                                        ? <Loader2 className="w-4 h-4 animate-spin" /> 
-                                        : <RefreshCw className="w-4 h-4" />
-                                    }
-                                >
-                                    Find
-                                </Button>
+                        {/* Cột 2: Teachers Selection */}
+                        <div className="space-y-4">
+                            {/* Main Teacher */}
+                            <div>
+                                <Label required className="mb-1 block">Teacher</Label>
+                                <div className="flex items-center gap-2">
+                                    <Select 
+                                        className="flex-1"
+                                        options={[
+                                            { label: availableTeachers.length ? "Select a teacher..." : "No teachers found", value: "" },
+                                            ...availableTeachers.map(t => ({ label: t.fullName, value: t.id }))
+                                        ]}
+                                        value={formData.teacherId || ""}
+                                        onChange={e => handleTeacherSelectChange(e.target.value)}
+                                        disabled={availableTeachers.length === 0 || isEdit}
+                                        error={errors.teacher}
+                                    />
+                                    <Button 
+                                        variant="secondary" 
+                                        size="sm" 
+                                        className="h-10 px-3 text-sm"
+                                        onClick={reloadAvailableTeachers} 
+                                        disabled={isLoadingTeachers || !canPickTeacher || isEdit}
+                                        iconLeft={
+                                          isLoadingTeachers 
+                                            ? <Loader2 className="w-4 h-4 animate-spin" /> 
+                                            : <RefreshCw className="w-4 h-4" />
+                                        }
+                                    >
+                                        Find
+                                    </Button>
+                                </div>
                             </div>
+
+                            {/* --- MỚI: Sub Teacher Selection --- */}
+                        <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                  <UserCheck className="w-4 h-4 text-gray-400" />
+                                  <Label className="mb-0">Sub-Teacher (Optional)</Label>
+                              </div>
+                              
+                              {/* Bọc Select vào div flex và thêm nút ẩn để căn chỉnh width */}
+                              <div className="flex items-center gap-2">
+                                  <Select 
+                                      className="flex-1" // Đổi từ w-full thành flex-1 để tự co giãn
+                                      options={[
+                                          { label: "None", value: "" },
+                                          ...subTeacherOptions
+                                      ]}
+                                      value={formData.subTeacherId || ""}
+                                      onChange={e => handleSubTeacherSelectChange(e.target.value)}
+                                      disabled={!formData.teacherId || availableTeachers.length <= 1 || isEdit}
+                                      error={errors.subTeacher}
+                                  />
+
+                                  {/* --- SPACER BUTTON --- */}
+                                  {/* Nút này dùng để giữ chỗ (invisible), giúp width của input bên trái bằng với input ở trên */}
+                                  <Button 
+                                      variant="secondary" 
+                                      size="sm" 
+                                      className="h-10 px-3 text-sm invisible pointer-events-none" // invisible: không hiện, pointer-events-none: không click được
+                                      iconLeft={<RefreshCw className="w-4 h-4" />} // Giữ nguyên icon để width bằng nhau tuyệt đối
+                                  >
+                                      Find
+                                  </Button>
+                              </div>
+
+                              {!formData.teacherId && availableTeachers.length > 0 && (
+                                  <p className="text-xs text-gray-400 mt-1 ml-1">Please select main teacher first.</p>
+                              )}
+                          </div>
                         </div>
                      </div>
                 </Card>
 
+                {/* ... Students Card ... */}
                 <Card className="p-6 border-t-4 border-t-purple-500">
+                    {/* ... Same content as before ... */}
                     <div className="flex items-center justify-between mb-6 pb-2 border-b">
                         <div className="flex items-center gap-2">
                             <Users className="w-5 h-5 text-purple-600" />
@@ -936,6 +1070,7 @@ export default function AddEditClassPage() {
                 </Card>
          </div>
 
+         {/* ... Footer and Dialogs ... */}
          <div className="sticky bottom-0 z-10 bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-2xl border-t border-gray-200 flex justify-end gap-3">
             <Button variant="secondary" onClick={() => navigate(-1)} className="min-w-[100px]">Cancel</Button>
             <Button 
@@ -948,6 +1083,7 @@ export default function AddEditClassPage() {
             </Button>
          </div>
 
+         {/* Dialogs: Waiting List, Postpone, Status */}
          <Dialog open={isWaitingListOpen} onOpenChange={setIsWaitingListOpen}>
              <DialogContent size="lg">
                  <DialogHeader><DialogTitle>Select Students from Waiting List</DialogTitle></DialogHeader>
@@ -1031,14 +1167,10 @@ export default function AddEditClassPage() {
                      </div>
                  </DialogBody>
                  <DialogFooter>
-                    <Button 
-                        onClick={handleNotifyPostpone} 
-                        disabled={isLoading} 
-                        className="bg-amber-600 hover:bg-amber-700 text-white"
-                        iconLeft={isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    >
-                        Send Notifications
-                    </Button>
+                     <Button variant="secondary" onClick={() => setIsPostponeOpen(false)}>Cancel</Button>
+                     <Button onClick={handleNotifyPostpone} disabled={isLoading} className="bg-amber-600 hover:bg-amber-700 text-white flex items-center">
+                         {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <MailWarning className="w-4 h-4 mr-2" />} Send Notifications
+                     </Button>
                  </DialogFooter>
              </DialogContent>
          </Dialog>
