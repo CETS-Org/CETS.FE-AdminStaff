@@ -15,6 +15,7 @@ import Gateway from './pages/common/Gateway'
 import OtpVerification from './pages/common/OtpVerification'
 import ResetPassword from './pages/common/ResetPassword'
 import ChangePassword from './pages/common/ChangePassword'
+import ProtectedRoute from './components/auth/ProtectedRoute'
 
 
 export default function App() {
@@ -22,20 +23,36 @@ export default function App() {
     <div className="min-h-screen flex flex-col bg-neutral-50">
       <Routes>
         {/* Authentication & Public Routes */}
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={
+          <ProtectedRoute requireAuth={false}>
+            <Login />
+          </ProtectedRoute>
+        } />
         <Route path="/forgotPassword" element={<ForgotPassword />} />
         <Route path="/otpVerification" element={<OtpVerification />} />
         <Route path="/resetPassword" element={<ResetPassword />} />
-        <Route path="/change-password" element={<ChangePassword />} />
+        <Route path="/change-password" element={
+          <ProtectedRoute>
+            <ChangePassword />
+          </ProtectedRoute>
+        } />
         <Route path="/gateway" element={<Gateway />} />
         <Route path="/homepage" element={<HomePage />} />
         
-        {/* Staff Routes */}
-        <Route path="/staff/*" element={<StaffHome />} />
+        {/* Staff Routes - protected with Staff roles */}
+        <Route path="/staff/*" element={
+          <ProtectedRoute allowedRoles={['AcademicStaff', 'AccountantStaff']}>
+            <StaffHome />
+          </ProtectedRoute>
+        } />
         
         
-        {/* Admin Routes */}
-        <Route path="/admin/*" element={<AdminHome />} />
+        {/* Admin Routes - protected with Admin role */}
+        <Route path="/admin/*" element={
+          <ProtectedRoute allowedRoles={['Admin']}>
+            <AdminHome />
+          </ProtectedRoute>
+        } />
         
         {/* Legacy/Other Routes */}
         <Route path="/requests" element={<Requests />} />
