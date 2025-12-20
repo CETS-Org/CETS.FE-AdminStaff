@@ -7,7 +7,8 @@ export const api = axios.create({
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`,
+      // Authorization header is set dynamically in the request interceptor below
+      // to ensure token is always read fresh from localStorage
     },
   });
   
@@ -36,12 +37,17 @@ export const endpoint ={
   email :'api/email'
 }
 
-  // Request interceptor to add auth token
+  // Request interceptor to add auth token dynamically
+  // This ensures the token is always read fresh from localStorage on each request
   api.interceptors.request.use(
     (config) => {
       const token = localStorage.getItem('authToken');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+      } else {
+        // Explicitly remove Authorization header if no token exists
+        // This prevents sending empty/invalid Bearer tokens
+        delete config.headers.Authorization;
       }
       return config;
     },
