@@ -51,6 +51,7 @@ export interface CreateClassMeetingRequestDTO {
   date: string;                // DateOnly string (yyyy-MM-dd)
   roomID?: string;             // Guid?
   teacherAssignmentID?: string;// Guid?
+  subTeacherAssignmentID?: string;
   onlineMeetingUrl?: string;
   passcode?: string;
   progressNote?: string;
@@ -78,6 +79,7 @@ export interface ClassMeetingScheduleDTO {
     classStatusID: string;
     courseFormatID?: string;
     teacherAssignmentID?: string;
+    subTeacherAssignmentID?: string;
     startDate: string;
     endDate: string;
     capacity: number;
@@ -188,6 +190,7 @@ export interface ClassDetailResponseDTO {
   courseId: string;
   className: string;
   teacherAssignmentID?: string;
+  subTeacherAssignmentID?: string;
   TeacherName?: string;
   roomId?: string;
   startDate: string;
@@ -209,6 +212,7 @@ export interface UpdateClassCompositeRequestDTO {
   endDate: string;
   capacity: number;
   updatedBy: string;
+  subTeacherAssignmentID?: string;
   
   
   enrollmentIds: string[]; 
