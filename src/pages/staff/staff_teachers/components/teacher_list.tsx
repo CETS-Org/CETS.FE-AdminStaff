@@ -18,6 +18,9 @@ import Pagination from "@/shared/pagination";
 import { isStaffUser } from "@/lib/utils";
 
 
+
+
+
 export default function TeacherList() {
   const navigate = useNavigate();
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; teacher: Teacher | null; action?: 'ban' | 'unban' }>({ open: false, teacher: null });
@@ -59,7 +62,19 @@ export default function TeacherList() {
     setSortBy(sortByValue);
     setSortOrder(sortOrderValue);
   };
+  const CLOUD_STORAGE_BASE_URL =  'https://pub-59cfd11e5f0d4b00af54839edc83842d.r2.dev';
 
+  const getFullImageUrl = (url: string | null): string => {
+    if (!url) return '';
+    // If URL already starts with http/https, return as is
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    // If URL starts with /, remove it before prepending
+    const cleanPath = url.startsWith('/') ? url.substring(1) : url;
+    // Prepend cloud storage base URL
+    return `${CLOUD_STORAGE_BASE_URL}/${cleanPath}`;
+  };
   // Filter teachers with API
   const filterTeachersAPI = async () => {
     try {
@@ -197,7 +212,7 @@ export default function TeacherList() {
           <div className="relative w-12 h-12 bg-gradient-to-br from-primary-100 to-primary-200 rounded-xl flex items-center justify-center text-primary-700 font-bold text-lg shadow-sm overflow-hidden">
             {row.avatarUrl ? (
               <img 
-                src={row.avatarUrl} 
+                src={getFullImageUrl(row.avatarUrl)} 
                 alt={row.fullName}
                 className="w-full h-full object-cover rounded-xl"
               />

@@ -135,7 +135,7 @@ export const updateStaffProfile = async (id: string, staffData: UpdateStaffProfi
 
 export const addStaff = async (staffData: AddStaffProfile): Promise<Account> => {
   try {
-    const response = await api.post<Account>(`${endpoint.account}`, staffData);
+    const response = await api.post<Account>(`${endpoint.account}`, staffData,{timeout: 90000});
     return response.data;
   } catch (error) {
     console.error(`Error add staff :`, error);

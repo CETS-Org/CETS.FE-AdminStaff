@@ -236,7 +236,7 @@ export default function StudentDetailPage() {
               <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
             </div>
           </button>
-          <button
+          {/* <button
             onClick={() => handleManageCourse(course.courseId)}
             className="p-2.5 rounded-xl border border-gray-300 text-gray-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-all duration-200 relative group shadow-sm hover:shadow-md"
           >
@@ -245,9 +245,9 @@ export default function StudentDetailPage() {
               Manage Course
               <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
             </div>
-          </button>
+          </button>*/}
           <button
-            onClick={() => window.open(`/admin/courses/${course.courseId}`, '_blank')}
+            onClick={() => navigate(`${basePath}/courses/${course.courseId}`)}
             className="p-2.5 rounded-xl border border-gray-300 text-gray-600 hover:bg-green-50 hover:border-green-300 hover:text-green-600 transition-all duration-200 relative group shadow-sm hover:shadow-md"
           >
             <ExternalLink className="w-4 h-4" />
@@ -255,7 +255,7 @@ export default function StudentDetailPage() {
               View Details
               <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
             </div>
-          </button>
+          </button> 
         </div>
       )
     }

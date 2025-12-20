@@ -10,7 +10,8 @@ import {
   UserPlus, CheckCircle, AlertCircle, Loader2, Eye, X
 } from "lucide-react";
 import { createTeacher, getTeacherById, getListCredentialType } from "@/api/teacher.api";
-import { api } from "@/api/api";
+import { api, endpoint } from "@/api/api";
+import { checkEmailExist, checkPhoneExist, checkCIDExist } from "@/api/account.api";
 import type { AddTeacherProfile, CredentialTypeResponse } from "@/types/teacher.type";
 
 interface CredentialFormData {
@@ -31,6 +32,7 @@ interface TeacherFormData {
   cid: string;
   address: string | null;
   avatarUrl: string | null;
+  avatarFile?: File; // Store file object for later upload
   yearsExperience: number;
   bio: string | null;
   credentials: CredentialFormData[];
@@ -62,7 +64,13 @@ export default function AddEditTeacherPage() {
   const [completedSteps] = useState<number[]>([]);
   const [viewingImage, setViewingImage] = useState<{ url: string; name: string } | null>(null);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [checkingPhone, setCheckingPhone] = useState(false);
+  const [checkingCid, setCheckingCid] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const emailCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const phoneCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const cidCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const steps = [
     { id: 1, title: "Profile Photo", description: "Upload teacher's photo" },
@@ -126,7 +134,7 @@ export default function AddEditTeacherPage() {
           credentialTypeId: cred.credentialTypeId,
           pictureUrl: cred.pictureUrl,
           name: cred.name,
-          level: cred.level
+          level: cred.level || "A1" // Set default to A1 if level is empty
         })) || []
       });
       
@@ -140,7 +148,7 @@ export default function AddEditTeacherPage() {
     }
   };
 
-  const validateForm = (): boolean => {
+  const validateForm = async (): Promise<boolean> => {
     const newErrors: Record<string, string> = {};
 
     // Validate required fields
@@ -180,6 +188,16 @@ export default function AddEditTeacherPage() {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(formData.email.trim())) {
         newErrors.email = "Please enter a valid email";
+      } else if (!isEdit) {
+        // Check email existence for new teachers
+        try {
+          const emailExists = await checkEmailExist(formData.email.trim());
+          if (emailExists) {
+            newErrors.email = "Email already exists";
+          }
+        } catch (error) {
+          console.error("Error checking email existence:", error);
+        }
       }
     }
 
@@ -190,6 +208,16 @@ export default function AddEditTeacherPage() {
       const phoneRegex = /^0\d{9}$/;
       if (!phoneRegex.test(formData.phoneNumber.replace(/\s/g, ''))) {
         newErrors.phoneNumber = "Phone number must start with 0 and have 10 digits";
+      } else if (!isEdit) {
+        // Check phone existence for new teachers
+        try {
+          const phoneExists = await checkPhoneExist(formData.phoneNumber.replace(/\s/g, ''));
+          if (phoneExists) {
+            newErrors.phoneNumber = "Phone number already exists";
+          }
+        } catch (error) {
+          console.error("Error checking phone existence:", error);
+        }
       }
     }
 
@@ -206,6 +234,16 @@ export default function AddEditTeacherPage() {
       const cidRegex = /^[0-9]{9,12}$/;
       if (!cidRegex.test(formData.cid.trim())) {
         newErrors.cid = "CID must be 9-12 digits";
+      } else if (!isEdit) {
+        // Check CID existence for new teachers
+        try {
+          const cidExists = await checkCIDExist(formData.cid.trim());
+          if (cidExists) {
+            newErrors.cid = "CID already exists";
+          }
+        } catch (error) {
+          console.error("Error checking CID existence:", error);
+        }
       }
     }
 
@@ -249,11 +287,104 @@ export default function AddEditTeacherPage() {
     return monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
   };
 
+  // Check email existence with debounce
+  const checkEmailExistence = async (email: string) => {
+    if (!email.trim()) return;
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      return; // Don't check if email format is invalid
+    }
+
+    setCheckingEmail(true);
+    try {
+      const exists = await checkEmailExist(email.trim());
+      if (exists) {
+        setErrors(prev => ({ ...prev, email: "Email already exists" }));
+      } else {
+        // Clear error if email is unique
+        setErrors(prev => {
+          const newErrors = { ...prev };
+          if (newErrors.email === "Email already exists") {
+            delete newErrors.email;
+          }
+          return newErrors;
+        });
+      }
+    } catch (error) {
+      console.error("Error checking email existence:", error);
+    } finally {
+      setCheckingEmail(false);
+    }
+  };
+
+  // Check phone existence with debounce
+  const checkPhoneExistence = async (phone: string) => {
+    if (!phone.trim()) return;
+    
+    const phoneRegex = /^0\d{9}$/;
+    if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
+      return; // Don't check if phone format is invalid
+    }
+
+    setCheckingPhone(true);
+    try {
+      const exists = await checkPhoneExist(phone.replace(/\s/g, ''));
+      if (exists) {
+        setErrors(prev => ({ ...prev, phoneNumber: "Phone number already exists" }));
+      } else {
+        // Clear error if phone is unique
+        setErrors(prev => {
+          const newErrors = { ...prev };
+          if (newErrors.phoneNumber === "Phone number already exists") {
+            delete newErrors.phoneNumber;
+          }
+          return newErrors;
+        });
+      }
+    } catch (error) {
+      console.error("Error checking phone existence:", error);
+    } finally {
+      setCheckingPhone(false);
+    }
+  };
+
+  // Check CID existence with debounce
+  const checkCidExistence = async (cid: string) => {
+    if (!cid.trim()) return;
+    
+    const cidRegex = /^[0-9]{9,12}$/;
+    if (!cidRegex.test(cid.trim())) {
+      return; // Don't check if CID format is invalid
+    }
+
+    setCheckingCid(true);
+    try {
+      const exists = await checkCIDExist(cid.trim());
+      if (exists) {
+        setErrors(prev => ({ ...prev, cid: "CID already exists" }));
+      } else {
+        // Clear error if CID is unique
+        setErrors(prev => {
+          const newErrors = { ...prev };
+          if (newErrors.cid === "CID already exists") {
+            delete newErrors.cid;
+          }
+          return newErrors;
+        });
+      }
+    } catch (error) {
+      console.error("Error checking CID existence:", error);
+    } finally {
+      setCheckingCid(false);
+    }
+  };
+
   const handleInputChange = (field: keyof TeacherFormData, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     
-    // Clear existing error for this field
-    if (errors[field]) {
+    // Clear existing error for this field (except existence errors which are handled separately)
+    if (errors[field] && !errors[field].includes("already exists")) {
       setErrors(prev => ({ ...prev, [field]: "" }));
     }
     
@@ -269,23 +400,47 @@ export default function AddEditTeacherPage() {
     }
     
     if (field === 'email' && typeof value === 'string') {
+      // Clear previous timeout
+      if (emailCheckTimeoutRef.current) {
+        clearTimeout(emailCheckTimeoutRef.current);
+      }
+      
       if (!value.trim()) {
         newErrors.email = "Email is required";
       } else {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(value.trim())) {
           newErrors.email = "Please enter a valid email";
+        } else {
+          // Debounce email existence check (wait 500ms after user stops typing)
+          emailCheckTimeoutRef.current = setTimeout(() => {
+            if (!isEdit) {
+              checkEmailExistence(value.trim());
+            }
+          }, 500);
         }
       }
     }
     
     if (field === 'phoneNumber' && typeof value === 'string') {
+      // Clear previous timeout
+      if (phoneCheckTimeoutRef.current) {
+        clearTimeout(phoneCheckTimeoutRef.current);
+      }
+      
       if (!value.trim()) {
         newErrors.phoneNumber = "Phone number is required";
       } else {
         const phoneRegex = /^0\d{9}$/;
         if (!phoneRegex.test(value.replace(/\s/g, ''))) {
           newErrors.phoneNumber = "Phone number must start with 0 and have 10 digits";
+        } else {
+          // Debounce phone existence check (wait 500ms after user stops typing)
+          phoneCheckTimeoutRef.current = setTimeout(() => {
+            if (!isEdit) {
+              checkPhoneExistence(value);
+            }
+          }, 500);
         }
       }
     }
@@ -311,12 +466,24 @@ export default function AddEditTeacherPage() {
     }
     
     if (field === 'cid' && typeof value === 'string') {
+      // Clear previous timeout
+      if (cidCheckTimeoutRef.current) {
+        clearTimeout(cidCheckTimeoutRef.current);
+      }
+      
       if (!value.trim()) {
         newErrors.cid = "CID is required";
       } else {
         const cidRegex = /^[0-9]{9,12}$/;
         if (!cidRegex.test(value.trim())) {
           newErrors.cid = "CID must be 9-12 digits";
+        } else {
+          // Debounce CID existence check (wait 500ms after user stops typing)
+          cidCheckTimeoutRef.current = setTimeout(() => {
+            if (!isEdit) {
+              checkCidExistence(value.trim());
+            }
+          }, 500);
         }
       }
     }
@@ -351,7 +518,7 @@ export default function AddEditTeacherPage() {
       credentialTypeId: defaultCredentialTypeId,
       pictureUrl: null,
       name: "",
-      level: ""
+      level: "A1" // Set default level to A1
     };
     setFormData(prev => ({
       ...prev,
@@ -415,18 +582,13 @@ export default function AddEditTeacherPage() {
       return newFormData;
     });
   };
-  
-  const handleCredentialImageUpload = async (credentialId: string, file: File): Promise<string> => {
+ 
+  const handleImageUpload = async (file: File, prefix: string = 'image'): Promise<string> => {
     try {
       // Get presigned URL for upload
-      const fileName = `credential-${Date.now()}-${file.name}`;
-      const response = await api.post<{ uploadUrl: string; filePath: string }>(
-        '/api/RPT_Report/image-upload-url',
-        {
-          fileName,
-          contentType: file.type
-        }
-      );
+      const response = await api.get(`${endpoint.teacher}/avatar/upload-url`, {
+        params: { fileName: prefix, contentType: file.type },
+      });
       
       // Upload file to presigned URL
       const uploadResponse = await fetch(response.data.uploadUrl, {
@@ -449,6 +611,10 @@ export default function AddEditTeacherPage() {
       console.error('❌ Error uploading credential image:', error);
       throw error;
     }
+  };
+
+  const handleCredentialImageUpload = async (credentialId: string, file: File): Promise<string> => {
+    return handleImageUpload(file, 'credential');
   };
 
   const removeCredential = (id: string) => {
@@ -528,24 +694,30 @@ export default function AddEditTeacherPage() {
   };
 
   const handleSave = async () => {
-    if (!validateForm()) {
+    if (!(await validateForm())) {
       return;
     }
 
     setIsLoading(true);
     try {
-      // Step 1: Upload all credential images to cloud and get URLs
+      // Step 1: Upload avatar to cloud if there's a new file
+      let avatarUrl = formData.avatarUrl; // Keep existing URL if editing
+      if (formData.avatarFile) {
+        avatarUrl = await handleImageUpload(formData.avatarFile, 'avatar');
+      }
+      
+      // Step 2: Upload all credential images to cloud and get URLs
       const credentialsWithCloudUrls = await uploadCredentialImages();
       
-      // Step 2: Create teacher with credentials that have cloud URLs attached to pictureUrl
+      // Step 3: Create teacher with credentials that have cloud URLs attached to pictureUrl
       const teacherData: AddTeacherProfile = {
         email: formData.email,
         phoneNumber: formData.phoneNumber,
         fullName: formData.fullName,
         dateOfBirth: formData.dateOfBirth,
-        cid: formData.cid, // CID will be hashed in backend
+        cid: formData.cid, // CID is stored as plain text
         address: formData.address,
-        avatarUrl: formData.avatarUrl,
+        avatarUrl: avatarUrl, // Use uploaded cloud URL
         yearsExperience: formData.yearsExperience,
         bio: formData.bio,
         credentials: credentialsWithCloudUrls
@@ -560,14 +732,13 @@ export default function AddEditTeacherPage() {
       
       const createdTeacher = await createTeacher(teacherData);
       
-      // Show success message with email notification info
-      alert(`Teacher account created successfully!\n\nAn email containing login credentials has been sent to:\n${teacherData.email}\n\nThe teacher can use this email and the password provided in the email to log in to the system.`);
-      
-      
       
       // Navigate to teacher detail page using accountId from response
-      if (createdTeacher.accountId) {
-        navigate(`/admin/teachers/${createdTeacher.accountId}`, {
+      // Response can be TeacherDetailResponse with AccountId (Guid) or Teacher with accountId (string)
+      const accountId = (createdTeacher as any).accountId || (createdTeacher as any).AccountId;
+      
+      if (accountId) {
+        navigate(`/admin/teachers/${accountId}`, {
           state: {
             updateStatus: "success",
             emailSent: true,
@@ -578,10 +749,29 @@ export default function AddEditTeacherPage() {
         // Fallback to teachers list if no accountId
         navigate("/admin/teachers");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Error saving teacher:", error);
-      // You can add more specific error handling here
-      setErrors({ submit: "Failed to save teacher. Please try again." });
+      
+      // Extract error message from API response
+      let errorMessage = "Failed to save teacher. Please try again.";
+      
+      // Check for timeout error (no response received)
+      if (error?.code === 'ECONNABORTED' || error?.message?.includes('timeout')) {
+        errorMessage = "Request timed out. The server is taking longer than expected. Please try again.";
+      } else if (error?.response?.data) {
+        // Extract error message from response
+        if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.error) {
+          errorMessage = error.response.data.error;
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      setErrors({ submit: errorMessage });
     } finally {
       setIsLoading(false);
     }
@@ -602,11 +792,14 @@ export default function AddEditTeacherPage() {
         return;
       }
 
+      // Store file object for later upload
+      setFormData(prev => ({ ...prev, avatarFile: file }));
+      
+      // Show preview from local file
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
         setAvatarPreview(result);
-        setFormData(prev => ({ ...prev, avatarUrl: result }));
         setErrors(prev => ({ ...prev, avatar: "" }));
       };
       reader.readAsDataURL(file);
@@ -619,7 +812,7 @@ export default function AddEditTeacherPage() {
 
   const removeAvatar = () => {
     setAvatarPreview("");
-    setFormData(prev => ({ ...prev, avatarUrl: "" }));
+    setFormData(prev => ({ ...prev, avatarUrl: "", avatarFile: undefined }));
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -628,6 +821,21 @@ export default function AddEditTeacherPage() {
   const handleCancel = () => {
     navigate("/admin/teachers");
   };
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (emailCheckTimeoutRef.current) {
+        clearTimeout(emailCheckTimeoutRef.current);
+      }
+      if (phoneCheckTimeoutRef.current) {
+        clearTimeout(phoneCheckTimeoutRef.current);
+      }
+      if (cidCheckTimeoutRef.current) {
+        clearTimeout(cidCheckTimeoutRef.current);
+      }
+    };
+  }, []);
 
   if (isLoading && isEdit) {
     return (
@@ -822,6 +1030,7 @@ export default function AddEditTeacherPage() {
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   error={errors.email}
+                  disabled={checkingEmail}
                 />
               </div>
               
@@ -832,6 +1041,7 @@ export default function AddEditTeacherPage() {
                   value={formData.phoneNumber}
                   onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                   error={errors.phoneNumber}
+                  disabled={checkingPhone}
                 />
                 <Input
                   label="Date of Birth *"
@@ -849,6 +1059,7 @@ export default function AddEditTeacherPage() {
                   value={formData.cid}
                   onChange={(e) => handleInputChange('cid', e.target.value)}
                   error={errors.cid}
+                  disabled={checkingCid}
                 />
                 <Input
                   label="Home Address"
@@ -880,6 +1091,7 @@ export default function AddEditTeacherPage() {
                   value={formData.yearsExperience}
                   onChange={(e) => handleInputChange('yearsExperience', parseInt(e.target.value) || 0)}
                   error={errors.yearsExperience}
+                  min={0}
                 />
               </div>
               
@@ -976,7 +1188,7 @@ export default function AddEditTeacherPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Select
                         label="Level *"
-                        value={cred.level || ""}
+                        value={cred.level || 'A1'}
                         onChange={(e) => updateCredential(cred.id, 'level', e.target.value)}
                         options={[
                           { label: 'A1', value: 'A1' },

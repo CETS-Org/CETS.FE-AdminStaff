@@ -94,7 +94,7 @@ export const getListCredentialByTeacherId = async (teacherId: string): Promise<T
  */
 export const createTeacher = async (teacherData: AddTeacherProfile): Promise<Teacher> => {
   try {
-    const response = await api.post<Teacher>(`${endpoint.teacher}`, teacherData);
+    const response = await api.post<Teacher>(`${endpoint.teacher}`, teacherData,{timeout: 60000});
     return response.data;
   } catch (error) {
     console.error('Error creating teacher:', error);

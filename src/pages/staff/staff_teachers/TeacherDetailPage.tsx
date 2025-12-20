@@ -16,6 +16,7 @@ import { isStaffUser } from "@/lib/utils";
 
 
 
+
 // Remove TeachingCourse interface as we'll use CourseTeaching from types
 
 
@@ -40,7 +41,7 @@ export default function TeacherDetailPage() {
   const basePath = isStaff ? '/staff' : '/admin';
   
   // Cloud storage base URL
-  const CLOUD_STORAGE_BASE_URL = 'https://pub-59cfd11e5f0d4b00af54839edc83842d.r2.dev';
+  const CLOUD_STORAGE_BASE_URL =  'https://pub-59cfd11e5f0d4b00af54839edc83842d.r2.dev';
   
   // Helper function to get full image URL
   const getFullImageUrl = (url: string | null): string => {
@@ -431,7 +432,7 @@ export default function TeacherDetailPage() {
                 <div className="w-full h-full rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center overflow-hidden border-4 border-white shadow-lg hover:shadow-xl transition-all duration-300 group">
                   {teacher.avatarUrl ? (
                     <img 
-                      src={teacher.avatarUrl} 
+                      src={`${CLOUD_STORAGE_BASE_URL}/${teacher.avatarUrl}`} 
                       alt={teacher.fullName}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />

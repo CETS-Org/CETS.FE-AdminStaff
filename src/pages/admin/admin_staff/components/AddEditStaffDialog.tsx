@@ -311,9 +311,7 @@ export default function AddEditStaffDialog({
           
           const created = await addStaff(staffData);
           
-          // Show success message with email notification info
-          alert(`Staff account created successfully!\n\nAn email containing login credentials has been sent to:\n${staffData.email}\n\nThe staff member can use this email and the password provided in the email to log in to the system.`);
-          
+            
           if (onUpdateSuccess) onUpdateSuccess();
           onOpenChange(false);
           const newId = (created as any)?.accountId || (created as any)?.id || (created as any)?.accountID;
