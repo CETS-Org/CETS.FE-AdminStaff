@@ -5,6 +5,10 @@ import { CheckCircle, XCircle, Clock, User, Mail, Calendar, AlertCircle, File, D
 import { useToast } from "@/hooks/useToast";
 import { getAttachmentDownloadUrl, getAcademicRequestHistory, type AcademicRequestHistoryItem } from "@/api/academicRequest.api";
 import { getAvailableRoomsForSlot } from "@/api/room.api";
+import { getClassMeetingsByClassId } from "@/pages/staff/staff_schedule/data/schedule.api";
+import { getClassDetail } from "@/api/class.api";
+import type { ClassMeetingResponseDTO } from "@/pages/staff/staff_schedule/data/schedule.types";
+import type { ClassDetailResponse } from "@/api/class.api";
 import type { AcademicRequest } from "@/types/academicRequest.type";
 import { SuspensionReasonCategoryLabels } from "@/types/suspensionRequest.type";
 import { DropoutReasonCategoryLabels, type ExitSurveyData } from "@/types/dropoutRequest.type";
@@ -50,6 +54,13 @@ export default function RequestDetailDialog({
   const [showExitSurvey, setShowExitSurvey] = useState(false);
   const [history, setHistory] = useState<AcademicRequestHistoryItem[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [fromClassMeetings, setFromClassMeetings] = useState<ClassMeetingResponseDTO[]>([]);
+  const [toClassMeetings, setToClassMeetings] = useState<ClassMeetingResponseDTO[]>([]);
+  const [fromClassDetail, setFromClassDetail] = useState<ClassDetailResponse | null>(null);
+  const [toClassDetail, setToClassDetail] = useState<ClassDetailResponse | null>(null);
+  const [isLoadingClassData, setIsLoadingClassData] = useState(false);
+  const [fromClassCurrentMonth, setFromClassCurrentMonth] = useState<Date>(new Date());
+  const [toClassCurrentMonth, setToClassCurrentMonth] = useState<Date>(new Date());
   const { showToast } = useToast();
 
   const fetchAvailableRooms = async () => {
@@ -114,6 +125,76 @@ export default function RequestDetailDialog({
 
     loadHistory();
   }, [isOpen, request?.id]);
+
+  // Fetch class meetings and details for class transfer requests
+  useEffect(() => {
+    const loadClassData = async () => {
+      if (!isOpen || !request || request.requestType !== "class_transfer") {
+        setFromClassMeetings([]);
+        setToClassMeetings([]);
+        setFromClassDetail(null);
+        setToClassDetail(null);
+        return;
+      }
+
+      setIsLoadingClassData(true);
+      try {
+        // Fetch from class data
+        if (request.fromClassID) {
+          try {
+            const [meetingsRes, detailRes] = await Promise.all([
+              getClassMeetingsByClassId(request.fromClassID),
+              getClassDetail(request.fromClassID)
+            ]);
+            setFromClassMeetings(meetingsRes.data || []);
+            setFromClassDetail(detailRes);
+            
+            // Initialize current month to first meeting date if available
+            if (meetingsRes.data && meetingsRes.data.length > 0) {
+              const firstDate = new Date(meetingsRes.data[0].date);
+              if (!isNaN(firstDate.getTime())) {
+                setFromClassCurrentMonth(new Date(firstDate.getFullYear(), firstDate.getMonth(), 1));
+              }
+            }
+          } catch (error: any) {
+            console.error("Error loading from class data:", error);
+            setFromClassMeetings([]);
+            setFromClassDetail(null);
+          }
+        }
+
+        // Fetch to class data
+        if (request.toClassID) {
+          try {
+            const [meetingsRes, detailRes] = await Promise.all([
+              getClassMeetingsByClassId(request.toClassID),
+              getClassDetail(request.toClassID)
+            ]);
+            setToClassMeetings(meetingsRes.data || []);
+            setToClassDetail(detailRes);
+            
+            // Initialize current month to first meeting date if available
+            if (meetingsRes.data && meetingsRes.data.length > 0) {
+              const firstDate = new Date(meetingsRes.data[0].date);
+              if (!isNaN(firstDate.getTime())) {
+                setToClassCurrentMonth(new Date(firstDate.getFullYear(), firstDate.getMonth(), 1));
+              }
+            }
+          } catch (error: any) {
+            console.error("Error loading to class data:", error);
+            setToClassMeetings([]);
+            setToClassDetail(null);
+          }
+        }
+      } catch (error: any) {
+        console.error("Error loading class data:", error);
+      } finally {
+        setIsLoadingClassData(false);
+      }
+    };
+
+    loadClassData();
+  }, [isOpen, request?.id, request?.requestType, request?.fromClassID, request?.toClassID]);
 
   const getStatusLabelFromHistory = (statusID: string): string => {
     const lookup = statusLookups.find(
@@ -284,6 +365,180 @@ export default function RequestDetailDialog({
     }
   };
 
+  // Helper function to get time from slot
+  const getTimeFromSlot = (slot: string): string => {
+    if (!slot) return slot;
+    // Try to extract time from slot string (e.g., "Slot 1 (09:00 - 10:30)" or "09:00")
+    const timeMatch = slot.match(/(\d{2}:\d{2})/);
+    if (timeMatch) {
+      return timeMatch[1];
+    }
+    return slot;
+  };
+
+  // Schedule Calendar Component
+  const ScheduleCalendar = ({ 
+    meetings, 
+    currentMonth, 
+    onMonthChange,
+    theme = "blue" 
+  }: { 
+    meetings: ClassMeetingResponseDTO[];
+    currentMonth: Date;
+    onMonthChange: (date: Date) => void;
+    theme?: "blue" | "green";
+  }) => {
+    const monthNames = ["January", "February", "March", "April", "May", "June", 
+      "July", "August", "September", "October", "November", "December"];
+    const dayNames = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+    // Parse meeting dates
+    const meetingDates: Date[] = [];
+    const meetingTimes = new Map<string, string>();
+    
+    meetings.forEach((meeting) => {
+      const dateStr = meeting.date;
+      if (!dateStr) return;
+      
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return;
+      
+      const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      meetingDates.push(normalizedDate);
+      const slotCode = meeting.slot || '';
+      const timeDisplay = getTimeFromSlot(slotCode);
+      const dateKey = normalizedDate.toISOString().split('T')[0];
+      meetingTimes.set(dateKey, timeDisplay);
+    });
+
+    // Group by month
+    const meetingsByMonth = new Map<string, Date[]>();
+    meetingDates.forEach(date => {
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      if (!meetingsByMonth.has(monthKey)) {
+        meetingsByMonth.set(monthKey, []);
+      }
+      meetingsByMonth.get(monthKey)!.push(date);
+    });
+
+    const currentMonthKey = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`;
+    const dates = meetingsByMonth.get(currentMonthKey) || [];
+    
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth() + 1;
+    
+    // Get calendar days for current month
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+    const calendarDays: (Date | null)[] = [];
+    
+    let firstDayOfWeek = firstDay.getDay();
+    
+    for (let i = 0; i < firstDayOfWeek; i++) {
+      calendarDays.push(null);
+    }
+    
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+      calendarDays.push(new Date(year, month - 1, i));
+    }
+
+    // Navigation handlers
+    const handlePrevMonth = () => {
+      onMonthChange(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+    };
+
+    const handleNextMonth = () => {
+      onMonthChange(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+    };
+
+    const borderColor = theme === "blue" ? "border-blue-200" : "border-green-200";
+    const bgColor = theme === "blue" ? "bg-blue-500" : "bg-green-500";
+    const hoverColor = theme === "blue" ? "hover:bg-blue-50" : "hover:bg-green-50";
+    const todayBgColor = theme === "blue" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700";
+
+    return (
+      <div className={`mt-3 bg-white rounded-lg border ${borderColor}`}>
+        {/* Navigation */}
+        <div className={`flex items-center justify-between px-3 py-2.5 border-b ${borderColor}`}>
+          <button
+            type="button"
+            onClick={handlePrevMonth}
+            className={`h-8 w-8 flex items-center justify-center rounded-md border border-gray-300 ${hoverColor} transition-colors`}
+            aria-label="Previous month"
+          >
+            <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <h5 className="text-sm font-bold text-gray-900">
+            {monthNames[month - 1]} {year}
+          </h5>
+          <button
+            type="button"
+            onClick={handleNextMonth}
+            className={`h-8 w-8 flex items-center justify-center rounded-md border border-gray-300 ${hoverColor} transition-colors`}
+            aria-label="Next month"
+          >
+            <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+        
+        <div className="p-3">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {dayNames.map(day => (
+              <div key={day} className="text-center text-xs font-semibold text-gray-600 h-7 flex items-center justify-center">
+                {day}
+              </div>
+            ))}
+          </div>
+          {/* Calendar grid */}
+          <div className="grid grid-cols-7 gap-1">
+            {calendarDays.map((day, idx) => {
+              if (!day) {
+                return <div key={idx} className="h-7"></div>;
+              }
+              
+              const dayKey = day.toISOString().split('T')[0];
+              const hasMeeting = dates.some((d: Date) => d.toISOString().split('T')[0] === dayKey);
+              const isToday = day.toDateString() === new Date().toDateString();
+              const time = meetingTimes.get(dayKey);
+              
+              return (
+                <div
+                  key={idx}
+                  className={`h-7 flex items-center justify-center text-xs rounded ${
+                    hasMeeting
+                      ? `${bgColor} text-white font-semibold`
+                      : isToday
+                      ? `${todayBgColor} font-medium`
+                      : 'text-gray-700'
+                  }`}
+                  title={hasMeeting && time ? `Class at ${time}` : undefined}
+                >
+                  {day.getDate()}
+                </div>
+              );
+            })}
+          </div>
+          {/* Legend */}
+          <div className={`mt-3 pt-3 border-t ${borderColor} flex items-center gap-4 text-xs text-gray-600`}>
+            <div className="flex items-center gap-1.5">
+              <div className={`w-3 h-3 ${bgColor} rounded`}></div>
+              <span>Class session</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className={`w-3 h-3 ${todayBgColor} rounded`}></div>
+              <span>Today</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const getTypeSpecificDetails = (req: AcademicRequest): React.ReactNode => {
     switch (req.requestType) {
       case "class_transfer":
@@ -297,6 +552,122 @@ export default function RequestDetailDialog({
             )}
             {req.effectiveDate && (
               <p><span className="font-medium">Effective Date:</span> {new Date(req.effectiveDate).toLocaleDateString()}</p>
+            )}
+
+            {/* From Class Schedule Display */}
+            {fromClassDetail && (
+              <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Calendar className="w-4 h-4 text-blue-600" />
+                  <h4 className="text-sm font-semibold text-blue-900">From Class Schedule</h4>
+                </div>
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="flex items-center gap-1">
+                      <User className="w-3 h-3" />
+                      <span className="font-medium text-gray-700">Class:</span>
+                      <span className="text-gray-900">{fromClassDetail.className}</span>
+                    </div>
+                    {fromClassDetail.teacherName && (
+                      <div className="flex items-center gap-1">
+                        <User className="w-3 h-3 text-gray-500" />
+                        <span className="font-medium text-gray-700">Teacher:</span>
+                        <span className="text-gray-900">{fromClassDetail.teacherName}</span>
+                      </div>
+                    )}
+                    {fromClassDetail.room && (
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-gray-500" />
+                        <span className="font-medium text-gray-700">Room:</span>
+                        <span className="text-gray-900">{fromClassDetail.room}</span>
+                      </div>
+                    )}
+                    {fromClassDetail.startDate && (
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-gray-500" />
+                        <span className="font-medium text-gray-700">Duration:</span>
+                        <span className="text-gray-900">
+                          {new Date(fromClassDetail.startDate).toLocaleDateString()} 
+                          {fromClassDetail.endDate && ` - ${new Date(fromClassDetail.endDate).toLocaleDateString()}`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  {fromClassMeetings.length > 0 ? (
+                    <ScheduleCalendar
+                      meetings={fromClassMeetings}
+                      currentMonth={fromClassCurrentMonth}
+                      onMonthChange={setFromClassCurrentMonth}
+                      theme="blue"
+                    />
+                  ) : (
+                    !isLoadingClassData && (
+                      <p className="text-xs text-gray-500 italic">No schedule information available</p>
+                    )
+                  )}
+                  {isLoadingClassData && (
+                    <p className="text-xs text-gray-500 italic">Loading schedule...</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* To Class Schedule Display */}
+            {toClassDetail && (
+              <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Calendar className="w-4 h-4 text-green-600" />
+                  <h4 className="text-sm font-semibold text-green-900">To Class Schedule</h4>
+                </div>
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="flex items-center gap-1">
+                      <User className="w-3 h-3" />
+                      <span className="font-medium text-gray-700">Class:</span>
+                      <span className="text-gray-900">{toClassDetail.className}</span>
+                    </div>
+                    {toClassDetail.teacherName && (
+                      <div className="flex items-center gap-1">
+                        <User className="w-3 h-3 text-gray-500" />
+                        <span className="font-medium text-gray-700">Teacher:</span>
+                        <span className="text-gray-900">{toClassDetail.teacherName}</span>
+                      </div>
+                    )}
+                    {toClassDetail.room && (
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-gray-500" />
+                        <span className="font-medium text-gray-700">Room:</span>
+                        <span className="text-gray-900">{toClassDetail.room}</span>
+                      </div>
+                    )}
+                    {toClassDetail.startDate && (
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-gray-500" />
+                        <span className="font-medium text-gray-700">Duration:</span>
+                        <span className="text-gray-900">
+                          {new Date(toClassDetail.startDate).toLocaleDateString()} 
+                          {toClassDetail.endDate && ` - ${new Date(toClassDetail.endDate).toLocaleDateString()}`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  {toClassMeetings.length > 0 ? (
+                    <ScheduleCalendar
+                      meetings={toClassMeetings}
+                      currentMonth={toClassCurrentMonth}
+                      onMonthChange={setToClassCurrentMonth}
+                      theme="green"
+                    />
+                  ) : (
+                    !isLoadingClassData && (
+                      <p className="text-xs text-gray-500 italic">No schedule information available</p>
+                    )
+                  )}
+                  {isLoadingClassData && (
+                    <p className="text-xs text-gray-500 italic">Loading schedule...</p>
+                  )}
+                </div>
+              </div>
             )}
           </>
         );
@@ -665,6 +1036,124 @@ export default function RequestDetailDialog({
                       </div>
                     )}
                   </div>
+
+                  {/* From Class Schedule Display */}
+                  {request.fromClassID && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Calendar className="w-4 h-4 text-blue-600" />
+                        <h4 className="text-sm font-semibold text-blue-900">From Class Schedule</h4>
+                      </div>
+                      {isLoadingClassData ? (
+                        <p className="text-xs text-gray-500 italic">Loading schedule...</p>
+                      ) : fromClassDetail ? (
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="flex items-center gap-1">
+                              <User className="w-3 h-3" />
+                              <span className="font-medium text-gray-700">Class:</span>
+                              <span className="text-gray-900">{fromClassDetail.className}</span>
+                            </div>
+                            {fromClassDetail.teacherName && (
+                              <div className="flex items-center gap-1">
+                                <User className="w-3 h-3 text-gray-500" />
+                                <span className="font-medium text-gray-700">Teacher:</span>
+                                <span className="text-gray-900">{fromClassDetail.teacherName}</span>
+                              </div>
+                            )}
+                            {fromClassDetail.room && (
+                              <div className="flex items-center gap-1">
+                                <MapPin className="w-3 h-3 text-gray-500" />
+                                <span className="font-medium text-gray-700">Room:</span>
+                                <span className="text-gray-900">{fromClassDetail.room}</span>
+                              </div>
+                            )}
+                            {fromClassDetail.startDate && (
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-gray-500" />
+                                <span className="font-medium text-gray-700">Duration:</span>
+                                <span className="text-gray-900">
+                                  {new Date(fromClassDetail.startDate).toLocaleDateString()} 
+                                  {fromClassDetail.endDate && ` - ${new Date(fromClassDetail.endDate).toLocaleDateString()}`}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          {fromClassMeetings.length > 0 ? (
+                            <ScheduleCalendar
+                              meetings={fromClassMeetings}
+                              currentMonth={fromClassCurrentMonth}
+                              onMonthChange={setFromClassCurrentMonth}
+                              theme="blue"
+                            />
+                          ) : (
+                            <p className="text-xs text-gray-500 italic">No schedule information available</p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-500 italic">Failed to load schedule information</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* To Class Schedule Display */}
+                  {request.toClassID && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Calendar className="w-4 h-4 text-green-600" />
+                        <h4 className="text-sm font-semibold text-green-900">To Class Schedule</h4>
+                      </div>
+                      {isLoadingClassData ? (
+                        <p className="text-xs text-gray-500 italic">Loading schedule...</p>
+                      ) : toClassDetail ? (
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="flex items-center gap-1">
+                              <User className="w-3 h-3" />
+                              <span className="font-medium text-gray-700">Class:</span>
+                              <span className="text-gray-900">{toClassDetail.className}</span>
+                            </div>
+                            {toClassDetail.teacherName && (
+                              <div className="flex items-center gap-1">
+                                <User className="w-3 h-3 text-gray-500" />
+                                <span className="font-medium text-gray-700">Teacher:</span>
+                                <span className="text-gray-900">{toClassDetail.teacherName}</span>
+                              </div>
+                            )}
+                            {toClassDetail.room && (
+                              <div className="flex items-center gap-1">
+                                <MapPin className="w-3 h-3 text-gray-500" />
+                                <span className="font-medium text-gray-700">Room:</span>
+                                <span className="text-gray-900">{toClassDetail.room}</span>
+                              </div>
+                            )}
+                            {toClassDetail.startDate && (
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-gray-500" />
+                                <span className="font-medium text-gray-700">Duration:</span>
+                                <span className="text-gray-900">
+                                  {new Date(toClassDetail.startDate).toLocaleDateString()} 
+                                  {toClassDetail.endDate && ` - ${new Date(toClassDetail.endDate).toLocaleDateString()}`}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          {toClassMeetings.length > 0 ? (
+                            <ScheduleCalendar
+                              meetings={toClassMeetings}
+                              currentMonth={toClassCurrentMonth}
+                              onMonthChange={setToClassCurrentMonth}
+                              theme="green"
+                            />
+                          ) : (
+                            <p className="text-xs text-gray-500 italic">No schedule information available</p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-500 italic">Failed to load schedule information</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
