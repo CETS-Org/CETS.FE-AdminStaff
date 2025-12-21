@@ -8,7 +8,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import RequestCard from "./components/RequestCard";
 import Pagination from "@/shared/pagination";
-import { Search, Filter, Clock, CheckCircle, XCircle, Calendar, X, TrendingUp, Download, SortAsc, SortDesc, FileText, Zap, MessageSquare, AlertCircle } from "lucide-react";
+import { Search, Filter, Clock, CheckCircle, XCircle, Calendar, X, TrendingUp, Download, SortAsc, SortDesc, FileText, Zap, MessageSquare, AlertCircle, RefreshCw } from "lucide-react";
 import RequestDetailDialog from "./components/RequestDetailDialog";
 import ConfirmRequestDialog from "./components/ConfirmRequestDialog";
 import { getAllAcademicRequests, getAcademicRequestsByStatus, processAcademicRequest } from "@/api/academicRequest.api";
@@ -21,6 +21,7 @@ export default function StaffRequestPage() {
   const { showToast, toasts, hideToast } = useToast();
   const [requests, setRequests] = useState<AcademicRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
@@ -193,6 +194,30 @@ export default function StaffRequestPage() {
       fetchRequests();
     }
   }, [filterStatus, statusMap, mapToRequest]);
+
+  // Refresh handler
+  const handleRefresh = async () => {
+    try {
+      setIsRefreshing(true);
+      let response;
+      
+      if (filterStatus !== "all" && statusMap.has(filterStatus)) {
+        const statusId = statusMap.get(filterStatus)!;
+        response = await getAcademicRequestsByStatus(statusId);
+      } else {
+        response = await getAllAcademicRequests();
+      }
+      
+      const mappedRequests = response.data.map(mapToRequest);
+      setRequests(mappedRequests);
+      showToast("Requests refreshed successfully", "success");
+    } catch (error) {
+      console.error("Error refreshing academic requests:", error);
+      showToast("Failed to refresh requests", "error");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
     // Statistics calculations
     const stats = {
@@ -704,13 +729,24 @@ export default function StaffRequestPage() {
                 </p>
               </div>
             </div>
-            <Button 
-              onClick={handleExport}
-              variant="secondary"
-              iconLeft={<Download className="w-4 h-4" />}
-            >
-              Export
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                onClick={handleRefresh}
+                variant="secondary"
+                iconLeft={<RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />}
+                loading={isRefreshing}
+                disabled={isRefreshing}
+              >
+                Refresh
+              </Button>
+              <Button 
+                onClick={handleExport}
+                variant="secondary"
+                iconLeft={<Download className="w-4 h-4" />}
+              >
+                Export
+              </Button>
+            </div>
           </div>
 
         {/* Bulk Actions and Sorting */}

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -11,9 +11,16 @@ interface ToastState {
 export function useToast() {
   const [toasts, setToasts] = useState<ToastState[]>([]);
 
-  const showToast = useCallback((message: string, type: ToastType = 'info') => {
+  const showToast = useCallback((message: string, type: ToastType = 'info', duration: number = 3000) => {
     const id = Date.now();
     setToasts(prev => [...prev, { message, type, id }]);
+    
+    // Auto-dismiss after duration
+    if (duration > 0) {
+      setTimeout(() => {
+        setToasts(prev => prev.filter(toast => toast.id !== id));
+      }, duration);
+    }
   }, []);
 
   const hideToast = useCallback((id: number) => {
