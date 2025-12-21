@@ -320,8 +320,19 @@ export default function AddEditClassPage() {
         if (isEdit) {
            setIsLoadingRooms(true); 
            try {
-              const roomRes = await getRoomOptions();
-              setRoomOptions(roomRes.data);
+              // Chỉ load rooms nếu có đủ thông tin schedule, startDate, endDate
+              if (scheduleRows.length > 0 && formData.startDate && formData.endDate) {
+                const apiSchedules: ClassScheduleInput[] = scheduleRows.map((row) => ({
+                  timeSlotID: row.timeSlotID,
+                  dayOfWeek: DAY_MAP[row.dayOfWeek]
+                }));
+                const roomRes = await getRoomOptions({
+                  schedules: apiSchedules,
+                  startDate: formData.startDate,
+                  endDate: formData.endDate
+                });
+                setRoomOptions(roomRes.data);
+              }
            } catch(e) {
               console.error("Failed to load rooms in edit mode", e);
            } finally {
@@ -501,8 +512,18 @@ export default function AddEditClassPage() {
   const reloadRooms = async () => {
     try {
       setIsLoadingRooms(true);
-      const res = await getRoomOptions();
-      setRoomOptions(res.data);
+      if (scheduleRows.length > 0 && formData.startDate && formData.endDate) {
+        const apiSchedules: ClassScheduleInput[] = scheduleRows.map((row) => ({
+          timeSlotID: row.timeSlotID,
+          dayOfWeek: DAY_MAP[row.dayOfWeek]
+        }));
+        const res = await getRoomOptions({
+          schedules: apiSchedules,
+          startDate: formData.startDate,
+          endDate: formData.endDate
+        });
+        setRoomOptions(res.data);
+      }
     } catch (err) {
       console.error(err);
       showErrorMessage("Failed to load rooms.");

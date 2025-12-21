@@ -39,9 +39,6 @@ type GetAvailableRoomsArgs = {
   startDate: string; // "yyyy-MM-dd"
   endDate: string;   // "yyyy-MM-dd"
 };
-export const getRoomOptions = (config?: AxiosRequestConfig) =>
-  api.get<RoomOption[]>(`${endpoint.room}`, config);
-/*
 export const getRoomOptions = (
   args: {
     schedules: ClassScheduleInput[];
@@ -59,7 +56,6 @@ export const getRoomOptions = (
     },
     config
   );
-*/
 // ================== TEACHER ==================
 
 export const getAvailableTeachersForClass = (
