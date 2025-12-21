@@ -8,21 +8,20 @@ interface DropoutTrendPoint {
   retentionRate: number;
 }
 
-interface DropoutByClass {
-  classId: string;
-  className: string;
+interface DropoutByCourse {
+  courseId: string;
   courseName: string;
+  courseCode?: string;
   totalStudents: number;
   droppedOut: number;
   dropoutRate: number;
-  startDate: string;
-  status: string;
+  numberOfClasses: number;
 }
 
 interface DropoutAnalysisCardProps {
   overallDropoutRate: number;
   dropoutTrend: DropoutTrendPoint[];
-  dropoutByClass: DropoutByClass[];
+  dropoutByCourse: DropoutByCourse[];
   averageTimeToDropout: number;
   recommendations: string[];
   loading?: boolean;
@@ -31,7 +30,7 @@ interface DropoutAnalysisCardProps {
 export default function DropoutAnalysisCard({
   overallDropoutRate,
   dropoutTrend,
-  dropoutByClass,
+  dropoutByCourse,
   averageTimeToDropout,
   recommendations,
   loading = false,
@@ -90,39 +89,35 @@ export default function DropoutAnalysisCard({
           </div>
         </div>
 
-        {/* Dropout by Class */}
+        {/* Dropout by Course */}
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 mb-4">Dropout by Class</h4>
+          <h4 className="text-sm font-semibold text-gray-900 mb-4">Dropout by Course</h4>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Class Name</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Course</th>
-                  <th className="text-center py-3 px-4 font-medium text-gray-700">Status</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Course Name</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Course Code</th>
                   <th className="text-right py-3 px-4 font-medium text-gray-700">Total Students</th>
                   <th className="text-right py-3 px-4 font-medium text-gray-700">Dropped Out</th>
                   <th className="text-right py-3 px-4 font-medium text-gray-700">Dropout Rate</th>
+                  <th className="text-right py-3 px-4 font-medium text-gray-700">Classes</th>
                 </tr>
               </thead>
               <tbody>
-                {dropoutByClass.length > 0 ? (
-                  dropoutByClass.slice(0, 10).map((cls, index) => (
-                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-3 px-4 text-gray-900 font-medium">{cls.className}</td>
-                      <td className="py-3 px-4 text-gray-600">{cls.courseName}</td>
-                      <td className="py-3 px-4 text-center">
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                          {cls.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right text-gray-900">{cls.totalStudents}</td>
-                      <td className="py-3 px-4 text-right font-medium text-red-600">{cls.droppedOut}</td>
+                {dropoutByCourse.length > 0 ? (
+                  dropoutByCourse.slice(0, 10).map((course, index) => (
+                    <tr key={course.courseId || index} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-3 px-4 text-gray-900 font-medium">{course.courseName}</td>
+                      <td className="py-3 px-4 text-gray-600">{course.courseCode || 'N/A'}</td>
+                      <td className="py-3 px-4 text-right text-gray-900">{course.totalStudents}</td>
+                      <td className="py-3 px-4 text-right font-medium text-red-600">{course.droppedOut}</td>
                       <td className="py-3 px-4 text-right">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getDropoutRateColor(cls.dropoutRate)}`}>
-                          {cls.dropoutRate.toFixed(1)}%
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getDropoutRateColor(course.dropoutRate)}`}>
+                          {course.dropoutRate.toFixed(1)}%
                         </span>
                       </td>
+                      <td className="py-3 px-4 text-right text-gray-600">{course.numberOfClasses}</td>
                     </tr>
                   ))
                 ) : (

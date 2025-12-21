@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Routes, Route, useNavigate } from "react-router-dom";
+import { Routes, Route, useNavigate, Navigate } from "react-router-dom";
 import GenericNavbar from "@/shared/GenericNavbar";
 import { createAdminNavbarConfig } from "@/shared/navbarConfigs";
 import AdminSidebar from "@/shared/AdminSidebar";
@@ -82,7 +82,7 @@ export default function AdminHome() {
       >
             <div className="px-6 lg:px-8">
                 <Routes>
-                    <Route path="/" element={<AdminAnalytics />} />
+                    <Route path="/" element={<Navigate to="/admin/courses" replace />} />
                     <Route path="analytics" element={<AdminAnalytics />} />
                     <Route path="staffs" element={<AdminStaffPage />} />
                     <Route path="staffs/:id" element={<StaffDetailPage />} />

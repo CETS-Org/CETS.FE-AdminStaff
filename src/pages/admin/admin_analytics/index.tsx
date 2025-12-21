@@ -7,8 +7,10 @@ import {
   RefreshCw,
   Calendar,
   BarChart3,
-  Activity
+  Activity,
+  Download
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import Card from '@/components/ui/Card';
 import PageHeader from '@/components/ui/PageHeader';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
@@ -79,7 +81,7 @@ export default function AdminAnalytics() {
     dropoutTrend: [],
     topReasons: [],
     demographicAnalysis: [],
-    dropoutByClass: [],
+    dropoutByCourse: [],
     highRiskStudents: 0,
     averageTimeToDropout: 0,
     recommendations: [],
@@ -95,7 +97,7 @@ export default function AdminAnalytics() {
     monthlyTrend: [],
     quarterlyTrend: [],
     topGrowingCourses: [],
-    enrollmentByClass: [],
+    enrollmentByCourse: [],
     insights: [],
   });
   
@@ -256,6 +258,241 @@ export default function AdminAnalytics() {
     return `Revenue by ${periodName}`;
   };
 
+  const handleExportToExcel = () => {
+    try {
+      const workbook = XLSX.utils.book_new();
+
+      // Sheet 1: Summary
+      const summaryData = [
+        { Metric: 'Monthly Revenue', Value: formatCurrency(revenueData.currentMonth) },
+        { Metric: 'Quarterly Revenue', Value: formatCurrency(revenueData.currentQuarter) },
+        { Metric: 'Yearly Revenue', Value: formatCurrency(revenueData.currentYear) },
+        { Metric: 'Projected Next Month', Value: formatCurrency(revenueData.projectedNextMonth) },
+        { Metric: 'Total Courses', Value: topCourses.totalCourses },
+        { Metric: 'Total Enrollments', Value: topCourses.totalEnrollments },
+        { Metric: 'Average Enrollment Per Course', Value: topCourses.averageEnrollmentPerCourse.toFixed(2) },
+        { Metric: 'Overall Dropout Rate', Value: `${dropoutData.overallDropoutRate.toFixed(2)}%` },
+        { Metric: 'High Risk Students', Value: dropoutData.highRiskStudents },
+        { Metric: 'Average Time to Dropout (days)', Value: dropoutData.averageTimeToDropout.toFixed(1) },
+        { Metric: 'Total Enrollments', Value: enrollmentData.totalEnrollments },
+        { Metric: 'Active Enrollments', Value: enrollmentData.activeEnrollments },
+        { Metric: 'Completed Enrollments', Value: enrollmentData.completedEnrollments },
+        { Metric: 'Dropped Enrollments', Value: enrollmentData.droppedEnrollments },
+        { Metric: 'Month Over Month Growth', Value: `${enrollmentData.monthOverMonthGrowth > 0 ? '+' : ''}${enrollmentData.monthOverMonthGrowth.toFixed(2)}%` },
+        { Metric: 'Quarter Over Quarter Growth', Value: `${enrollmentData.quarterOverQuarterGrowth > 0 ? '+' : ''}${enrollmentData.quarterOverQuarterGrowth.toFixed(2)}%` },
+        { Metric: 'Total Exit Surveys', Value: exitSurveyData.totalSurveys },
+        { Metric: 'Surveys This Month', Value: exitSurveyData.surveysThisMonth },
+        { Metric: 'Surveys This Year', Value: exitSurveyData.surveysThisYear },
+        { Metric: 'Last Updated', Value: lastUpdated.toLocaleString('en-US') },
+      ];
+      const summarySheet = XLSX.utils.json_to_sheet(summaryData);
+      XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+
+      // Sheet 2: Revenue Analysis
+      const revenueDataExport = getRevenueDataForPeriod().map(item => ({
+        Period: item.period,
+        Revenue: item.revenue,
+        'Revenue (VND)': formatCurrency(item.revenue),
+        Growth: `${item.growth > 0 ? '+' : ''}${item.growth.toFixed(2)}%`,
+        'Transaction Count': item.transactionCount,
+      }));
+      const revenueSheet = XLSX.utils.json_to_sheet(revenueDataExport);
+      XLSX.utils.book_append_sheet(workbook, revenueSheet, 'Revenue Analysis');
+
+      // Sheet 3: Top Courses
+      const topCoursesData = topCourses.topCourses.map(course => ({
+        'Course Name': course.courseName,
+        'Course Code': course.courseCode,
+        Category: course.category,
+        'Total Enrollments': course.totalEnrollments,
+        'Active Enrollments': course.activeEnrollments,
+        'Completion Rate': `${course.completionRate.toFixed(2)}%`,
+        'Average Rating': course.averageRating.toFixed(2),
+        Revenue: course.revenue,
+        'Revenue (VND)': formatCurrency(course.revenue),
+        Trend: course.trend,
+        'Growth Rate': `${course.growthRate > 0 ? '+' : ''}${course.growthRate.toFixed(2)}%`,
+      }));
+      const topCoursesSheet = XLSX.utils.json_to_sheet(topCoursesData);
+      XLSX.utils.book_append_sheet(workbook, topCoursesSheet, 'Top Courses');
+
+      // Sheet 4: Dropout Analysis
+      const dropoutTrendData = dropoutData.dropoutTrend.map(item => ({
+        Period: item.period,
+        'Total Students': item.totalStudents,
+        'Dropped Out': item.droppedOut,
+        'Dropout Rate': `${item.dropoutRate.toFixed(2)}%`,
+        'Retention Rate': `${item.retentionRate.toFixed(2)}%`,
+      }));
+      const dropoutTrendSheet = XLSX.utils.json_to_sheet(dropoutTrendData);
+      XLSX.utils.book_append_sheet(workbook, dropoutTrendSheet, 'Dropout Trend');
+
+      // Dropout Reasons
+      const dropoutReasonsData = dropoutData.topReasons.map(reason => ({
+        Reason: reason.reason,
+        Count: reason.count,
+        Percentage: `${reason.percentage.toFixed(2)}%`,
+      }));
+      const dropoutReasonsSheet = XLSX.utils.json_to_sheet(dropoutReasonsData);
+      XLSX.utils.book_append_sheet(workbook, dropoutReasonsSheet, 'Dropout Reasons');
+
+      // Dropout by Course (from API)
+      const dropoutByCourseData = (dropoutData.dropoutByCourse || []).map(course => ({
+        'Course Name': course.courseName,
+        'Course Code': course.courseCode || 'N/A',
+        'Total Students': course.totalStudents,
+        'Dropped Out': course.droppedOut,
+        'Dropout Rate': `${course.dropoutRate.toFixed(2)}%`,
+        'Number of Classes': course.numberOfClasses,
+      }));
+
+      const dropoutByCourseSheet = XLSX.utils.json_to_sheet(dropoutByCourseData);
+      XLSX.utils.book_append_sheet(workbook, dropoutByCourseSheet, 'Dropout by Course');
+
+      // Dropout Recommendations
+      const dropoutRecommendationsData = dropoutData.recommendations.map((rec, index) => ({
+        '#': index + 1,
+        Recommendation: rec,
+      }));
+      const dropoutRecommendationsSheet = XLSX.utils.json_to_sheet(dropoutRecommendationsData);
+      XLSX.utils.book_append_sheet(workbook, dropoutRecommendationsSheet, 'Dropout Recommendations');
+
+      // Sheet 5: Enrollment Analysis
+      const enrollmentTrendData = enrollmentData.monthlyTrend.map(item => ({
+        Period: item.period,
+        'Total Enrollments': item.totalEnrollments,
+        'Active Enrollments': item.activeEnrollments,
+        'Completed Enrollments': item.completedEnrollments,
+        'Dropped Enrollments': item.droppedEnrollments,
+        'Growth Rate': `${item.growthRate > 0 ? '+' : ''}${item.growthRate.toFixed(2)}%`,
+      }));
+      const enrollmentTrendSheet = XLSX.utils.json_to_sheet(enrollmentTrendData);
+      XLSX.utils.book_append_sheet(workbook, enrollmentTrendSheet, 'Enrollment Trend');
+
+      // Top Growing Courses
+      const topGrowingCoursesData = enrollmentData.topGrowingCourses.map(course => ({
+        'Course Name': course.courseName,
+        'Course Code': course.courseCode,
+        Category: course.category,
+        'Total Enrollments': course.totalEnrollments,
+        'Active Enrollments': course.activeEnrollments,
+        'Growth Rate': `${course.growthRate > 0 ? '+' : ''}${course.growthRate.toFixed(2)}%`,
+        Trend: course.trend,
+      }));
+      const topGrowingCoursesSheet = XLSX.utils.json_to_sheet(topGrowingCoursesData);
+      XLSX.utils.book_append_sheet(workbook, topGrowingCoursesSheet, 'Top Growing Courses');
+
+      // Enrollment by Course (from API)
+      const enrollmentByCourseData = (enrollmentData.enrollmentByCourse || []).map(course => ({
+        'Course Name': course.courseName,
+        'Course Code': course.courseCode || 'N/A',
+        'Total Enrollments': course.totalEnrollments,
+        'Active Enrollments': course.activeEnrollments,
+        'Completed Enrollments': course.completedEnrollments,
+        'Dropped Enrollments': course.droppedEnrollments,
+        'Number of Classes': course.numberOfClasses,
+      }));
+
+      const enrollmentByCourseSheet = XLSX.utils.json_to_sheet(enrollmentByCourseData);
+      XLSX.utils.book_append_sheet(workbook, enrollmentByCourseSheet, 'Enrollment by Course');
+
+      // Enrollment Insights
+      const enrollmentInsightsData = enrollmentData.insights.map((insight, index) => ({
+        '#': index + 1,
+        Insight: insight,
+      }));
+      const enrollmentInsightsSheet = XLSX.utils.json_to_sheet(enrollmentInsightsData);
+      XLSX.utils.book_append_sheet(workbook, enrollmentInsightsSheet, 'Enrollment Insights');
+
+      // Sheet 6: Exit Survey Analysis
+      const exitSurveySummaryData = [
+        { Metric: 'Total Surveys', Value: exitSurveyData.totalSurveys },
+        { Metric: 'Surveys This Month', Value: exitSurveyData.surveysThisMonth },
+        { Metric: 'Surveys This Year', Value: exitSurveyData.surveysThisYear },
+      ];
+      const exitSurveySummarySheet = XLSX.utils.json_to_sheet(exitSurveySummaryData);
+      XLSX.utils.book_append_sheet(workbook, exitSurveySummarySheet, 'Exit Survey Summary');
+
+      // Reason Category Statistics
+      const reasonCategoryData = Object.entries(exitSurveyData.reasonCategoryStatistics).map(([category, count]) => ({
+        'Reason Category': category,
+        Count: count,
+        Percentage: exitSurveyData.totalSurveys > 0 
+          ? `${((count / exitSurveyData.totalSurveys) * 100).toFixed(2)}%`
+          : '0%',
+      }));
+      const reasonCategorySheet = XLSX.utils.json_to_sheet(reasonCategoryData);
+      XLSX.utils.book_append_sheet(workbook, reasonCategorySheet, 'Reason Categories');
+
+      // Average Feedback Ratings
+      const feedbackRatingsData = Object.entries(exitSurveyData.averageFeedbackRatings).map(([category, rating]) => ({
+        Category: category,
+        'Average Rating': rating.toFixed(2),
+      }));
+      const feedbackRatingsSheet = XLSX.utils.json_to_sheet(feedbackRatingsData);
+      XLSX.utils.book_append_sheet(workbook, feedbackRatingsSheet, 'Feedback Ratings');
+
+      // Sheet 7: AI Recommendations
+      const aiRecommendationsData = aiRecommendations.recommendations.map(rec => ({
+        Category: rec.category,
+        Priority: rec.priority,
+        Title: rec.title,
+        Description: rec.description,
+        Impact: rec.impact,
+        'Action Items': rec.actionItems.join('; '),
+        'Estimated Revenue Impact': rec.estimatedImpact.revenue ? formatCurrency(rec.estimatedImpact.revenue) : 'N/A',
+        'Estimated Enrollment Impact': rec.estimatedImpact.enrollments || 'N/A',
+        'Estimated Retention Impact': rec.estimatedImpact.retention ? `${rec.estimatedImpact.retention}%` : 'N/A',
+        Confidence: `${rec.confidence}%`,
+        'Generated At': new Date(rec.generatedAt).toLocaleString('en-US'),
+      }));
+      const aiRecommendationsSheet = XLSX.utils.json_to_sheet(aiRecommendationsData);
+      XLSX.utils.book_append_sheet(workbook, aiRecommendationsSheet, 'AI Recommendations');
+
+      // AI Key Insights
+      const aiKeyInsightsData = aiRecommendations.keyInsights.map((insight, index) => ({
+        '#': index + 1,
+        'Key Insight': insight,
+      }));
+      const aiKeyInsightsSheet = XLSX.utils.json_to_sheet(aiKeyInsightsData);
+      XLSX.utils.book_append_sheet(workbook, aiKeyInsightsSheet, 'AI Key Insights');
+
+      // AI Risk Factors
+      const aiRiskFactorsData = aiRecommendations.riskFactors.map((risk, index) => ({
+        '#': index + 1,
+        'Risk Factor': risk,
+      }));
+      const aiRiskFactorsSheet = XLSX.utils.json_to_sheet(aiRiskFactorsData);
+      XLSX.utils.book_append_sheet(workbook, aiRiskFactorsSheet, 'AI Risk Factors');
+
+      // AI Opportunities
+      const aiOpportunitiesData = aiRecommendations.opportunities.map((opportunity, index) => ({
+        '#': index + 1,
+        Opportunity: opportunity,
+      }));
+      const aiOpportunitiesSheet = XLSX.utils.json_to_sheet(aiOpportunitiesData);
+      XLSX.utils.book_append_sheet(workbook, aiOpportunitiesSheet, 'AI Opportunities');
+
+      // AI Summary
+      const aiSummaryData = [
+        { Field: 'Summary', Value: aiRecommendations.summary },
+        { Field: 'Generated At', Value: new Date(aiRecommendations.generatedAt).toLocaleString('en-US') },
+      ];
+      const aiSummarySheet = XLSX.utils.json_to_sheet(aiSummaryData);
+      XLSX.utils.book_append_sheet(workbook, aiSummarySheet, 'AI Summary');
+
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `Analytics_Report_${timestamp}.xlsx`;
+
+      // Write file
+      XLSX.writeFile(workbook, filename);
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      alert('Failed to export analytics data. Please try again.');
+    }
+  };
+
   const breadcrumbItems = [{ label: "Analytics Dashboard" }];
 
   return (
@@ -270,15 +507,26 @@ export default function AdminAnalytics() {
             description="Comprehensive analytics with AI-powered insights"
             icon={<BarChart3 className="w-5 h-5 text-white" />}
           />
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => loadDashboardData()}
-            disabled={loading}
-            iconLeft={<RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />}
-          >
-            Refresh Data
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleExportToExcel}
+              disabled={loading}
+              iconLeft={<Download className="w-4 h-4 mr-2" />}
+            >
+              Export Excel
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => loadDashboardData()}
+              disabled={loading}
+              iconLeft={<RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />}
+            >
+              Refresh Data
+            </Button>
+          </div>
         </div>
 
         {/* Summary Cards */}
@@ -391,7 +639,7 @@ export default function AdminAnalytics() {
             <DropoutAnalysisCard
               overallDropoutRate={dropoutData.overallDropoutRate}
               dropoutTrend={dropoutData.dropoutTrend}
-              dropoutByClass={dropoutData.dropoutByClass}
+              dropoutByCourse={dropoutData.dropoutByCourse}
               averageTimeToDropout={dropoutData.averageTimeToDropout}
               recommendations={dropoutData.recommendations}
               loading={loading}
@@ -411,7 +659,7 @@ export default function AdminAnalytics() {
               monthOverMonthGrowth={enrollmentData.monthOverMonthGrowth}
               monthlyTrend={enrollmentData.monthlyTrend}
               topGrowingCourses={enrollmentData.topGrowingCourses}
-              enrollmentByClass={enrollmentData.enrollmentByClass}
+              enrollmentByCourse={enrollmentData.enrollmentByCourse}
               insights={enrollmentData.insights}
               loading={loading}
             />

@@ -204,7 +204,7 @@ export default function Login() {
       } else if (userRole === "AccountantStaff") {
         navigate("/staff/classes", { replace: true });
       } else if (userRole === "Admin") {
-        navigate("/admin/analytics", { replace: true });
+        navigate("/admin/courses", { replace: true });
       } else {
         // Default fallback for unknown roles
         navigate("/staff/classes", { replace: true });

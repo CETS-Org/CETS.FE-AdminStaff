@@ -64,15 +64,14 @@ export interface DropoutDemographic {
   dropoutRate: number;
 }
 
-export interface DropoutByClass {
-  classId: string;
-  className: string;
+export interface DropoutByCourse {
+  courseId: string;
   courseName: string;
+  courseCode?: string;
   totalStudents: number;
   droppedOut: number;
   dropoutRate: number;
-  startDate: string;
-  status: string;
+  numberOfClasses: number;
 }
 
 export interface StudentDropoutAnalytics {
@@ -80,7 +79,7 @@ export interface StudentDropoutAnalytics {
   dropoutTrend: DropoutPattern[];
   topReasons: DropoutReason[];
   demographicAnalysis: DropoutDemographic[];
-  dropoutByClass: DropoutByClass[];
+  dropoutByCourse: DropoutByCourse[];
   highRiskStudents: number;
   averageTimeToDropout: number; // in days
   recommendations: string[];
@@ -107,15 +106,15 @@ export interface EnrollmentByCourse {
   trend: 'up' | 'down' | 'stable';
 }
 
-export interface EnrollmentByClass {
-  classId: string;
-  className: string;
+export interface EnrollmentByCourseAggregated {
+  courseId: string;
   courseName: string;
+  courseCode?: string;
   totalEnrollments: number;
   activeEnrollments: number;
   completedEnrollments: number;
-  startDate: string;
-  status: string;
+  droppedEnrollments: number;
+  numberOfClasses: number;
 }
 
 export interface StudentEnrollmentAnalytics {
@@ -128,7 +127,7 @@ export interface StudentEnrollmentAnalytics {
   monthlyTrend: EnrollmentTrendPoint[];
   quarterlyTrend: EnrollmentTrendPoint[];
   topGrowingCourses: EnrollmentByCourse[];
-  enrollmentByClass: EnrollmentByClass[];
+  enrollmentByCourse: EnrollmentByCourseAggregated[];
   insights: string[];
 }
 

@@ -20,15 +20,15 @@ interface EnrollmentByCourse {
   trend: 'up' | 'down' | 'stable';
 }
 
-interface EnrollmentByClass {
-  classId: string;
-  className: string;
+interface EnrollmentByCourseAggregated {
+  courseId: string;
   courseName: string;
+  courseCode?: string;
   totalEnrollments: number;
   activeEnrollments: number;
   completedEnrollments: number;
-  startDate: string;
-  status: string;
+  droppedEnrollments: number;
+  numberOfClasses: number;
 }
 
 interface EnrollmentAnalysisCardProps {
@@ -38,7 +38,7 @@ interface EnrollmentAnalysisCardProps {
   monthOverMonthGrowth: number;
   monthlyTrend: EnrollmentTrendPoint[];
   topGrowingCourses: EnrollmentByCourse[];
-  enrollmentByClass?: EnrollmentByClass[];
+  enrollmentByCourse?: EnrollmentByCourseAggregated[];
   insights: string[];
   loading?: boolean;
 }
@@ -50,7 +50,7 @@ export default function EnrollmentAnalysisCard({
   monthOverMonthGrowth,
   monthlyTrend,
   topGrowingCourses,
-  enrollmentByClass = [],
+  enrollmentByCourse = [],
   insights,
   loading = false,
 }: EnrollmentAnalysisCardProps) {
@@ -102,35 +102,33 @@ export default function EnrollmentAnalysisCard({
         </div>
       </div>
 
-      {/* Enrollment by Class */}
-      {enrollmentByClass.length > 0 && (
+      {/* Enrollment by Course */}
+      {enrollmentByCourse.length > 0 && (
         <div>
-          <h4 className="text-sm font-semibold text-gray-900 mb-4">Enrollment by Class</h4>
+          <h4 className="text-sm font-semibold text-gray-900 mb-4">Enrollment by Course</h4>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Class Name</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Course</th>
-                  <th className="text-center py-3 px-4 font-medium text-gray-700">Status</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Course Name</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Course Code</th>
                   <th className="text-right py-3 px-4 font-medium text-gray-700">Total</th>
                   <th className="text-right py-3 px-4 font-medium text-gray-700">Active</th>
                   <th className="text-right py-3 px-4 font-medium text-gray-700">Completed</th>
+                  <th className="text-right py-3 px-4 font-medium text-gray-700">Dropped</th>
+                  <th className="text-right py-3 px-4 font-medium text-gray-700">Classes</th>
                 </tr>
               </thead>
               <tbody>
-                {enrollmentByClass.slice(0, 10).map((cls, index) => (
-                  <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4 text-gray-900 font-medium">{cls.className}</td>
-                    <td className="py-3 px-4 text-gray-600">{cls.courseName}</td>
-                    <td className="py-3 px-4 text-center">
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                        {cls.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-right text-gray-900 font-semibold">{cls.totalEnrollments}</td>
-                    <td className="py-3 px-4 text-right text-green-600 font-medium">{cls.activeEnrollments}</td>
-                    <td className="py-3 px-4 text-right text-blue-600 font-medium">{cls.completedEnrollments}</td>
+                {enrollmentByCourse.slice(0, 10).map((course) => (
+                  <tr key={course.courseId} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-3 px-4 text-gray-900 font-medium">{course.courseName}</td>
+                    <td className="py-3 px-4 text-gray-600">{course.courseCode || 'N/A'}</td>
+                    <td className="py-3 px-4 text-right text-gray-900 font-semibold">{course.totalEnrollments}</td>
+                    <td className="py-3 px-4 text-right text-green-600 font-medium">{course.activeEnrollments}</td>
+                    <td className="py-3 px-4 text-right text-blue-600 font-medium">{course.completedEnrollments}</td>
+                    <td className="py-3 px-4 text-right text-red-600 font-medium">{course.droppedEnrollments}</td>
+                    <td className="py-3 px-4 text-right text-gray-600">{course.numberOfClasses}</td>
                   </tr>
                 ))}
               </tbody>
