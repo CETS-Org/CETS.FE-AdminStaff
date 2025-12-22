@@ -878,11 +878,14 @@ export default function CourseFormPage({ mode }: CourseFormPageProps) {
       // Upload image to R2 if a new file is selected
       if (imageFile) {
         try {
-          // Step 1: Get presigned URL from backend
+          // Step 1: Get presigned URL from backend (authenticated request)
+          const authToken = localStorage.getItem('authToken');
+
           const uploadUrlResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/ACAD_Course/image-upload-url`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
             },
             body: JSON.stringify({
               fileName: imageFile.name,
