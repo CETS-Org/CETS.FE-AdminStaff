@@ -51,13 +51,32 @@ export default function StaffRequestPage() {
     
     // Check both status name and code
     const combinedStatus = `${statusName} ${statusCode}`;
-    if (combinedStatus.includes("approved") || combinedStatus.includes("accept")) {
+    if (
+      combinedStatus.includes("approved") ||
+      combinedStatus.includes("accept") ||
+      combinedStatus.includes("completed") ||
+      combinedStatus.includes("complete")
+    ) {
+      // Treat any kind of "completed" status as approved in the UI
       status = "approved";
-    } else if (combinedStatus.includes("rejected") || combinedStatus.includes("reject") || combinedStatus.includes("denied") || combinedStatus.includes("declined")) {
+    } else if (
+      combinedStatus.includes("rejected") ||
+      combinedStatus.includes("reject") ||
+      combinedStatus.includes("denied") ||
+      combinedStatus.includes("declined")
+    ) {
       status = "rejected";
-    } else if (combinedStatus.includes("underreview") || combinedStatus.includes("under review") || combinedStatus.includes("reviewing")) {
+    } else if (
+      combinedStatus.includes("underreview") ||
+      combinedStatus.includes("under review") ||
+      combinedStatus.includes("reviewing")
+    ) {
       status = "underreview";
-    } else if (combinedStatus.includes("needinfo") || combinedStatus.includes("need info") || combinedStatus.includes("more info")) {
+    } else if (
+      combinedStatus.includes("needinfo") ||
+      combinedStatus.includes("need info") ||
+      combinedStatus.includes("more info")
+    ) {
       status = "needinfo";
     } else {
       status = "pending";
