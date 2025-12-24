@@ -126,6 +126,13 @@ const formatDateToVN = (dateStr: string): string => {
 const DatePickerOverlay = ({ value, onChange, error, disabled }: any) => {
   const dateInputRef = useRef<HTMLInputElement>(null);
 
+  // Minimum selectable date: today + 7 days
+  const minDate = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().split("T")[0];
+  })();
+
   const handleContainerClick = () => {
     if (disabled) return;
     try {
@@ -166,6 +173,7 @@ const DatePickerOverlay = ({ value, onChange, error, disabled }: any) => {
         value={value || ""}
         onChange={onChange}
         disabled={disabled}
+        min={minDate}
         className="absolute inset-0 w-full h-full opacity-0 z-10 pointer-events-none"
         tabIndex={-1} 
       />
@@ -1184,8 +1192,17 @@ export default function AddEditClassPage() {
                  </DialogBody>
                  <DialogFooter>
                      <Button variant="secondary" onClick={() => setIsPostponeOpen(false)}>Cancel</Button>
-                     <Button onClick={handleNotifyPostpone} disabled={isLoading} className="bg-amber-600 hover:bg-amber-700 text-white flex items-center">
-                         {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <MailWarning className="w-4 h-4 mr-2" />} Send Notifications
+                     <Button
+                        onClick={handleNotifyPostpone}
+                        disabled={isLoading}
+                        className="bg-amber-600 hover:bg-amber-700 text-white flex items-center"
+                        iconLeft={
+                          isLoading
+                            ? <Loader2 className="w-4 h-4 animate-spin" />
+                            : <MailWarning className="w-4 h-4" />
+                        }
+                     >
+                        Send Notifications
                      </Button>
                  </DialogFooter>
              </DialogContent>
